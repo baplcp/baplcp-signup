@@ -487,37 +487,47 @@
       box-shadow: 0 10px 20px rgba(87, 104, 255, 0.28);
     }
 
-    @media (max-width: 500px) {
-      body {
-        padding: 0;
-        background: #fff;
-        overflow: hidden;
-      }
-
-    .phone-shell {
-      width: 100%;
-      height: 100vh;
-      border-radius: 0;
-      box-shadow: none;
-      }
-
-      .app-version {
-        padding-bottom: 12px;
-      }
-    }
-
     .app-version {
-      margin-top: 10px;
+      margin-top: 28px;
       text-align: center;
       font-size: 11px;
       line-height: 1.4;
       color: #7a84a7;
       font-variant-numeric: tabular-nums;
     }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 0;
+        background: #fff;
+        overflow: auto;
+        display: block;
+      }
+
+      .app-shell {
+        width: 100%;
+      }
+
+      .phone-shell {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .phone-scroll {
+        overflow: visible;
+      }
+
+      .app-version {
+        margin: 20px 0 12px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div>
+  <div class="app-shell">
     <main class="phone-shell">
       <div class="phone-scroll">
         <header class="nav">
@@ -645,10 +655,10 @@
               </article>
             </div>
           </section>
+          <div class="app-version" id="app-version">v--</div>
         </section>
       </div>
     </main>
-    <div class="app-version" id="app-version">v--</div>
   </div>
   <div class="modal-backdrop" id="login-modal" aria-hidden="true">
     <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
