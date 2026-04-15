@@ -82,7 +82,7 @@
     .hero {
       position: relative;
       background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
-      padding: 18px 19px 92px;
+      padding: 0 19px 92px;
       min-height: 279px;
       overflow: hidden;
     }
@@ -105,7 +105,7 @@
       align-items: center;
       gap: 12px;
       padding: 12px 19px;
-      margin: -18px -19px 0;
+      margin: 0 -19px 0;
       min-height: 57px;
       background: rgba(255, 255, 255, var(--nav-bg-opacity, 0));
       backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
@@ -159,7 +159,7 @@
       grid-template-columns: 161px 178px;
       align-items: center;
       gap: 3px;
-      margin-top: 22px;
+      margin-top: 40px;
     }
 
     .hero-cat {
@@ -169,23 +169,23 @@
 
     .hero-cat img {
       position: absolute;
-      left: 12px;
-      top: 9px;
-      width: 141px;
+      left: -2px;
+      top: -2px;
+      width: 165px;
       height: auto;
       filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
     }
 
     .sparkles {
       position: absolute;
-      left: 0;
-      top: 64px;
-      width: 44px;
-      height: 44px;
+      left: -4px;
+      top: 70px;
+      width: 28px;
+      height: 28px;
       color: rgba(255, 255, 255, 0.92);
-      font-size: 22px;
+      font-size: 18px;
       line-height: 1;
-      letter-spacing: 3px;
+      letter-spacing: 0;
     }
 
     .hero-copy {
@@ -320,6 +320,17 @@
       gap: 10px;
     }
 
+    .footer-fade {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 84px;
+      height: 120px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 68%, #ffffff 100%);
+      pointer-events: none;
+      z-index: 14;
+    }
+
     .cta {
       width: 100%;
       min-height: 57px;
@@ -332,6 +343,7 @@
     }
 
     .version {
+      margin-top: 18px;
       text-align: center;
       font-size: 11px;
       line-height: 1.4;
@@ -440,7 +452,7 @@
 
         <div class="hero-layout">
           <div class="hero-cat" aria-hidden="true">
-            <span class="sparkles">✦ ✦</span>
+            <span class="sparkles">✦</span>
             <img src="./images/hero-cat.png" alt="">
           </div>
           <div class="hero-copy">
@@ -467,12 +479,13 @@
 
       <section class="content">
         <div class="list" id="signup-list"></div>
+        <div class="version" id="app-version">v--</div>
       </section>
     </div>
 
+    <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
       <button class="cta" id="hero-cta" type="button">立即報名或請假</button>
-      <div class="version" id="app-version">v--</div>
     </div>
   </main>
 
@@ -489,7 +502,7 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    var APP_VERSION = "v2026.04.15-v2-02";
+    var APP_VERSION = "v2026.04.15-v2-03";
     var LIFF_ID = "2009808077-q6H0su3r";
     var MEMBERS = [
       { name: "Yu-Ting Chen", badge: "Y", color: "linear-gradient(135deg, #b6c4ff 0%, #6d80ff 100%)" },
