@@ -151,14 +151,6 @@
       opacity: 0;
     }
 
-    .nav-version {
-      font-size: 11px;
-      line-height: 1;
-      color: rgba(255, 255, 255, 0.72);
-      flex: 0 0 auto;
-      font-variant-numeric: tabular-nums;
-    }
-
     .menu-btn {
       width: 24px;
       height: 24px;
@@ -504,166 +496,180 @@
         overflow: hidden;
       }
 
-      .phone-shell {
-        width: 100%;
-        height: 100vh;
-        border-radius: 0;
-        box-shadow: none;
+    .phone-shell {
+      width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
       }
+
+      .app-version {
+        padding-bottom: 12px;
+      }
+    }
+
+    .app-version {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #7a84a7;
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
 <body>
-  <main class="phone-shell">
-    <div class="phone-scroll">
-      <header class="nav">
-        <div class="brand" aria-label="BAPLCP"></div>
-        <div class="nav-title">華江高中臨打報名</div>
-        <div class="nav-version" id="app-version">v--</div>
-        <button class="menu-btn" type="button" aria-label="開啟選單">
-          <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
-        </button>
-      </header>
+  <div>
+    <main class="phone-shell">
+      <div class="phone-scroll">
+        <header class="nav">
+          <div class="brand" aria-label="BAPLCP"></div>
+          <div class="nav-title">華江高中臨打報名</div>
+          <button class="menu-btn" type="button" aria-label="開啟選單">
+            <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
+          </button>
+        </header>
 
-      <section class="hero">
-        <div class="hero-content">
-        <div class="hero-cat" aria-hidden="true">
-          <img class="cat-main" src="./images/hero-cat.png" alt="">
-        </div>
-
-          <div class="hero-copy">
-            <h1>本週臨打區</h1>
-            <p>本週臨打報名及季打請假</p>
-            <button class="cta" type="button">立即報名或請假</button>
+        <section class="hero">
+          <div class="hero-content">
+          <div class="hero-cat" aria-hidden="true">
+            <img class="cat-main" src="./images/hero-cat.png" alt="">
           </div>
-        </div>
-      </section>
 
-      <section class="content">
-        <section class="section" aria-labelledby="profile-title">
-          <h2 id="profile-title">LINE 身分</h2>
-          <div class="profile-card">
-            <img
-              class="profile-avatar"
-              id="profile-avatar"
-              src="./images/icon-team.png"
-              alt="LINE 使用者頭像"
-            >
-            <div class="profile-copy">
-              <p class="profile-label">目前登入狀態</p>
-              <p class="profile-name" id="profile-name">讀取中</p>
-              <p class="profile-status" id="profile-status">正在連線 LINE...</p>
-              <button class="profile-login" id="profile-login" type="button" hidden>使用 LINE 開啟</button>
+            <div class="hero-copy">
+              <h1>本週臨打區</h1>
+              <p>本週臨打報名及季打請假</p>
+              <button class="cta" type="button">立即報名或請假</button>
             </div>
           </div>
         </section>
 
-        <div class="top-cards">
-          <article class="info-card">
-            <p class="info-card-title">季打報名</p>
-            <p class="info-card-subtitle">尚未開放</p>
-          <img src="./images/card-calendar.png" alt="">
-          </article>
-          <article class="info-card">
-            <p class="info-card-title">活動報名</p>
-            <p class="info-card-subtitle">尚無活動</p>
-          <img src="./images/card-party.png" alt="">
-          </article>
-        </div>
+        <section class="content">
+          <section class="section" aria-labelledby="profile-title">
+            <h2 id="profile-title">LINE 身分</h2>
+            <div class="profile-card">
+              <img
+                class="profile-avatar"
+                id="profile-avatar"
+                src="./images/icon-team.png"
+                alt="LINE 使用者頭像"
+              >
+              <div class="profile-copy">
+                <p class="profile-label">目前登入狀態</p>
+                <p class="profile-name" id="profile-name">讀取中</p>
+                <p class="profile-status" id="profile-status">正在連線 LINE...</p>
+                <button class="profile-login" id="profile-login" type="button" hidden>使用 LINE 開啟</button>
+              </div>
+            </div>
+          </section>
 
-        <section class="section" aria-labelledby="utility-title">
-          <h2 id="utility-title">常用功能</h2>
-          <div class="utility-grid">
-            <a class="utility-item" href="#">
-              <div class="utility-icon">
-                <img src="./images/Registration list.png" alt="">
-              </div>
-              <span>臨打名單</span>
-            </a>
-            <a class="utility-item" href="#">
-              <div class="utility-icon">
-                <img src="./images/Team Charter.png" alt="">
-              </div>
-              <span>球隊公約</span>
-            </a>
-            <a class="utility-item" href="#">
-              <div class="utility-icon">
-                <img src="./images/icon-album.png" alt="">
-              </div>
-              <span>活動相簿</span>
-            </a>
-            <a class="utility-item warm" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
-              <div class="utility-icon">
-                <img src="./images/icon-donate.png" alt="">
-              </div>
-              <span>贊助胖貓貓</span>
-            </a>
-          </div>
-        </section>
-
-        <section class="section" aria-labelledby="faq-title">
-          <h2 id="faq-title">常見問題</h2>
-          <div class="faq-list">
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>每週臨打的報名時間是什麼時候？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                一般可在每週公告貼文發布後開始報名。正式上線後可把這段替換成實際規則或表單開放時間。
-              </div>
+          <div class="top-cards">
+            <article class="info-card">
+              <p class="info-card-title">季打報名</p>
+              <p class="info-card-subtitle">尚未開放</p>
+            <img src="./images/card-calendar.png" alt="">
             </article>
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>這個群組的分級強度為何？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                這裡先放示意文字。之後可以改成你的實際球隊分級、強度描述與參加建議。
-              </div>
-            </article>
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>我可以幫非群內的朋友報名嗎？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                可以把這裡改成報名政策，例如是否允許代報、是否需要先加入群組、是否要補填聯絡資訊。
-              </div>
-            </article>
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>如果加入群組後都沒出現會被踢出嗎？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                這一段目前是佔位內容。你之後可以直接把實際管理規則補進來，不用重寫整頁。
-              </div>
-            </article>
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>這個群組的分級強度為何？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                如果這題與上方重複，後續可以改成其他常見提問，或保留作為不同情境的補充說明。
-              </div>
-            </article>
-            <article class="faq-item">
-              <button class="faq-question" type="button" aria-expanded="false">
-                <span>我可以幫非群內的朋友報名嗎？</span>
-                <i class="faq-arrow" aria-hidden="true"></i>
-              </button>
-              <div class="faq-answer">
-                這裡也先保留與設計稿一致的視覺結構，方便你之後換成正式問答內容。
-              </div>
+            <article class="info-card">
+              <p class="info-card-title">活動報名</p>
+              <p class="info-card-subtitle">尚無活動</p>
+            <img src="./images/card-party.png" alt="">
             </article>
           </div>
-        </section>
 
-      </section>
-    </div>
-  </main>
+          <section class="section" aria-labelledby="utility-title">
+            <h2 id="utility-title">常用功能</h2>
+            <div class="utility-grid">
+              <a class="utility-item" href="#">
+                <div class="utility-icon">
+                  <img src="./images/Registration list.png" alt="">
+                </div>
+                <span>臨打名單</span>
+              </a>
+              <a class="utility-item" href="#">
+                <div class="utility-icon">
+                  <img src="./images/Team Charter.png" alt="">
+                </div>
+                <span>球隊公約</span>
+              </a>
+              <a class="utility-item" href="#">
+                <div class="utility-icon">
+                  <img src="./images/icon-album.png" alt="">
+                </div>
+                <span>活動相簿</span>
+              </a>
+              <a class="utility-item warm" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
+                <div class="utility-icon">
+                  <img src="./images/icon-donate.png" alt="">
+                </div>
+                <span>贊助胖貓貓</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="faq-title">
+            <h2 id="faq-title">常見問題</h2>
+            <div class="faq-list">
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>每週臨打的報名時間是什麼時候？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  一般可在每週公告貼文發布後開始報名。正式上線後可把這段替換成實際規則或表單開放時間。
+                </div>
+              </article>
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>這個群組的分級強度為何？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  這裡先放示意文字。之後可以改成你的實際球隊分級、強度描述與參加建議。
+                </div>
+              </article>
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>我可以幫非群內的朋友報名嗎？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  可以把這裡改成報名政策，例如是否允許代報、是否需要先加入群組、是否要補填聯絡資訊。
+                </div>
+              </article>
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>如果加入群組後都沒出現會被踢出嗎？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  這一段目前是佔位內容。你之後可以直接把實際管理規則補進來，不用重寫整頁。
+                </div>
+              </article>
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>這個群組的分級強度為何？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  如果這題與上方重複，後續可以改成其他常見提問，或保留作為不同情境的補充說明。
+                </div>
+              </article>
+              <article class="faq-item">
+                <button class="faq-question" type="button" aria-expanded="false">
+                  <span>我可以幫非群內的朋友報名嗎？</span>
+                  <i class="faq-arrow" aria-hidden="true"></i>
+                </button>
+                <div class="faq-answer">
+                  這裡也先保留與設計稿一致的視覺結構，方便你之後換成正式問答內容。
+                </div>
+              </article>
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+    <div class="app-version" id="app-version">v--</div>
+  </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
