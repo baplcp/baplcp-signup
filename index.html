@@ -500,24 +500,24 @@
       body {
         padding: 0;
         background: #fff;
-        overflow: auto;
-        display: block;
+        overflow: hidden;
+        display: flex;
       }
 
       .app-shell {
         width: 100%;
+        height: 100vh;
       }
 
       .phone-shell {
         width: 100%;
-        height: auto;
-        min-height: 100vh;
+        height: 100vh;
         border-radius: 0;
         box-shadow: none;
       }
 
       .phone-scroll {
-        overflow: visible;
+        overflow-y: auto;
       }
 
       .app-version {
