@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAPLCP 排球報名系統 V2</title>
+  <meta name="description" content="BAPLCP 排球報名系統 V2 版，提供更直接的臨打名額與名單檢視。">
+  <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
+  <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
+  <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
+  <style>
+    :root {
+      --bg: #eef1ff;
+      --surface: #ffffff;
+      --hero-start: #5768ff;
+      --hero-end: #7685ff;
+      --text: #18204f;
+      --muted: #8a91b0;
+      --accent: #ffd49d;
+      --accent-text: #7f5a3e;
+      --line: #edf0fb;
+      --shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, #f5f7ff 0%, #eef1ff 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      overflow: hidden;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      padding: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    .app-shell {
+      width: min(100%, 390px);
+      height: min(844px, calc(100vh - 48px));
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .app-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .app-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hero {
+      position: relative;
+      background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
+      padding: 18px 20px 96px;
+      min-height: 286px;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 24%, rgba(255, 255, 255, 0.12), transparent 26%);
+      pointer-events: none;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      margin: -18px -20px 0;
+      min-height: 52px;
+      background: rgba(255, 255, 255, var(--nav-bg-opacity, 0));
+      backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
+      -webkit-backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
+      box-shadow: 0 1px 0 rgba(16, 24, 64, calc(var(--nav-progress, 0) * 0.08));
+    }
+
+    .brand {
+      width: 65px;
+      height: 22px;
+      background: url("https://www.figma.com/api/mcp/asset/5a247016-db50-433e-b855-443d6b2e0a8a") center/contain no-repeat;
+      flex: 0 0 auto;
+      transition: filter 0.25s ease;
+    }
+
+    .nav-title {
+      flex: 1;
+      opacity: 0;
+      font-size: 15px;
+      color: #fff;
+      text-align: center;
+    }
+
+    .menu-btn {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .menu-btn img {
+      width: 24px;
+      height: 24px;
+      transition: filter 0.25s ease;
+    }
+
+    .nav.is-scrolled {
+      background: rgba(255, 255, 255, var(--nav-bg-opacity, 0.94));
+    }
+
+    .nav.is-scrolled .brand,
+    .nav.is-scrolled .menu-btn img {
+      filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
+    }
+
+    .hero-layout {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 148px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .hero-cat {
+      position: relative;
+      height: 170px;
+    }
+
+    .hero-cat img {
+      position: absolute;
+      left: -26px;
+      top: -4px;
+      width: 206px;
+      height: auto;
+      filter: drop-shadow(-8px 10px 24px rgba(16, 24, 67, 0.4));
+    }
+
+    .sparkles {
+      position: absolute;
+      left: -8px;
+      top: 76px;
+      width: 42px;
+      height: 42px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 4px;
+    }
+
+    .hero-copy {
+      color: #fff;
+    }
+
+    .hero-copy h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-copy p {
+      margin: 10px 0 0;
+      font-size: 15px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .summary-card {
+      position: relative;
+      z-index: 2;
+      margin: -58px 18px 0;
+      padding: 20px 10px 18px;
+      background: var(--surface);
+      border-radius: 22px;
+      box-shadow: 0 16px 40px rgba(71, 82, 163, 0.16);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .summary-item {
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .summary-value {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .summary-item.is-primary .summary-value {
+      color: var(--hero-start);
+    }
+
+    .summary-label {
+      margin: 8px 0 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .content {
+      padding: 18px 18px 110px;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 2px;
+    }
+
+    .rank {
+      width: 18px;
+      flex: 0 0 auto;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--hero-start);
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      background: linear-gradient(135deg, #8aa0ff 0%, #5768ff 100%);
+    }
+
+    .name {
+      flex: 1;
+      min-width: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .status-tag {
+      flex: 0 0 auto;
+      min-width: 44px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f2f4fa;
+      color: #8b92b1;
+      font-size: 12px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .footer-bar {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .cta {
+      width: 100%;
+      min-height: 50px;
+      border-radius: 14px;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-size: 17px;
+      font-weight: 700;
+      box-shadow: 0 14px 30px rgba(255, 212, 157, 0.36);
+    }
+
+    .version {
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #7a84a7;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 24, 67, 0.42);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 80;
+    }
+
+    .modal-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .login-modal {
+      width: min(100%, 332px);
+      padding: 22px 20px 18px;
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: 0 24px 50px rgba(16, 24, 67, 0.22);
+    }
+
+    .login-modal h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .login-modal p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .login-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .login-action {
+      flex: 1;
+      min-height: 46px;
+      border-radius: 999px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .login-action-secondary {
+      background: #eef1ff;
+      color: var(--text);
+    }
+
+    .login-action-primary {
+      background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(87, 104, 255, 0.28);
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 0;
+        display: block;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .app-shell {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .hero {
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="app-scroll">
+      <section class="hero">
+        <header class="nav">
+          <div class="brand" aria-label="BAPLCP"></div>
+          <div class="nav-title">本週臨打區</div>
+          <button class="menu-btn" type="button" aria-label="開啟選單">
+            <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
+          </button>
+        </header>
+
+        <div class="hero-layout">
+          <div class="hero-cat" aria-hidden="true">
+            <span class="sparkles">✦ ✦</span>
+            <img src="./images/hero-cat.png" alt="">
+          </div>
+          <div class="hero-copy">
+            <h1>本週臨打區</h1>
+            <p>本週臨打報名及季打請假</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-card" aria-label="活動摘要">
+        <article class="summary-item is-primary">
+          <p class="summary-value">6</p>
+          <p class="summary-label">剩餘名額</p>
+        </article>
+        <article class="summary-item">
+          <p class="summary-value">0</p>
+          <p class="summary-label">本週臨打</p>
+        </article>
+        <article class="summary-item">
+          <p class="summary-value">12</p>
+          <p class="summary-label">本週季打</p>
+        </article>
+      </section>
+
+      <section class="content">
+        <div class="list" id="signup-list"></div>
+      </section>
+    </div>
+
+    <div class="footer-bar">
+      <button class="cta" id="hero-cta" type="button">立即報名或請假</button>
+      <div class="version" id="app-version">v--</div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="login-modal" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <h3 id="login-modal-title">先用 LINE 驗證身分</h3>
+      <p>V2 一樣沿用 LINE 身分驗證，避免重複報名，也方便後續直接帶入名稱與頭像。</p>
+      <div class="login-actions">
+        <button class="login-action login-action-secondary" id="modal-close" type="button">稍後再說</button>
+        <button class="login-action login-action-primary" id="modal-login" type="button">立即登入</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    var APP_VERSION = "v2026.04.15-v2-01";
+    var LIFF_ID = "2009808077-q6H0su3r";
+    var MEMBERS = [
+      { name: "Yu-Ting Chen", badge: "Y", color: "linear-gradient(135deg, #b6c4ff 0%, #6d80ff 100%)" },
+      { name: "施政維", badge: "施", color: "linear-gradient(135deg, #9dd7c2 0%, #44b48c 100%)" },
+      { name: "莊則元", badge: "莊", color: "linear-gradient(135deg, #ffd5a1 0%, #f29b43 100%)" },
+      { name: "蔚", badge: "蔚", color: "linear-gradient(135deg, #8ca1c8 0%, #51698f 100%)" },
+      { name: "乃瑄", badge: "乃", color: "linear-gradient(135deg, #a6b0d9 0%, #6071b5 100%)" },
+      { name: "莊辰豪", badge: "莊", color: "linear-gradient(135deg, #6cc1ec 0%, #1463a8 100%)" },
+      { name: "黃品諭", badge: "黃", color: "linear-gradient(135deg, #adb8d2 0%, #69758f 100%)", status: "候補" },
+      { name: "黃品翰", badge: "黃", color: "linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)", status: "候補" }
+    ];
+
+    var appScroll = document.querySelector(".app-scroll");
+    var nav = document.querySelector(".nav");
+    var appVersion = document.getElementById("app-version");
+    var signupList = document.getElementById("signup-list");
+    var heroCta = document.getElementById("hero-cta");
+    var loginModal = document.getElementById("login-modal");
+    var modalClose = document.getElementById("modal-close");
+    var modalLogin = document.getElementById("modal-login");
+    var liffReady = false;
+
+    if (appVersion) {
+      appVersion.textContent = APP_VERSION;
+    }
+
+    if (signupList) {
+      MEMBERS.forEach(function (member, index) {
+        var row = document.createElement("div");
+        row.className = "row";
+
+        var rank = document.createElement("div");
+        rank.className = "rank";
+        rank.textContent = String(index + 1);
+
+        var avatar = document.createElement("div");
+        avatar.className = "avatar";
+        avatar.textContent = member.badge;
+        avatar.style.background = member.color;
+
+        var name = document.createElement("div");
+        name.className = "name";
+        name.textContent = member.name;
+
+        row.appendChild(rank);
+        row.appendChild(avatar);
+        row.appendChild(name);
+
+        if (member.status) {
+          var status = document.createElement("div");
+          status.className = "status-tag";
+          status.textContent = member.status;
+          row.appendChild(status);
+        }
+
+        signupList.appendChild(row);
+      });
+    }
+
+    function syncHeaderState() {
+      if (!appScroll || !nav) return;
+      var fadeDistance = 120;
+      var progress = Math.max(0, Math.min(appScroll.scrollTop / fadeDistance, 1));
+      nav.style.setProperty("--nav-progress", String(progress));
+      nav.style.setProperty("--nav-bg-opacity", String(progress * 0.94));
+      nav.classList.toggle("is-scrolled", progress > 0.55);
+    }
+
+    if (appScroll) {
+      appScroll.addEventListener("scroll", syncHeaderState, { passive: true });
+      syncHeaderState();
+    }
+
+    function setLoginModalOpen(isOpen) {
+      if (!loginModal) return;
+      loginModal.classList.toggle("is-open", isOpen);
+      loginModal.setAttribute("aria-hidden", String(!isOpen));
+    }
+
+    async function initLiff() {
+      if (!window.liff) return;
+
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        liffReady = true;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (heroCta) {
+      heroCta.addEventListener("click", function () {
+        if (!liffReady) {
+          alert("LIFF 還在初始化，請稍後再試。");
+          return;
+        }
+
+        if (!liff.isLoggedIn()) {
+          setLoginModalOpen(true);
+          return;
+        }
+
+        alert("V2 已登入 LINE，下一步可以接正式報名流程。");
+      });
+    }
+
+    if (modalClose) {
+      modalClose.addEventListener("click", function () {
+        setLoginModalOpen(false);
+      });
+    }
+
+    if (modalLogin) {
+      modalLogin.addEventListener("click", function () {
+        if (!window.liff || !liffReady) return;
+        liff.login({ redirectUri: window.location.href });
+      });
+    }
+
+    if (loginModal) {
+      loginModal.addEventListener("click", function (event) {
+        if (event.target === loginModal) {
+          setLoginModalOpen(false);
+        }
+      });
+    }
+
+    initLiff();
+  </script>
+</body>
+</html>
