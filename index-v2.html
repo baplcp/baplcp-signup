@@ -20,6 +20,7 @@
       --accent-text: #7f5a3e;
       --line: #edf0fb;
       --shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
+      --card-shadow: 2px 2px 28px rgba(90, 90, 226, 0.3);
     }
 
     * {
@@ -81,8 +82,8 @@
     .hero {
       position: relative;
       background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
-      padding: 18px 20px 96px;
-      min-height: 286px;
+      padding: 18px 19px 92px;
+      min-height: 279px;
       overflow: hidden;
     }
 
@@ -90,7 +91,9 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 20% 24%, rgba(255, 255, 255, 0.12), transparent 26%);
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0) 56%, rgba(255, 255, 255, 0.02) 100%);
       pointer-events: none;
     }
 
@@ -101,9 +104,9 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 20px;
-      margin: -18px -20px 0;
-      min-height: 52px;
+      padding: 12px 19px;
+      margin: -18px -19px 0;
+      min-height: 57px;
       background: rgba(255, 255, 255, var(--nav-bg-opacity, 0));
       backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
       -webkit-backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
@@ -153,78 +156,83 @@
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 148px 1fr;
+      grid-template-columns: 161px 178px;
       align-items: center;
-      gap: 10px;
-      margin-top: 8px;
+      gap: 3px;
+      margin-top: 22px;
     }
 
     .hero-cat {
       position: relative;
-      height: 170px;
+      height: 175px;
     }
 
     .hero-cat img {
       position: absolute;
-      left: -26px;
-      top: -4px;
-      width: 206px;
+      left: 12px;
+      top: 9px;
+      width: 141px;
       height: auto;
-      filter: drop-shadow(-8px 10px 24px rgba(16, 24, 67, 0.4));
+      filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
     }
 
     .sparkles {
       position: absolute;
-      left: -8px;
-      top: 76px;
-      width: 42px;
-      height: 42px;
+      left: 0;
+      top: 64px;
+      width: 44px;
+      height: 44px;
       color: rgba(255, 255, 255, 0.92);
-      font-size: 24px;
+      font-size: 22px;
       line-height: 1;
-      letter-spacing: 4px;
+      letter-spacing: 3px;
     }
 
     .hero-copy {
       color: #fff;
+      padding-top: 4px;
+      text-align: center;
     }
 
     .hero-copy h1 {
       margin: 0;
-      font-size: 26px;
-      line-height: 1.2;
+      font-size: 28px;
+      line-height: 1.36;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.56px;
     }
 
     .hero-copy p {
-      margin: 10px 0 0;
-      font-size: 15px;
-      line-height: 1.5;
+      margin: 6px 0 0;
+      font-size: 16px;
+      line-height: 1.4;
       color: rgba(255, 255, 255, 0.92);
+      white-space: nowrap;
     }
 
     .summary-card {
       position: relative;
       z-index: 2;
-      margin: -58px 18px 0;
-      padding: 20px 10px 18px;
+      margin: -60px 19px 0;
+      min-height: 109px;
+      padding: 25px 18px 17px;
       background: var(--surface);
       border-radius: 22px;
-      box-shadow: 0 16px 40px rgba(71, 82, 163, 0.16);
+      box-shadow: var(--card-shadow);
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: center;
     }
 
     .summary-item {
       text-align: center;
-      padding: 0 8px;
+      padding: 0 4px;
     }
 
     .summary-value {
       margin: 0;
-      font-size: 22px;
-      line-height: 1.1;
+      font-size: 35px;
+      line-height: 1;
       font-weight: 700;
       color: var(--text);
     }
@@ -234,9 +242,9 @@
     }
 
     .summary-label {
-      margin: 8px 0 0;
-      font-size: 12px;
-      line-height: 1.4;
+      margin: 7px 0 0;
+      font-size: 15px;
+      line-height: 1.25;
       color: var(--muted);
     }
 
@@ -303,9 +311,9 @@
 
     .footer-bar {
       position: absolute;
-      left: 18px;
-      right: 18px;
-      bottom: 18px;
+      left: 19px;
+      right: 19px;
+      bottom: 10px;
       z-index: 15;
       display: flex;
       flex-direction: column;
@@ -314,13 +322,13 @@
 
     .cta {
       width: 100%;
-      min-height: 50px;
-      border-radius: 14px;
-      background: var(--accent);
+      min-height: 57px;
+      border-radius: 12px;
+      background: #ffd8ad;
       color: var(--accent-text);
-      font-size: 17px;
-      font-weight: 700;
-      box-shadow: 0 14px 30px rgba(255, 212, 157, 0.36);
+      font-size: 16px;
+      font-weight: 500;
+      box-shadow: none;
     }
 
     .version {
@@ -481,7 +489,7 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    var APP_VERSION = "v2026.04.15-v2-01";
+    var APP_VERSION = "v2026.04.15-v2-02";
     var LIFF_ID = "2009808077-q6H0su3r";
     var MEMBERS = [
       { name: "Yu-Ting Chen", badge: "Y", color: "linear-gradient(135deg, #b6c4ff 0%, #6d80ff 100%)" },
