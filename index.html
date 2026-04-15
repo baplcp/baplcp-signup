@@ -150,6 +150,14 @@
       opacity: 0;
     }
 
+    .nav-version {
+      font-size: 11px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.72);
+      flex: 0 0 auto;
+      font-variant-numeric: tabular-nums;
+    }
+
     .menu-btn {
       width: 24px;
       height: 24px;
@@ -510,6 +518,7 @@
       <header class="nav">
         <div class="brand" aria-label="BAPLCP"></div>
         <div class="nav-title">華江高中臨打報名</div>
+        <div class="nav-version" id="app-version">v--</div>
         <button class="menu-btn" type="button" aria-label="開啟選單">
           <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
         </button>
@@ -657,13 +666,19 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
+    var APP_VERSION = "v2026.04.15-01";
     var LIFF_ID = "2009808077-q6H0su3r";
     var scrollContainer = document.querySelector(".phone-scroll");
     var nav = document.querySelector(".nav");
+    var appVersion = document.getElementById("app-version");
     var profileAvatar = document.getElementById("profile-avatar");
     var profileName = document.getElementById("profile-name");
     var profileStatus = document.getElementById("profile-status");
     var profileLogin = document.getElementById("profile-login");
+
+    if (appVersion) {
+      appVersion.textContent = APP_VERSION;
+    }
 
     function syncHeaderState() {
       if (!scrollContainer || !nav) return;
