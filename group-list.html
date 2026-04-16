@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>開團列表 | BAPLCP 排球報名系統</title>
+  <meta name="description" content="BAPLCP 開團列表，查看進行中與已結束的排球活動。">
+  <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
+  <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
+  <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
+  <style>
+    :root {
+      --primary: #5768ff;
+      --text: #101840;
+      --muted: #696f8c;
+      --muted-soft: #8f95b2;
+      --line: #f4f6fa;
+      --surface: #ffffff;
+      --soft: #f4f6fa;
+      --success-bg: #eefafa;
+      --success: #1bc4be;
+      --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(87, 104, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #f5f6fb 0%, #edf0f8 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      border: 0;
+      padding: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app-shell {
+      width: min(100%, 390px);
+      height: min(844px, calc(100vh - 48px));
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .app-scroll {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 22px;
+    }
+
+    .app-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 60px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid rgba(16, 24, 64, 0.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .icon-button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: #667095;
+      flex: 0 0 auto;
+    }
+
+    .brand {
+      width: 65px;
+      height: 22px;
+      background: url("./images/logo-purple.svg") center/contain no-repeat;
+      flex: 0 0 auto;
+    }
+
+    .topbar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 16px;
+      color: transparent;
+      user-select: none;
+    }
+
+    .page {
+      padding: 31px 16px 0;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.36;
+      letter-spacing: 0.48px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .section-title {
+      margin: 22px 0 12px;
+      font-size: 18px;
+      line-height: 1.36;
+      letter-spacing: 0.36px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .active-card {
+      min-height: 92px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--soft);
+    }
+
+    .active-count {
+      width: 64px;
+      height: 68px;
+      border-radius: 9px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .active-count-label {
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .active-count-value {
+      margin-top: 1px;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .event-content {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .event-date {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: var(--primary);
+      white-space: nowrap;
+    }
+
+    .event-date .divider {
+      color: var(--muted-soft);
+    }
+
+    .event-location {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 400;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .go-button {
+      min-width: 64px;
+      min-height: 44px;
+      border-radius: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 17px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 600;
+      flex: 0 0 auto;
+    }
+
+    .history-title {
+      margin-top: 37px;
+      margin-bottom: 0;
+    }
+
+    .history-list {
+      margin-top: 0;
+    }
+
+    .history-row {
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 700;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .badge-success {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .badge-muted {
+      background: var(--line);
+      color: var(--muted-soft);
+    }
+
+    .chevron {
+      width: 24px;
+      height: 24px;
+      color: #696f8c;
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        display: block;
+        padding: 0;
+        background: #fff;
+      }
+
+      .app-shell {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="app-scroll">
+      <header class="topbar">
+        <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="brand" aria-label="BAPLCP"></div>
+        <div class="topbar-title" aria-hidden="true">華江高中臨打報名</div>
+        <button class="icon-button" type="button" aria-label="開啟選單">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+
+      <section class="page">
+        <h1 class="page-title">開團列表</h1>
+
+        <h2 class="section-title">進行中</h2>
+        <article class="active-card">
+          <div class="active-count" aria-label="臨打缺 9 人">
+            <span class="active-count-label">臨打缺</span>
+            <span class="active-count-value">9</span>
+          </div>
+          <div class="event-content">
+            <p class="event-date">4.09 (日)<span class="divider">｜</span>8:00-11:00</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <a class="go-button" href="./index-v2.html">前往</a>
+        </article>
+
+        <h2 class="section-title history-title">已結束活動</h2>
+        <div class="history-list" aria-label="已結束活動">
+          <a class="history-row" href="./ended-activity.html">
+            <div class="event-content">
+              <p class="event-date">4.02 (日)</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <span class="badge badge-success">已參加</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./ended-activity.html">
+            <div class="event-content">
+              <p class="event-date">3.28 (日)</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./ended-activity.html">
+            <div class="event-content">
+              <p class="event-date">3.21 (日)</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <span class="badge badge-muted">已請假</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./ended-activity.html">
+            <div class="event-content">
+              <p class="event-date">3.14 (日)</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./ended-activity.html">
+            <div class="event-content">
+              <p class="event-date">3.07(日)</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    var backButton = document.getElementById("back-button");
+
+    if (backButton) {
+      backButton.addEventListener("click", function () {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+
+        window.location.href = "./index.html";
+      });
+    }
+  </script>
+</body>
+</html>

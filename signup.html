@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>華江高中臨打報名</title>
+  <meta name="description" content="華江高中臨打報名活動資訊與報名表單。">
+  <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
+  <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
+  <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
+  <style>
+    :root {
+      --primary: #5768ff;
+      --primary-deep: #4b5cf1;
+      --text: #101840;
+      --muted: #696f8c;
+      --line: #eceef6;
+      --soft: #f7f8fe;
+      --surface: #ffffff;
+      --control-line: rgba(86, 103, 137, 0.2);
+      --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(87, 104, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #f5f6fb 0%, #edf0f8 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      padding: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--control-line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 14px;
+      min-height: 40px;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+      appearance: none;
+    }
+
+    input::placeholder {
+      color: #808080;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(87, 104, 255, 0.55);
+      box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
+    }
+
+    input:disabled,
+    select:disabled {
+      color: #a2a8bf;
+      background: #f5f6fb;
+      cursor: not-allowed;
+    }
+
+    .app-shell {
+      width: min(100%, 390px);
+      height: min(844px, calc(100vh - 48px));
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .app-scroll {
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 138px;
+    }
+
+    .app-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 60px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid rgba(16, 24, 64, 0.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .icon-button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: #667095;
+      flex: 0 0 auto;
+    }
+
+    .brand {
+      width: 65px;
+      height: 22px;
+      background: url("./images/logo-purple.svg") center/contain no-repeat;
+      flex: 0 0 auto;
+    }
+
+    .topbar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 16px;
+      color: transparent;
+      user-select: none;
+    }
+
+    .page {
+      padding: 18px 16px 0;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .info-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 7px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      align-items: start;
+      gap: 0;
+    }
+
+    .info-label {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .info-value {
+      margin: 0;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .stat-card {
+      min-height: 88px;
+      border-radius: 12px;
+      background: rgba(180, 186, 245, 0.1);
+      text-align: center;
+      padding: 16px 10px;
+    }
+
+    .stat-value {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      margin: 5px 0 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .divider {
+      height: 8px;
+      margin: 22px -16px 0;
+      background: #f6f6f6;
+    }
+
+    .form-section {
+      padding-top: 28px;
+    }
+
+    .status-card {
+      margin-top: 14px;
+      padding: 14px 14px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(87, 104, 255, 0.08) 0%, rgba(87, 104, 255, 0.04) 100%);
+      border: 1px solid rgba(87, 104, 255, 0.1);
+    }
+
+    .status-label {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .status-name {
+      margin: 3px 0 0;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .status-meta {
+      margin: 4px 0 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .success-card {
+      margin-top: 18px;
+      padding: 18px 16px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(87, 104, 255, 0.08) 0%, rgba(87, 104, 255, 0.02) 100%);
+      border: 1px solid rgba(87, 104, 255, 0.14);
+    }
+
+    .success-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .success-copy {
+      margin: 6px 0 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
+      white-space: pre-line;
+    }
+
+    .success-card[hidden] {
+      display: none;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .prefill-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--soft);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .option-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .checkbox-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      width: fit-content;
+    }
+
+    .checkbox-row input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .checkbox-mark {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid #d1d1d6;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      transition: all 0.2s ease;
+    }
+
+    .checkbox-mark::after {
+      content: "";
+      width: 10px;
+      height: 6px;
+      border-left: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      transform: rotate(-45deg) translate(1px, -1px);
+      opacity: 0;
+    }
+
+    .checkbox-row input:checked + .checkbox-mark {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .checkbox-row input:checked + .checkbox-mark::after {
+      opacity: 1;
+    }
+
+    .friend-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      transition: opacity 0.2s ease;
+    }
+
+    .field-select {
+      position: relative;
+    }
+
+    .field-select::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 6px solid #585f79;
+      transform: translateY(-20%);
+      pointer-events: none;
+    }
+
+    .field-select select {
+      padding-right: 34px;
+    }
+
+    .friend-grid.is-disabled {
+      opacity: 0.56;
+    }
+
+    .footer {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 46px;
+      z-index: 12;
+    }
+
+    .submit-button {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--primary) 0%, #5868f4 100%);
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+      box-shadow: 0 16px 30px rgba(87, 104, 255, 0.24);
+    }
+
+    .submit-button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+
+    .footer-fade {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 172px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 44%, #fff 100%);
+      pointer-events: none;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 0;
+        display: block;
+        background: #fff;
+      }
+
+      .app-shell {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="app-scroll">
+      <header class="topbar">
+        <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="brand" aria-label="BAPLCP"></div>
+        <div class="topbar-title" aria-hidden="true">華江高中臨打報名</div>
+        <button class="icon-button" type="button" aria-label="開啟選單">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+
+      <section class="page">
+        <h1 class="section-title">活動資訊</h1>
+        <div class="info-list" aria-label="活動資訊">
+          <div class="info-row">
+            <span class="info-label">報名開始時間：</span>
+            <p class="info-value">07 月 24 日 星期一 20:00</p>
+          </div>
+          <div class="info-row">
+            <span class="info-label">報名截止時間：</span>
+            <p class="info-value">07 月 25 日 星期二 23:59</p>
+          </div>
+          <div class="info-row">
+            <span class="info-label">活動時間：</span>
+            <p class="info-value">08 月 04 日 星期日 08:00</p>
+          </div>
+          <div class="info-row">
+            <span class="info-label">活動地點：</span>
+            <p class="info-value">板橋柏吉倫排球館</p>
+          </div>
+          <div class="info-row">
+            <span class="info-label">單次費用：</span>
+            <p class="info-value">$265</p>
+          </div>
+        </div>
+
+        <div class="stats" aria-label="活動統計">
+          <article class="stat-card">
+            <p class="stat-value">13</p>
+            <p class="stat-label">本週臨打</p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-value">5</p>
+            <p class="stat-label">本週季打</p>
+          </article>
+        </div>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <section class="form-section" aria-labelledby="signup-title">
+          <div class="title-row">
+            <h2 class="section-title" id="signup-title">報名活動</h2>
+            <span class="prefill-tag">可預填</span>
+          </div>
+
+          <div class="status-card" aria-live="polite">
+            <p class="status-label">登入身分</p>
+            <p class="status-name" id="profile-name">訪客模式</p>
+            <p class="status-meta" id="profile-meta">LINE 登入暫時關閉，仍可檢查報名流程</p>
+          </div>
+
+          <div class="success-card" id="success-card" hidden>
+            <p class="success-title">報名已送出</p>
+            <p class="success-copy" id="success-copy"></p>
+          </div>
+
+          <form id="signup-form" novalidate>
+            <div class="option-list">
+              <label class="checkbox-row">
+                <input id="join-group" name="joinGroup" type="checkbox" checked>
+                <span class="checkbox-mark" aria-hidden="true"></span>
+                <span>群內 +1</span>
+              </label>
+
+              <label class="checkbox-row">
+                <input id="outside-group" name="outsideGroup" type="checkbox">
+                <span class="checkbox-mark" aria-hidden="true"></span>
+                <span>群外 +1</span>
+              </label>
+            </div>
+
+            <div class="friend-grid is-disabled" id="friend-fields">
+              <input id="friend-name" name="friendName" type="text" placeholder="群外朋友姓名" disabled>
+              <div class="field-select">
+                <select id="friend-gender" name="friendGender" disabled>
+                  <option value="">性別</option>
+                  <option value="male">男</option>
+                  <option value="female">女</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </section>
+      </section>
+    </div>
+
+    <div class="footer-fade" aria-hidden="true"></div>
+    <div class="footer">
+      <button class="submit-button" id="submit-button" type="submit" form="signup-form">立即報名</button>
+    </div>
+  </main>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    var APP_VERSION = "v2026.04.15-signup-01";
+    var LIFF_ID = "2009808077-q6H0su3r";
+    var SUBMIT_ENDPOINT = "";
+    var STORAGE_KEY = "baplcp-signup-submissions";
+    var ACTIVITY = {
+      id: "huajiang-weekly-2026-08-04",
+      title: "華江高中臨打報名",
+      signupStart: "07 月 24 日 星期一 20:00",
+      signupEnd: "07 月 25 日 星期二 23:59",
+      startAt: "08 月 04 日 星期日 08:00",
+      location: "板橋柏吉倫排球館",
+      fee: 265,
+      weeklyPickup: 13,
+      weeklySeason: 5
+    };
+
+    var backButton = document.getElementById("back-button");
+    var profileName = document.getElementById("profile-name");
+    var profileMeta = document.getElementById("profile-meta");
+    var outsideGroup = document.getElementById("outside-group");
+    var joinGroup = document.getElementById("join-group");
+    var friendFields = document.getElementById("friend-fields");
+    var friendName = document.getElementById("friend-name");
+    var friendGender = document.getElementById("friend-gender");
+    var signupForm = document.getElementById("signup-form");
+    var submitButton = document.getElementById("submit-button");
+    var successCard = document.getElementById("success-card");
+    var successCopy = document.getElementById("success-copy");
+    var currentProfile = {
+      userId: "guest",
+      displayName: "訪客",
+      pictureUrl: ""
+    };
+
+    function fillActivityContent() {
+      var values = document.querySelectorAll(".info-value");
+      var statValues = document.querySelectorAll(".stat-value");
+
+      if (values[0]) values[0].textContent = ACTIVITY.signupStart;
+      if (values[1]) values[1].textContent = ACTIVITY.signupEnd;
+      if (values[2]) values[2].textContent = ACTIVITY.startAt;
+      if (values[3]) values[3].textContent = ACTIVITY.location;
+      if (values[4]) values[4].textContent = "$" + ACTIVITY.fee;
+      if (statValues[0]) statValues[0].textContent = String(ACTIVITY.weeklyPickup);
+      if (statValues[1]) statValues[1].textContent = String(ACTIVITY.weeklySeason);
+      document.title = ACTIVITY.title;
+    }
+
+    function setProfileState(name, meta) {
+      if (profileName) {
+        profileName.textContent = name;
+      }
+      if (profileMeta) {
+        profileMeta.textContent = meta;
+      }
+    }
+
+    function setSubmitting(isSubmitting) {
+      if (!submitButton) return;
+      submitButton.disabled = isSubmitting;
+      submitButton.textContent = isSubmitting ? "送出中..." : "立即報名";
+    }
+
+    function showSuccess(message) {
+      if (successCard) {
+        successCard.hidden = false;
+      }
+      if (successCopy) {
+        successCopy.textContent = message;
+      }
+      if (signupForm) {
+        signupForm.reset();
+      }
+      syncOutsideFriendFields();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function syncOutsideFriendFields() {
+      var enabled = Boolean(outsideGroup && outsideGroup.checked);
+
+      if (friendFields) {
+        friendFields.classList.toggle("is-disabled", !enabled);
+      }
+
+      if (friendName) {
+        friendName.disabled = !enabled;
+        friendName.required = enabled;
+        if (!enabled) {
+          friendName.value = "";
+        }
+      }
+
+      if (friendGender) {
+        friendGender.disabled = !enabled;
+        friendGender.required = enabled;
+        if (!enabled) {
+          friendGender.value = "";
+        }
+      }
+    }
+
+    if (outsideGroup) {
+      outsideGroup.addEventListener("change", syncOutsideFriendFields);
+      syncOutsideFriendFields();
+    }
+
+    function saveSubmissionLocally(payload) {
+      var previous = [];
+
+      try {
+        previous = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+        if (!Array.isArray(previous)) {
+          previous = [];
+        }
+      } catch (error) {
+        previous = [];
+      }
+
+      previous.unshift(payload);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(previous.slice(0, 20)));
+    }
+
+    async function initLiffProfile() {
+      if (!window.liff) {
+        setProfileState("訪客模式", "LINE SDK 未載入，已略過登入檢查");
+        return;
+      }
+
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          setProfileState("訪客模式", "LINE 登入暫時關閉，未登入也可先測試報名");
+          return;
+        }
+
+        currentProfile = await liff.getProfile();
+        setProfileState(
+          currentProfile.displayName || "LINE 使用者",
+          "LINE User ID: " + currentProfile.userId
+        );
+      } catch (error) {
+        console.error(error);
+        setProfileState("訪客模式", "LINE 初始化失敗，已略過登入檢查");
+      }
+    }
+
+    async function submitSignup(payload) {
+      if (!SUBMIT_ENDPOINT) {
+        saveSubmissionLocally(payload);
+        return { mode: "local" };
+      }
+
+      var response = await fetch(SUBMIT_ENDPOINT, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error("Submit failed with status " + response.status);
+      }
+
+      var responseJson = null;
+
+      try {
+        responseJson = await response.json();
+      } catch (error) {
+        responseJson = null;
+      }
+
+      if (responseJson && responseJson.ok === false) {
+        throw new Error(responseJson.message || "Submit failed");
+      }
+
+      return { mode: "remote", response: responseJson };
+    }
+
+    if (backButton) {
+      backButton.addEventListener("click", function () {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+
+        window.location.href = "./index.html";
+      });
+    }
+
+    if (signupForm) {
+      signupForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!signupForm.reportValidity()) {
+          return;
+        }
+
+        var selections = [];
+        if (joinGroup && joinGroup.checked) {
+          selections.push("群內 +1");
+        }
+        if (outsideGroup && outsideGroup.checked) {
+          selections.push("群外 +1");
+        }
+
+        if (!selections.length) {
+          alert("請至少選擇一種報名方式。");
+          return;
+        }
+
+        var payload = {
+          appVersion: APP_VERSION,
+          activityId: ACTIVITY.id,
+          activityTitle: ACTIVITY.title,
+          submittedAt: new Date().toISOString(),
+          attendee: {
+            lineUserId: currentProfile.userId,
+            displayName: currentProfile.displayName,
+            pictureUrl: currentProfile.pictureUrl || ""
+          },
+          selections: {
+            joinGroup: Boolean(joinGroup && joinGroup.checked),
+            outsideGroup: Boolean(outsideGroup && outsideGroup.checked)
+          },
+          friend: outsideGroup && outsideGroup.checked && friendName && friendGender
+            ? {
+                name: friendName.value.trim(),
+                gender: friendGender.value
+              }
+            : null
+        };
+
+        setSubmitting(true);
+
+        try {
+          var result = await submitSignup(payload);
+          var summary = "已送出報名：" + selections.join("、");
+
+          if (payload.friend) {
+            summary += "\n同行朋友：" + payload.friend.name + "（" + friendGender.options[friendGender.selectedIndex].text + "）";
+          }
+
+          if (result.mode === "local") {
+            summary += "\n目前尚未設定後端，已先暫存於本機。";
+          }
+
+          showSuccess(summary);
+        } catch (error) {
+          console.error(error);
+          alert("送出失敗，請稍後再試。");
+        } finally {
+          setSubmitting(false);
+        }
+      });
+    }
+
+    fillActivityContent();
+    initLiffProfile();
+  </script>
+</body>
+</html>

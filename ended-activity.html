@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BAPLCP 排球報名系統 V2</title>
+  <title>已結束活動 | BAPLCP 排球報名系統</title>
   <meta name="description" content="BAPLCP 排球報名系統 V2 版，提供更直接的臨打名額與名單檢視。">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="BAPLCP 排球報名系統">
@@ -239,36 +239,6 @@
       padding-bottom: 16px;
     }
 
-    .summary-vacancy {
-      width: 70px;
-      min-height: 70px;
-      flex: 0 0 auto;
-      border-radius: 9px;
-      background: rgba(220, 245, 245, 0.7);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 12px;
-      text-align: center;
-    }
-
-    .summary-vacancy-label {
-      margin: 0;
-      font-size: 13px;
-      line-height: 1.25;
-      font-weight: 400;
-      color: #474d66;
-    }
-
-    .summary-vacancy-value {
-      margin: 0;
-      font-size: 34px;
-      line-height: 1.25;
-      font-weight: 700;
-      color: #17acba;
-    }
-
     .summary-info {
       flex: 1;
       min-width: 0;
@@ -341,19 +311,6 @@
     .summary-status-value {
       color: #17acba;
       font-weight: 500;
-    }
-
-    .leave-button {
-      min-width: 0;
-      min-height: 0;
-      padding: 7px 14px;
-      border: 1px solid #e3e6ef;
-      border-radius: 999px;
-      background: #fff;
-      color: #474d66;
-      font-size: 14px;
-      line-height: 1.4;
-      font-weight: 400;
     }
 
     .content {
@@ -450,40 +407,6 @@
       text-align: center;
     }
 
-    .footer-bar {
-      position: absolute;
-      left: 19px;
-      right: 19px;
-      bottom: 16px;
-      z-index: 15;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .footer-fade {
-      position: absolute;
-      left: 19px;
-      right: 19px;
-      bottom: 0;
-      height: 154px;
-      border-radius: 0 0 12px 12px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 100%);
-      pointer-events: none;
-      z-index: 14;
-    }
-
-    .cta {
-      width: 100%;
-      min-height: 57px;
-      border-radius: 12px;
-      background: #1bc4bf;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 500;
-      box-shadow: none;
-    }
-
     .version {
       margin-top: 18px;
       text-align: center;
@@ -525,7 +448,7 @@
             </svg>
           </button>
           <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
-          <div class="nav-title">本週臨打區</div>
+          <div class="nav-title">已結束活動</div>
           <button class="menu-btn" type="button" aria-label="開啟選單">
             <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
           </button>
@@ -534,17 +457,13 @@
         <section class="hero">
           <div class="hero-layout">
             <div class="hero-copy">
-              <h1>本週臨打區</h1>
+              <h1>已結束活動</h1>
             </div>
           </div>
         </section>
 
         <section class="summary-card" aria-label="活動摘要">
           <div class="summary-main">
-            <div class="summary-vacancy">
-              <p class="summary-vacancy-label">臨打缺</p>
-              <p class="summary-vacancy-value">2</p>
-            </div>
             <div class="summary-info">
               <p class="summary-time">
                 <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
@@ -556,9 +475,8 @@
           </div>
           <div class="summary-status">
             <p class="summary-status-text">
-              我的狀態：<span class="summary-status-value">已報名季打</span>
+              我的狀態：<span class="summary-status-value">已參加</span>
             </p>
-            <button class="leave-button" type="button">我要請假</button>
           </div>
         </section>
 
@@ -574,14 +492,10 @@
       </div>
     </div>
 
-    <div class="footer-fade" aria-hidden="true"></div>
-    <div class="footer-bar">
-      <button class="cta" id="hero-cta" type="button">立即報名</button>
-    </div>
   </main>
 
   <script>
-    var APP_VERSION = "v2026.04.15-v2-04";
+    var APP_VERSION = "v2026.04.15-ended-01";
     var MEMBERS = [
       { name: "Yu-Ting Chen", badge: "Y", image: "./images/profile01.png" },
       { name: "施政維", badge: "施", image: "./images/profile02.png" },
@@ -593,13 +507,11 @@
       { name: "黃品翰", badge: "黃", color: "linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)", status: "候補" }
     ];
 
-    var TARGET_PAGE = new URL("./signup.html", window.location.href).href;
     var appScroll = document.querySelector(".app-scroll");
     var nav = document.querySelector(".nav");
     var backButton = document.getElementById("back-button");
     var appVersion = document.getElementById("app-version");
     var signupList = document.getElementById("signup-list");
-    var heroCta = document.getElementById("hero-cta");
 
     if (appVersion) {
       appVersion.textContent = APP_VERSION;
@@ -681,11 +593,6 @@
       });
     }
 
-    if (heroCta) {
-      heroCta.addEventListener("click", function () {
-        window.location.href = TARGET_PAGE;
-      });
-    }
   </script>
 </body>
 </html>
