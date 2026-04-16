@@ -192,7 +192,7 @@
     .hero-copy {
       color: #fff;
       padding-top: 0;
-      transform: translateY(-20px);
+      transform: translateY(-22px);
       text-align: center;
     }
 
@@ -217,13 +217,18 @@
       z-index: 2;
       margin: -142px 19px 0;
       min-height: 107px;
-      padding: 16px;
+      padding: 16px 16px 0;
       background: var(--surface);
       border-radius: 12px;
       box-shadow: var(--card-shadow);
+      overflow: hidden;
+    }
+
+    .summary-main {
       display: flex;
       align-items: center;
       gap: 17px;
+      padding-bottom: 16px;
     }
 
     .summary-vacancy {
@@ -305,12 +310,50 @@
       white-space: nowrap;
     }
 
+    .summary-status {
+      margin: 0 -16px;
+      padding: 13px 16px 14px;
+      border-top: 1px solid #edf0fb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-status-text {
+      margin: 0;
+      min-width: 0;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 400;
+      color: #474d66;
+      white-space: nowrap;
+    }
+
+    .summary-status-value {
+      color: #17acba;
+      font-weight: 500;
+    }
+
+    .leave-button {
+      min-width: 0;
+      min-height: 0;
+      padding: 7px 14px;
+      border: 1px solid #e3e6ef;
+      border-radius: 999px;
+      background: #fff;
+      color: #474d66;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 400;
+    }
+
     .content {
       padding: 24px 18px 110px;
     }
 
     .segment-tabs {
-      display: flex;
+      display: none;
       align-items: center;
       gap: 10px;
       margin: 0 0 16px;
@@ -554,17 +597,25 @@
         </section>
 
         <section class="summary-card" aria-label="活動摘要">
-          <div class="summary-vacancy">
-            <p class="summary-vacancy-label">臨打缺</p>
-            <p class="summary-vacancy-value">2</p>
+          <div class="summary-main">
+            <div class="summary-vacancy">
+              <p class="summary-vacancy-label">臨打缺</p>
+              <p class="summary-vacancy-value">2</p>
+            </div>
+            <div class="summary-info">
+              <p class="summary-time">
+                <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
+                <span class="summary-separator">|</span>
+                <span>12:20-15:20</span>
+              </p>
+              <p class="summary-location">板橋柏吉倫排球場</p>
+            </div>
           </div>
-          <div class="summary-info">
-            <p class="summary-time">
-              <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
-              <span class="summary-separator">|</span>
-              <span>12:20-15:20</span>
+          <div class="summary-status">
+            <p class="summary-status-text">
+              我的狀態：<span class="summary-status-value">已報名季打</span>
             </p>
-            <p class="summary-location">板橋柏吉倫排球場</p>
+            <button class="leave-button" type="button">我要請假</button>
           </div>
         </section>
 
