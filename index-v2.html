@@ -58,7 +58,7 @@
     .app-shell {
       width: min(100%, 390px);
       height: min(844px, calc(100vh - 48px));
-      background: #fafafb;
+      background: #fff;
       border-radius: 24px;
       overflow: hidden;
       box-shadow: var(--shadow);
@@ -89,9 +89,8 @@
           #7d8af9 13%,
           #c1c6f1 20%,
           #e8e9f5 27%,
-          #f3f4f8 31%,
-          #fafafb 35%,
-          #fafafb 100%
+          #fff 35%,
+          #fff 100%
         );
     }
 
@@ -173,7 +172,7 @@
       grid-template-columns: 161px 178px;
       align-items: center;
       gap: 3px;
-      margin-top: 5px;
+      margin-top: 3px;
     }
 
     .hero-cat {
@@ -185,7 +184,7 @@
       position: absolute;
       left: -10px;
       top: -8px;
-      width: 181px;
+      width: 185px;
       height: auto;
       filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
     }
@@ -217,65 +216,137 @@
       position: relative;
       z-index: 2;
       margin: -142px 19px 0;
-      min-height: 109px;
-      padding: 25px 18px 17px;
+      min-height: 107px;
+      padding: 16px;
       background: var(--surface);
-      border-radius: 22px;
+      border-radius: 12px;
       box-shadow: var(--card-shadow);
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      display: flex;
       align-items: center;
+      gap: 17px;
     }
 
-    .summary-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: #fff;
-      z-index: -1;
-    }
-
-    .summary-item {
+    .summary-vacancy {
+      width: 70px;
+      min-height: 70px;
+      flex: 0 0 auto;
+      border-radius: 9px;
+      background: rgba(220, 245, 245, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
       text-align: center;
-      padding: 0 4px;
-      transform: translateY(-2px);
     }
 
-    .summary-value {
+    .summary-vacancy-label {
       margin: 0;
-      font-size: 32px;
-      line-height: 1;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .summary-item.is-primary .summary-value {
-      color: var(--hero-start);
-    }
-
-    .summary-label {
-      margin: 7px 0 0;
-      font-size: 15px;
+      font-size: 13px;
       line-height: 1.25;
-      color: var(--muted);
+      font-weight: 400;
+      color: #474d66;
+    }
+
+    .summary-vacancy-value {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.25;
+      font-weight: 700;
+      color: #17acba;
+    }
+
+    .summary-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .summary-time {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 700;
+      color: #474d66;
+      white-space: nowrap;
+    }
+
+    .summary-date {
+      letter-spacing: 0;
+      font-kerning: normal;
+      font-feature-settings: "kern";
+      margin-right: -2px;
+    }
+
+    .summary-weekday {
+      display: inline-block;
+      transform: translateX(-4px);
+    }
+
+    .summary-separator {
+      color: #d8dae5;
+      font-weight: 700;
+      margin: 0 10px 0 0;
+    }
+
+    .summary-location {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 400;
+      color: #696f8c;
+      opacity: 0.85;
+      white-space: nowrap;
     }
 
     .content {
-      padding: 18px 18px 110px;
+      padding: 24px 18px 110px;
+    }
+
+    .segment-tabs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 16px;
+    }
+
+    .segment-tab {
+      min-width: 56px;
+      min-height: 34px;
+      padding: 6px 17px;
+      border-radius: 999px;
+      background: #edeff5;
+      color: #8d94ad;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.4;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .segment-tab.is-active {
+      background: var(--hero-start);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
     }
 
     .list {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 0;
     }
 
     .row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 11px 2px;
+      gap: 10px;
+      padding: 8px 2px;
     }
 
     .rank {
@@ -299,6 +370,12 @@
       font-weight: 700;
       overflow: hidden;
       background: linear-gradient(135deg, #8aa0ff 0%, #5768ff 100%);
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .name {
@@ -340,7 +417,7 @@
       bottom: 0;
       height: 154px;
       border-radius: 0 0 12px 12px;
-      background: linear-gradient(180deg, rgba(250, 250, 251, 0) 0%, #fafafb 42%, #fafafb 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 100%);
       pointer-events: none;
       z-index: 14;
     }
@@ -349,8 +426,8 @@
       width: 100%;
       min-height: 57px;
       border-radius: 12px;
-      background: #ffd8ad;
-      color: var(--accent-text);
+      background: #1bc4bf;
+      color: #fff;
       font-size: 16px;
       font-weight: 500;
       box-shadow: none;
@@ -477,21 +554,26 @@
         </section>
 
         <section class="summary-card" aria-label="活動摘要">
-          <article class="summary-item is-primary">
-            <p class="summary-value">6</p>
-            <p class="summary-label">剩餘名額</p>
-          </article>
-          <article class="summary-item">
-            <p class="summary-value">0</p>
-            <p class="summary-label">本週臨打</p>
-          </article>
-          <article class="summary-item">
-            <p class="summary-value">12</p>
-            <p class="summary-label">本週季打</p>
-          </article>
+          <div class="summary-vacancy">
+            <p class="summary-vacancy-label">臨打缺</p>
+            <p class="summary-vacancy-value">2</p>
+          </div>
+          <div class="summary-info">
+            <p class="summary-time">
+              <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
+              <span class="summary-separator">|</span>
+              <span>12:20-15:20</span>
+            </p>
+            <p class="summary-location">板橋柏吉倫排球場</p>
+          </div>
         </section>
 
         <section class="content">
+          <div class="segment-tabs" role="tablist" aria-label="名單分類">
+            <button class="segment-tab is-active" type="button" role="tab" aria-selected="true">全部</button>
+            <button class="segment-tab" type="button" role="tab" aria-selected="false">臨打</button>
+            <button class="segment-tab" type="button" role="tab" aria-selected="false">季打</button>
+          </div>
           <div class="list" id="signup-list"></div>
           <div class="version" id="app-version">v--</div>
         </section>
@@ -500,7 +582,7 @@
 
     <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
-      <button class="cta" id="hero-cta" type="button">立即報名或請假</button>
+      <button class="cta" id="hero-cta" type="button">立即報名</button>
     </div>
   </main>
 
@@ -520,16 +602,17 @@
     var APP_VERSION = "v2026.04.15-v2-04";
     var LIFF_ID = "2009808077-q6H0su3r";
     var MEMBERS = [
-      { name: "Yu-Ting Chen", badge: "Y", color: "linear-gradient(135deg, #b6c4ff 0%, #6d80ff 100%)" },
-      { name: "施政維", badge: "施", color: "linear-gradient(135deg, #9dd7c2 0%, #44b48c 100%)" },
-      { name: "莊則元", badge: "莊", color: "linear-gradient(135deg, #ffd5a1 0%, #f29b43 100%)" },
-      { name: "蔚", badge: "蔚", color: "linear-gradient(135deg, #8ca1c8 0%, #51698f 100%)" },
-      { name: "乃瑄", badge: "乃", color: "linear-gradient(135deg, #a6b0d9 0%, #6071b5 100%)" },
-      { name: "莊辰豪", badge: "莊", color: "linear-gradient(135deg, #6cc1ec 0%, #1463a8 100%)" },
-      { name: "黃品諭", badge: "黃", color: "linear-gradient(135deg, #adb8d2 0%, #69758f 100%)", status: "候補" },
+      { name: "Yu-Ting Chen", badge: "Y", image: "./images/profile01.png" },
+      { name: "施政維", badge: "施", image: "./images/profile02.png" },
+      { name: "莊則元", badge: "莊", image: "./images/profile03.png" },
+      { name: "蔚", badge: "蔚", image: "./images/profile04.png" },
+      { name: "乃瑄", badge: "乃", image: "./images/profile05.png" },
+      { name: "莊辰豪", badge: "莊", image: "./images/profile06.png" },
+      { name: "黃品諭", badge: "黃", image: "./images/profile07.png", status: "候補" },
       { name: "黃品翰", badge: "黃", color: "linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)", status: "候補" }
     ];
 
+    var TARGET_PAGE = new URL("./signup.html", window.location.href).href;
     var appScroll = document.querySelector(".app-scroll");
     var nav = document.querySelector(".nav");
     var appVersion = document.getElementById("app-version");
@@ -544,6 +627,16 @@
       appVersion.textContent = APP_VERSION;
     }
 
+    document.querySelectorAll(".segment-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".segment-tab").forEach(function (item) {
+          var isActive = item === tab;
+          item.classList.toggle("is-active", isActive);
+          item.setAttribute("aria-selected", String(isActive));
+        });
+      });
+    });
+
     if (signupList) {
       MEMBERS.forEach(function (member, index) {
         var row = document.createElement("div");
@@ -555,8 +648,16 @@
 
         var avatar = document.createElement("div");
         avatar.className = "avatar";
-        avatar.textContent = member.badge;
-        avatar.style.background = member.color;
+
+        if (member.image) {
+          var avatarImage = document.createElement("img");
+          avatarImage.src = member.image;
+          avatarImage.alt = "";
+          avatar.appendChild(avatarImage);
+        } else {
+          avatar.textContent = member.badge;
+          avatar.style.background = member.color;
+        }
 
         var name = document.createElement("div");
         name.className = "name";
@@ -620,7 +721,7 @@
           return;
         }
 
-        alert("V2 已登入 LINE，下一步可以接正式報名流程。");
+        window.location.href = TARGET_PAGE;
       });
     }
 
@@ -633,7 +734,7 @@
     if (modalLogin) {
       modalLogin.addEventListener("click", function () {
         if (!window.liff || !liffReady) return;
-        liff.login({ redirectUri: window.location.href });
+        liff.login({ redirectUri: TARGET_PAGE });
       });
     }
 

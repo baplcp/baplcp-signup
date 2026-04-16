@@ -3,50 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BAPLCP 排球報名系統</title>
-  <meta name="description" content="BAPLCP 排球報名系統，提供本週臨打報名、季打請假與活動資訊。">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="BAPLCP 排球報名系統">
-  <meta property="og:title" content="BAPLCP 排球報名系統">
-  <meta property="og:description" content="本週臨打報名、季打請假與活動資訊。">
-  <meta property="og:url" content="https://baplcp.github.io/baplcp-signup/">
-  <meta property="og:image" content="https://baplcp.github.io/baplcp-signup/images/link%20preview.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="BAPLCP 排球報名系統">
-  <meta name="twitter:description" content="本週臨打報名、季打請假與活動資訊。">
-  <meta name="twitter:image" content="https://baplcp.github.io/baplcp-signup/images/link%20preview.png">
+  <title>BAPLCP 排球報名系統 V2</title>
+  <meta name="description" content="BAPLCP 排球報名系統 V2 版，提供更直接的臨打名額與名單檢視。">
   <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
   <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
   <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
   <style>
     :root {
-      --page-bg: #eef1ff;
+      --bg: #eef1ff;
       --surface: #ffffff;
-      --text: #101840;
-      --muted: #65708b;
-      --line: #f2f4fa;
       --hero-start: #5768ff;
-      --hero-end: #8591f7;
-      --card-start: #5768ff;
-      --card-end: #8894ff;
-      --accent-start: #ffe3c3;
-      --accent-mid: #ffd2a0;
-      --accent-end: #f2b47a;
-      --accent-text: #774d38;
-      --shadow-hero: 2px 2px 28px rgba(90, 90, 226, 0.3);
-      --shadow-cat: -8px 9px 22.9px rgba(16, 24, 67, 0.45);
-      --shadow-card-icon: 3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45);
-      --shadow-utility: 3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6);
-      --shadow-utility-warm: 3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5);
-      --shadow-button: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
-      --radius-xl: 24px;
-      --radius-lg: 20px;
-      --radius-md: 16px;
-      --radius-pill: 999px;
-      --nav-height: 48px;
-      --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
+      --hero-end: #7685ff;
+      --text: #18204f;
+      --muted: #8a91b0;
+      --accent: #ffd49d;
+      --accent-text: #7f5a3e;
+      --line: #edf0fb;
+      --shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
+      --card-shadow: 2px 2px 28px rgba(90, 90, 226, 0.3);
     }
 
     * {
@@ -55,7 +29,7 @@
 
     body {
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
       background:
         radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%),
@@ -76,70 +50,80 @@
     button {
       font: inherit;
       border: 0;
-      background: none;
       padding: 0;
+      background: none;
       cursor: pointer;
     }
 
     .app-shell {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-    }
-
-    .phone-shell {
       width: min(100%, 390px);
       height: min(844px, calc(100vh - 48px));
-      background: var(--surface);
-      border-radius: 23px;
+      background: #fff;
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(71, 82, 163, 0.18);
-      position: relative;
+      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
-      flex: 0 0 auto;
+      position: relative;
     }
 
-    .phone-scroll {
+    .app-scroll {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      height: 100%;
-      overflow-anchor: none;
     }
 
-    .phone-scroll::-webkit-scrollbar {
+    .app-scroll::-webkit-scrollbar {
       display: none;
+    }
+
+    .scroll-content {
+      min-height: 100%;
+      background:
+        linear-gradient(
+          180deg,
+          #5768ff 0%,
+          #6373ff 7%,
+          #7d8af9 13%,
+          #c1c6f1 20%,
+          #e8e9f5 27%,
+          #fff 35%,
+          #fff 100%
+        );
     }
 
     .hero {
       position: relative;
-      min-height: 274px;
-      padding: 44px 0 106px;
-      background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
-      box-shadow: var(--shadow-hero);
+      background: transparent;
+      padding: 56px 19px 92px;
+      min-height: 279px;
       overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: none;
+      pointer-events: none;
     }
 
     .nav {
       position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
       z-index: 10;
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      min-height: var(--nav-height);
-      margin-bottom: calc(var(--nav-height) * -1);
+      padding: 12px 19px;
+      margin: 0 0 -48px;
+      min-height: 48px;
       background: rgba(255, 255, 255, var(--nav-bg-opacity, 0));
       backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
       -webkit-backdrop-filter: blur(calc(var(--nav-progress, 0) * 14px));
       box-shadow: 0 1px 0 rgba(16, 24, 64, calc(var(--nav-progress, 0) * 0.08));
-      transition: filter 0.25s ease;
     }
 
     .brand {
@@ -152,10 +136,10 @@
 
     .nav-title {
       flex: 1;
-      text-align: center;
-      color: #fff;
-      font-size: 16px;
       opacity: 0;
+      font-size: 15px;
+      color: #fff;
+      text-align: center;
     }
 
     .menu-btn {
@@ -178,46 +162,42 @@
 
     .nav.is-scrolled .brand,
     .nav.is-scrolled .menu-btn img {
-      filter: var(--brand-purple-filter);
+      filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
     }
 
-    .hero-content {
+    .hero-layout {
+      position: relative;
+      z-index: 1;
       display: grid;
-      grid-template-columns: 170px 1fr;
-      gap: 8px;
-      padding: 22px 14px 0 0;
+      grid-template-columns: 161px 178px;
       align-items: center;
-      margin-top: -36px;
+      gap: 3px;
+      margin-top: 3px;
     }
 
     .hero-cat {
       position: relative;
-      height: 188px;
-      margin-top: 26px;
-      overflow: visible;
+      height: 175px;
     }
 
-    .hero-cat img.cat-main {
+    .hero-cat img {
       position: absolute;
-      left: -2px;
-      top: -18px;
-      width: 210px;
-      height: 224px;
-      object-fit: contain;
-      filter: drop-shadow(var(--shadow-cat));
+      left: -10px;
+      top: -8px;
+      width: 185px;
+      height: auto;
+      filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
     }
 
     .hero-copy {
-      padding-right: 14px;
       color: #fff;
+      padding-top: 0;
+      transform: translateY(-20px);
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
     .hero-copy h1 {
-      margin: 0 0 6px;
+      margin: 0;
       font-size: 28px;
       line-height: 1.36;
       font-weight: 700;
@@ -225,212 +205,241 @@
     }
 
     .hero-copy p {
-      margin: 0;
+      margin: 6px 0 0;
       font-size: 16px;
       line-height: 1.4;
+      color: rgba(255, 255, 255, 0.92);
+      white-space: nowrap;
+    }
+
+    .summary-card {
+      position: relative;
+      z-index: 2;
+      margin: -142px 19px 0;
+      min-height: 107px;
+      padding: 16px;
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      align-items: center;
+      gap: 17px;
+    }
+
+    .summary-vacancy {
+      width: 70px;
+      min-height: 70px;
+      flex: 0 0 auto;
+      border-radius: 9px;
+      background: rgba(220, 245, 245, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
       text-align: center;
     }
 
-    .cta {
-      margin-top: 10px;
-      width: 100%;
-      max-width: 182px;
-      padding: 12px 24px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, var(--accent-start) 6.25%, var(--accent-mid) 47.596%, var(--accent-end) 100%);
-      color: var(--accent-text);
+    .summary-vacancy-label {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 400;
+      color: #474d66;
+    }
+
+    .summary-vacancy-value {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.25;
+      font-weight: 700;
+      color: #17acba;
+    }
+
+    .summary-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .summary-time {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 700;
+      color: #474d66;
+      white-space: nowrap;
+    }
+
+    .summary-date {
+      letter-spacing: 0;
+      font-kerning: normal;
+      font-feature-settings: "kern";
+      margin-right: -2px;
+    }
+
+    .summary-weekday {
+      display: inline-block;
+      transform: translateX(-4px);
+    }
+
+    .summary-separator {
+      color: #d8dae5;
+      font-weight: 700;
+      margin: 0 10px 0 0;
+    }
+
+    .summary-location {
+      margin: 0;
       font-size: 16px;
-      font-weight: 500;
-      box-shadow: var(--shadow-button);
+      line-height: 1.25;
+      font-weight: 400;
+      color: #696f8c;
+      opacity: 0.85;
+      white-space: nowrap;
     }
 
     .content {
-      position: relative;
-      margin-top: -124px;
-      background: var(--surface);
-      border-radius: 20px 20px 0 0;
-      padding: 36px 16px 40px;
-      min-height: calc(100% - 251px);
-      z-index: 1;
+      padding: 24px 18px 110px;
     }
 
-    .top-cards {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .info-card {
-      position: relative;
-      min-height: 78px;
-      overflow: hidden;
-      border-radius: 16px;
-      padding: 17px 12px;
-      background: linear-gradient(180deg, var(--card-start) 0%, var(--card-end) 100%);
-      color: #fff;
-    }
-
-    .info-card-title {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.34px;
-      line-height: 1.4;
-    }
-
-    .info-card-subtitle {
-      margin: 2px 0 0;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.24px;
-      color: rgba(255, 255, 255, 0.7);
-      line-height: 1.4;
-    }
-
-    .info-card img {
-      position: absolute;
-      right: 4px;
-      top: 3px;
-      width: 72px;
-      height: 72px;
-      object-fit: contain;
-      filter: drop-shadow(var(--shadow-card-icon));
-    }
-
-    .section {
-      margin-top: 28px;
-    }
-
-    .section h2 {
-      margin: 0 0 12px;
-      font-size: 20px;
-      line-height: 1.4;
-      font-weight: 600;
-    }
-
-    .utility-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .utility-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      text-align: center;
-      text-decoration: none;
-      color: var(--text);
-    }
-
-    .utility-icon {
-      width: 76px;
-      height: 76px;
-      position: relative;
-      display: grid;
-      place-items: center;
-    }
-
-    .utility-icon::before {
-      content: "";
-      position: absolute;
-      inset: 6px;
-      border-radius: 999px;
-      background: #bac5ff;
-    }
-
-    .utility-item.warm .utility-icon::before {
-      background: #f2ba78;
-    }
-
-    .utility-icon img {
-      position: relative;
-      z-index: 1;
-      width: 58px;
-      height: 58px;
-      object-fit: contain;
-      filter: drop-shadow(var(--shadow-utility));
-    }
-
-    .utility-item.warm .utility-icon img {
-      width: 58px;
-      height: 58px;
-      filter: drop-shadow(var(--shadow-utility-warm));
-    }
-
-    .utility-item span {
-      font-size: 13px;
-      line-height: 1.4;
-      font-weight: 500;
-    }
-
-    .faq-list {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .faq-item {
-      border-bottom: 1px solid var(--line);
-      overflow-anchor: none;
-    }
-
-    .faq-question {
-      width: 100%;
+    .segment-tabs {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 13px 12px;
-      text-align: left;
+      margin: 0 0 16px;
     }
 
-    .faq-question span {
-      flex: 1;
-      font-size: 15px;
-      line-height: 1.4;
-      color: var(--text);
-    }
-
-    .faq-arrow {
-      width: 24px;
-      height: 24px;
+    .segment-tab {
+      min-width: 56px;
+      min-height: 34px;
+      padding: 6px 17px;
       border-radius: 999px;
-      background: #f3f5ff;
+      background: #edeff5;
+      color: #8d94ad;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.4;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .segment-tab.is-active {
+      background: var(--hero-start);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 2px;
+    }
+
+    .rank {
+      width: 18px;
+      flex: 0 0 auto;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--hero-start);
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      flex: 0 0 auto;
       display: grid;
       place-items: center;
-      flex: 0 0 auto;
-      transition: transform 0.2s ease;
-    }
-
-    .faq-arrow::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-top: 2px solid #8e99ff;
-      border-right: 2px solid #8e99ff;
-      transform: rotate(45deg);
-      margin-left: -2px;
-    }
-
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      padding: 0 12px;
+      color: #fff;
       font-size: 14px;
-      line-height: 1.7;
-      color: var(--muted);
-      opacity: 0;
-      transition: max-height 0.24s ease, opacity 0.18s ease, padding 0.24s ease;
+      font-weight: 700;
+      overflow: hidden;
+      background: linear-gradient(135deg, #8aa0ff 0%, #5768ff 100%);
     }
 
-    .faq-item.is-open .faq-answer {
-      max-height: 180px;
-      padding: 0 12px 14px;
-      opacity: 1;
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .faq-item.is-open .faq-arrow {
-      transform: rotate(90deg);
+    .name {
+      flex: 1;
+      min-width: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .status-tag {
+      flex: 0 0 auto;
+      min-width: 44px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f2f4fa;
+      color: #8b92b1;
+      font-size: 12px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .footer-bar {
+      position: absolute;
+      left: 19px;
+      right: 19px;
+      bottom: 16px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-fade {
+      position: absolute;
+      left: 19px;
+      right: 19px;
+      bottom: 0;
+      height: 154px;
+      border-radius: 0 0 12px 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 100%);
+      pointer-events: none;
+      z-index: 14;
+    }
+
+    .cta {
+      width: 100%;
+      min-height: 57px;
+      border-radius: 12px;
+      background: #1bc4bf;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+      box-shadow: none;
+    }
+
+    .version {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #7a84a7;
+      font-variant-numeric: tabular-nums;
     }
 
     .modal-backdrop {
@@ -444,7 +453,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
-      z-index: 50;
+      z-index: 80;
     }
 
     .modal-backdrop.is-open {
@@ -464,7 +473,6 @@
       margin: 0;
       font-size: 22px;
       line-height: 1.3;
-      color: var(--text);
     }
 
     .login-modal p {
@@ -500,183 +508,88 @@
       box-shadow: 0 10px 20px rgba(87, 104, 255, 0.28);
     }
 
-    .app-version {
-      margin-top: 28px;
-      text-align: center;
-      font-size: 11px;
-      line-height: 1.4;
-      color: #7a84a7;
-      font-variant-numeric: tabular-nums;
-    }
-
     @media (max-width: 500px) {
       body {
         padding: 0;
-        background: #fff;
+        display: block;
         overflow: hidden;
-        display: flex;
+        background: #fff;
       }
 
       .app-shell {
-        width: 100%;
-        height: 100vh;
-      }
-
-      .phone-shell {
         width: 100%;
         height: 100vh;
         border-radius: 0;
         box-shadow: none;
       }
 
-      .phone-scroll {
-        overflow-y: auto;
-      }
-
-      .app-version {
-        margin: 20px 0 12px;
+      .hero {
+        border-radius: 0;
       }
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <main class="phone-shell">
-      <div class="phone-scroll">
+  <main class="app-shell">
+    <div class="app-scroll">
+      <div class="scroll-content">
         <header class="nav">
           <div class="brand" aria-label="BAPLCP"></div>
-          <div class="nav-title">華江高中臨打報名</div>
+          <div class="nav-title">本週臨打區</div>
           <button class="menu-btn" type="button" aria-label="開啟選單">
             <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
           </button>
         </header>
 
         <section class="hero">
-          <div class="hero-content">
-          <div class="hero-cat" aria-hidden="true">
-            <img class="cat-main" src="./images/hero-cat.png" alt="">
-          </div>
-
+          <div class="hero-layout">
+            <div class="hero-cat" aria-hidden="true">
+              <img src="./images/hero-cat.png" alt="">
+            </div>
             <div class="hero-copy">
               <h1>本週臨打區</h1>
               <p>本週臨打報名及季打請假</p>
-              <button class="cta" id="hero-cta" type="button">立即報名或請假</button>
             </div>
+          </div>
+        </section>
+
+        <section class="summary-card" aria-label="活動摘要">
+          <div class="summary-vacancy">
+            <p class="summary-vacancy-label">臨打缺</p>
+            <p class="summary-vacancy-value">2</p>
+          </div>
+          <div class="summary-info">
+            <p class="summary-time">
+              <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
+              <span class="summary-separator">|</span>
+              <span>12:20-15:20</span>
+            </p>
+            <p class="summary-location">板橋柏吉倫排球場</p>
           </div>
         </section>
 
         <section class="content">
-          <div class="top-cards">
-            <article class="info-card">
-              <p class="info-card-title">季打報名</p>
-              <p class="info-card-subtitle">尚未開放</p>
-            <img src="./images/card-calendar.png" alt="">
-            </article>
-            <article class="info-card">
-              <p class="info-card-title">活動報名</p>
-              <p class="info-card-subtitle">尚無活動</p>
-            <img src="./images/card-party.png" alt="">
-            </article>
+          <div class="segment-tabs" role="tablist" aria-label="名單分類">
+            <button class="segment-tab is-active" type="button" role="tab" aria-selected="true">全部</button>
+            <button class="segment-tab" type="button" role="tab" aria-selected="false">臨打</button>
+            <button class="segment-tab" type="button" role="tab" aria-selected="false">季打</button>
           </div>
-
-          <section class="section" aria-labelledby="utility-title">
-            <h2 id="utility-title">常用功能</h2>
-            <div class="utility-grid">
-              <a class="utility-item" href="#">
-                <div class="utility-icon">
-                  <img src="./images/Registration list.png" alt="">
-                </div>
-                <span>臨打名單</span>
-              </a>
-              <a class="utility-item" href="#">
-                <div class="utility-icon">
-                  <img src="./images/Team Charter.png" alt="">
-                </div>
-                <span>球隊公約</span>
-              </a>
-              <a class="utility-item" href="#">
-                <div class="utility-icon">
-                  <img src="./images/icon-album.png" alt="">
-                </div>
-                <span>活動相簿</span>
-              </a>
-              <a class="utility-item warm" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
-                <div class="utility-icon">
-                  <img src="./images/icon-donate.png" alt="">
-                </div>
-                <span>贊助胖貓貓</span>
-              </a>
-            </div>
-          </section>
-
-          <section class="section" aria-labelledby="faq-title">
-            <h2 id="faq-title">常見問題</h2>
-            <div class="faq-list">
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>每週臨打的報名時間是什麼時候？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  一般可在每週公告貼文發布後開始報名。正式上線後可把這段替換成實際規則或表單開放時間。
-                </div>
-              </article>
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>這個群組的分級強度為何？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  這裡先放示意文字。之後可以改成你的實際球隊分級、強度描述與參加建議。
-                </div>
-              </article>
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>我可以幫非群內的朋友報名嗎？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  可以把這裡改成報名政策，例如是否允許代報、是否需要先加入群組、是否要補填聯絡資訊。
-                </div>
-              </article>
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>如果加入群組後都沒出現會被踢出嗎？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  這一段目前是佔位內容。你之後可以直接把實際管理規則補進來，不用重寫整頁。
-                </div>
-              </article>
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>這個群組的分級強度為何？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  如果這題與上方重複，後續可以改成其他常見提問，或保留作為不同情境的補充說明。
-                </div>
-              </article>
-              <article class="faq-item">
-                <button class="faq-question" type="button" aria-expanded="false">
-                  <span>我可以幫非群內的朋友報名嗎？</span>
-                  <i class="faq-arrow" aria-hidden="true"></i>
-                </button>
-                <div class="faq-answer">
-                  這裡也先保留與設計稿一致的視覺結構，方便你之後換成正式問答內容。
-                </div>
-              </article>
-            </div>
-          </section>
-          <div class="app-version" id="app-version">v--</div>
+          <div class="list" id="signup-list"></div>
+          <div class="version" id="app-version">v--</div>
         </section>
       </div>
-    </main>
-  </div>
+    </div>
+
+    <div class="footer-fade" aria-hidden="true"></div>
+    <div class="footer-bar">
+      <button class="cta" id="hero-cta" type="button">立即報名</button>
+    </div>
+  </main>
+
   <div class="modal-backdrop" id="login-modal" aria-hidden="true">
     <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <h3 id="login-modal-title">先用 LINE 驗證身分</h3>
-      <p>為了避免重複報名與方便帶入名稱頭像，報名前會先請你用 LINE 完成登入。</p>
+      <p>V2 一樣沿用 LINE 身分驗證，避免重複報名，也方便後續直接帶入名稱與頭像。</p>
       <div class="login-actions">
         <button class="login-action login-action-secondary" id="modal-close" type="button">稍後再說</button>
         <button class="login-action login-action-primary" id="modal-login" type="button">立即登入</button>
@@ -686,11 +599,24 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    var APP_VERSION = "v2026.04.15-03";
+    var APP_VERSION = "v2026.04.15-v2-04";
     var LIFF_ID = "2009808077-q6H0su3r";
-    var scrollContainer = document.querySelector(".phone-scroll");
+    var MEMBERS = [
+      { name: "Yu-Ting Chen", badge: "Y", image: "./images/profile01.png" },
+      { name: "施政維", badge: "施", image: "./images/profile02.png" },
+      { name: "莊則元", badge: "莊", image: "./images/profile03.png" },
+      { name: "蔚", badge: "蔚", image: "./images/profile04.png" },
+      { name: "乃瑄", badge: "乃", image: "./images/profile05.png" },
+      { name: "莊辰豪", badge: "莊", image: "./images/profile06.png" },
+      { name: "黃品諭", badge: "黃", image: "./images/profile07.png", status: "候補" },
+      { name: "黃品翰", badge: "黃", color: "linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)", status: "候補" }
+    ];
+
+    var TARGET_PAGE = new URL("./signup.html", window.location.href).href;
+    var appScroll = document.querySelector(".app-scroll");
     var nav = document.querySelector(".nav");
     var appVersion = document.getElementById("app-version");
+    var signupList = document.getElementById("signup-list");
     var heroCta = document.getElementById("hero-cta");
     var loginModal = document.getElementById("login-modal");
     var modalClose = document.getElementById("modal-close");
@@ -701,28 +627,70 @@
       appVersion.textContent = APP_VERSION;
     }
 
+    document.querySelectorAll(".segment-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".segment-tab").forEach(function (item) {
+          var isActive = item === tab;
+          item.classList.toggle("is-active", isActive);
+          item.setAttribute("aria-selected", String(isActive));
+        });
+      });
+    });
+
+    if (signupList) {
+      MEMBERS.forEach(function (member, index) {
+        var row = document.createElement("div");
+        row.className = "row";
+
+        var rank = document.createElement("div");
+        rank.className = "rank";
+        rank.textContent = String(index + 1);
+
+        var avatar = document.createElement("div");
+        avatar.className = "avatar";
+
+        if (member.image) {
+          var avatarImage = document.createElement("img");
+          avatarImage.src = member.image;
+          avatarImage.alt = "";
+          avatar.appendChild(avatarImage);
+        } else {
+          avatar.textContent = member.badge;
+          avatar.style.background = member.color;
+        }
+
+        var name = document.createElement("div");
+        name.className = "name";
+        name.textContent = member.name;
+
+        row.appendChild(rank);
+        row.appendChild(avatar);
+        row.appendChild(name);
+
+        if (member.status) {
+          var status = document.createElement("div");
+          status.className = "status-tag";
+          status.textContent = member.status;
+          row.appendChild(status);
+        }
+
+        signupList.appendChild(row);
+      });
+    }
+
     function syncHeaderState() {
-      if (!scrollContainer || !nav) return;
+      if (!appScroll || !nav) return;
       var fadeDistance = 120;
-      var progress = Math.max(0, Math.min(scrollContainer.scrollTop / fadeDistance, 1));
+      var progress = Math.max(0, Math.min(appScroll.scrollTop / fadeDistance, 1));
       nav.style.setProperty("--nav-progress", String(progress));
       nav.style.setProperty("--nav-bg-opacity", String(progress * 0.94));
       nav.classList.toggle("is-scrolled", progress > 0.55);
     }
 
-    if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", syncHeaderState, { passive: true });
+    if (appScroll) {
+      appScroll.addEventListener("scroll", syncHeaderState, { passive: true });
       syncHeaderState();
     }
-
-    document.querySelectorAll(".faq-question").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var item = button.closest(".faq-item");
-        var expanded = button.getAttribute("aria-expanded") === "true";
-        button.setAttribute("aria-expanded", String(!expanded));
-        item.classList.toggle("is-open", !expanded);
-      });
-    });
 
     function setLoginModalOpen(isOpen) {
       if (!loginModal) return;
@@ -730,7 +698,7 @@
       loginModal.setAttribute("aria-hidden", String(!isOpen));
     }
 
-    async function initLiffProfile() {
+    async function initLiff() {
       if (!window.liff) return;
 
       try {
@@ -753,7 +721,7 @@
           return;
         }
 
-        alert("已登入 LINE，下一步就可以接報名流程。");
+        window.location.href = TARGET_PAGE;
       });
     }
 
@@ -766,7 +734,7 @@
     if (modalLogin) {
       modalLogin.addEventListener("click", function () {
         if (!window.liff || !liffReady) return;
-        liff.login({ redirectUri: window.location.href });
+        liff.login({ redirectUri: TARGET_PAGE });
       });
     }
 
@@ -778,7 +746,7 @@
       });
     }
 
-    initLiffProfile();
+    initLiff();
   </script>
 </body>
 </html>
