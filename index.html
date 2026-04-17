@@ -447,6 +447,202 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .menu-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .menu-overlay.is-open {
+      pointer-events: auto;
+    }
+
+    .menu-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+
+    .menu-overlay.is-open .menu-backdrop {
+      opacity: 1;
+    }
+
+    .side-menu {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: min(329px, calc(100% - 61px));
+      height: 100%;
+      padding: 32px 0;
+      background: #fff;
+      color: var(--text);
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .side-menu::-webkit-scrollbar {
+      display: none;
+    }
+
+    .menu-overlay.is-open .side-menu {
+      transform: translateX(0);
+    }
+
+    .drawer-profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px 28px;
+    }
+
+    .drawer-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+
+    .drawer-user-stack {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .drawer-user {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: #101840;
+    }
+
+    .drawer-role {
+      width: max-content;
+      max-width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 6px;
+      border: 1px solid rgba(217, 141, 53, 0.3);
+      border-radius: 6px;
+      background: rgba(248, 222, 183, 0.2);
+      color: #c79051;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    .drawer-role svg {
+      display: block;
+      width: 13px;
+      height: 13px;
+      flex: 0 0 auto;
+      color: #e6b883;
+    }
+
+    .drawer-close {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: #474d66;
+      align-self: flex-start;
+      margin-top: 12px;
+      flex: 0 0 auto;
+    }
+
+    .drawer-content {
+      display: grid;
+      gap: 23px;
+      padding-bottom: 32px;
+    }
+
+    .drawer-section {
+      padding: 0 32px 0 16px;
+    }
+
+    .drawer-section-title {
+      margin: 0 0 16px;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 400;
+      color: #8f95b2;
+    }
+
+    .drawer-list {
+      display: grid;
+      gap: 20px;
+    }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 36px;
+      color: #101840;
+      text-decoration: none;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .drawer-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: #a8b1f4;
+      color: #8f95b2;
+      overflow: hidden;
+    }
+
+    .drawer-icon img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      filter: drop-shadow(3.2px 3.2px 12px rgba(87, 104, 255, 0.55));
+    }
+
+    .drawer-icon.is-warm {
+      background: #f2b57c;
+    }
+
+    .drawer-icon.is-warm img {
+      filter: drop-shadow(3.8px 3.8px 14px rgba(148, 77, 27, 0.45));
+    }
+
+    .drawer-icon.is-muted {
+      background: #edeff5;
+    }
+
+    .drawer-divider {
+      height: 1px;
+      background: #edeff5;
+    }
+
+    @media (max-width: 380px) {
+      .side-menu {
+        width: 84vw;
+      }
+
+      .drawer-section {
+        padding-right: 24px;
+      }
+    }
+
     @media (max-width: 500px) {
       body {
         padding: 0;
@@ -528,7 +724,7 @@
               </a>
               <a class="utility-item" href="#">
                 <div class="utility-icon">
-                  <img src="./images/Team Charter.png" alt="">
+                  <img src="./images/ball.png" alt="">
                 </div>
                 <span>球隊公約</span>
               </a>
@@ -609,11 +805,112 @@
           <div class="app-version" id="app-version">v--</div>
         </section>
       </div>
+
+      <div class="menu-overlay" id="menu-overlay" aria-hidden="true" inert>
+        <button class="menu-backdrop" type="button" data-menu-close aria-label="關閉選單"></button>
+        <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
+          <div class="drawer-profile">
+            <img class="drawer-avatar" src="./images/cookie.png" alt="">
+            <div class="drawer-user-stack">
+              <p class="drawer-user" id="drawer-user-name">吳佳穎</p>
+              <span class="drawer-role">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor"/>
+                  <path d="M5.5 17L4 7.5L8.5 11L12 5L15.5 11L20 7.5L18.5 17H5.5Z" fill="currentColor"/>
+                </svg>
+                <span>偉大的主揪</span>
+              </span>
+            </div>
+            <button class="drawer-close" type="button" data-menu-close aria-label="關閉選單">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+                <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="drawer-content">
+            <section class="drawer-section" aria-labelledby="drawer-common-title">
+              <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
+              <nav class="drawer-list" aria-label="常用功能">
+                <a class="drawer-link" href="./signup.html">
+                  <span class="drawer-icon"><img src="./images/ball.png" alt=""></span>
+                  <span>季打報名</span>
+                </a>
+                <a class="drawer-link" href="./active-activity.html">
+                  <span class="drawer-icon"><img src="./images/icon-album.png" alt=""></span>
+                  <span>參與紀錄</span>
+                </a>
+                <a class="drawer-link" href="./group-list.html">
+                  <span class="drawer-icon"><img src="./images/Registration list.png" alt=""></span>
+                  <span>開團列表</span>
+                </a>
+                <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
+                  <span class="drawer-icon is-warm"><img src="./images/icon-donate.png" alt=""></span>
+                  <span>贊助胖貓貓</span>
+                </a>
+              </nav>
+            </section>
+            <div class="drawer-divider" aria-hidden="true"></div>
+            <section class="drawer-section" aria-labelledby="drawer-admin-title">
+              <h2 class="drawer-section-title" id="drawer-admin-title">管理功能</h2>
+              <nav class="drawer-list" aria-label="管理功能">
+                <a class="drawer-link" href="#">
+                  <span class="drawer-icon is-muted">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                      <path d="M7 3.5V6M17 3.5V6M5 9H19M7 5H17C18.1 5 19 5.9 19 7V18C19 19.1 18.1 20 17 20H7C5.9 20 5 19.1 5 18V7C5 5.9 5.9 5 7 5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M12 12V17M9.5 14.5H14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span>建立活動</span>
+                </a>
+                <a class="drawer-link" href="#">
+                  <span class="drawer-icon is-muted">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                      <path d="M6 5.5H18C19.1 5.5 20 6.4 20 7.5V18.5C20 19.6 19.1 20.5 18 20.5H6C4.9 20.5 4 19.6 4 18.5V7.5C4 6.4 4.9 5.5 6 5.5Z" fill="currentColor" opacity="0.2"/>
+                      <path d="M8 3.5V7M16 3.5V7M4 9.5H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M8 13H16M8 16.5H13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span>每週報名名單管理</span>
+                </a>
+                <a class="drawer-link" href="#">
+                  <span class="drawer-icon is-muted">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                      <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12Z" fill="currentColor"/>
+                      <path d="M5 20C5 16.69 8.13 14 12 14C15.87 14 19 16.69 19 20V20.5H5V20Z" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span>季打管理</span>
+                </a>
+                <a class="drawer-link" href="#">
+                  <span class="drawer-icon is-muted">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                      <path d="M8.5 11.5C10.43 11.5 12 9.93 12 8C12 6.07 10.43 4.5 8.5 4.5C6.57 4.5 5 6.07 5 8C5 9.93 6.57 11.5 8.5 11.5Z" fill="currentColor"/>
+                      <path d="M16 11C17.66 11 19 9.66 19 8C19 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11Z" fill="currentColor" opacity="0.78"/>
+                      <path d="M3.5 20C3.5 16.96 5.97 14.5 9 14.5C10.62 14.5 12.08 15.2 13.09 16.32C12.7 17.04 12.5 17.86 12.5 18.72V20H3.5Z" fill="currentColor"/>
+                      <path d="M13.5 20V18.72C13.5 17.78 13.19 16.9 12.67 16.19C13.48 15.45 14.55 15 15.72 15C18.24 15 20.28 17.04 20.28 19.56V20H13.5Z" fill="currentColor" opacity="0.78"/>
+                    </svg>
+                  </span>
+                  <span>群內會員管理</span>
+                </a>
+                <a class="drawer-link" href="#">
+                  <span class="drawer-icon is-muted">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                      <path d="M12 4L18 7.4V14.6L12 20L6 14.6V7.4L12 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                      <path d="M12 10.5V13.5M10.5 12H13.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span>管理員名單</span>
+                </a>
+              </nav>
+            </section>
+          </div>
+        </aside>
+      </div>
     </main>
   </div>
   <script>
     var APP_VERSION = "v2026.04.15-03";
-    var TARGET_PAGE = new URL("./index-v2.html", window.location.href).href;
+    var TARGET_PAGE = new URL("./active-activity.html", window.location.href).href;
     var scrollContainer = document.querySelector(".phone-scroll");
     var nav = document.querySelector(".nav");
     var appVersion = document.getElementById("app-version");
@@ -636,6 +933,45 @@
       scrollContainer.addEventListener("scroll", syncHeaderState, { passive: true });
       syncHeaderState();
     }
+
+    function initSideMenu() {
+      var shell = document.querySelector(".phone-shell");
+      var overlay = document.getElementById("menu-overlay");
+      var openButton = document.querySelector(".menu-btn");
+      var closeTargets = document.querySelectorAll("[data-menu-close]");
+
+      if (!shell || !overlay || !openButton) return;
+
+      function setMenuOpen(isOpen) {
+        shell.classList.toggle("menu-open", isOpen);
+        overlay.classList.toggle("is-open", isOpen);
+        overlay.setAttribute("aria-hidden", String(!isOpen));
+        overlay.inert = !isOpen;
+
+        var focusTarget = isOpen ? overlay.querySelector(".drawer-close") : openButton;
+        if (focusTarget) {
+          focusTarget.focus({ preventScroll: true });
+        }
+      }
+
+      openButton.addEventListener("click", function () {
+        setMenuOpen(true);
+      });
+
+      closeTargets.forEach(function (target) {
+        target.addEventListener("click", function () {
+          setMenuOpen(false);
+        });
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && overlay.classList.contains("is-open")) {
+          setMenuOpen(false);
+        }
+      });
+    }
+
+    initSideMenu();
 
     document.querySelectorAll(".faq-question").forEach(function (button) {
       button.addEventListener("click", function () {

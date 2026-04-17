@@ -16,7 +16,7 @@
       --muted-soft: #8f95b2;
       --line: #f4f6fa;
       --surface: #ffffff;
-      --soft: #f4f6fa;
+      --soft: #eff1fe;
       --success-bg: #eefafa;
       --success: #1bc4be;
       --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
@@ -232,12 +232,16 @@
     }
 
     .history-row {
-      min-height: 88px;
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 20px 0;
+      padding: 18px 0;
       border-bottom: 1px solid var(--line);
+    }
+
+    .history-row .event-location {
+      color: var(--muted);
+      font-size: 14px;
     }
 
     .badge {
@@ -271,6 +275,202 @@
       flex: 0 0 auto;
     }
 
+    .menu-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .menu-overlay.is-open {
+      pointer-events: auto;
+    }
+
+    .menu-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+
+    .menu-overlay.is-open .menu-backdrop {
+      opacity: 1;
+    }
+
+    .side-menu {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: min(329px, calc(100% - 61px));
+      height: 100%;
+      padding: 32px 0;
+      background: #fff;
+      color: var(--text);
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .side-menu::-webkit-scrollbar {
+      display: none;
+    }
+
+    .menu-overlay.is-open .side-menu {
+      transform: translateX(0);
+    }
+
+    .drawer-profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px 28px;
+    }
+
+    .drawer-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+
+    .drawer-user-stack {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .drawer-user {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: #101840;
+    }
+
+    .drawer-role {
+      width: max-content;
+      max-width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 6px;
+      border: 1px solid rgba(217, 141, 53, 0.3);
+      border-radius: 6px;
+      background: rgba(248, 222, 183, 0.2);
+      color: #c79051;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    .drawer-role svg {
+      display: block;
+      width: 13px;
+      height: 13px;
+      flex: 0 0 auto;
+      color: #e6b883;
+    }
+
+    .drawer-close {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: #474d66;
+      align-self: flex-start;
+      margin-top: 12px;
+      flex: 0 0 auto;
+    }
+
+    .drawer-content {
+      display: grid;
+      gap: 23px;
+      padding-bottom: 32px;
+    }
+
+    .drawer-section {
+      padding: 0 32px 0 16px;
+    }
+
+    .drawer-section-title {
+      margin: 0 0 16px;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 400;
+      color: #8f95b2;
+    }
+
+    .drawer-list {
+      display: grid;
+      gap: 20px;
+    }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 36px;
+      color: #101840;
+      text-decoration: none;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .drawer-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: #a8b1f4;
+      color: #8f95b2;
+      overflow: hidden;
+    }
+
+    .drawer-icon img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      filter: drop-shadow(3.2px 3.2px 12px rgba(87, 104, 255, 0.55));
+    }
+
+    .drawer-icon.is-warm {
+      background: #f2b57c;
+    }
+
+    .drawer-icon.is-warm img {
+      filter: drop-shadow(3.8px 3.8px 14px rgba(148, 77, 27, 0.45));
+    }
+
+    .drawer-icon.is-muted {
+      background: #edeff5;
+    }
+
+    .drawer-divider {
+      height: 1px;
+      background: #edeff5;
+    }
+
+    @media (max-width: 380px) {
+      .side-menu {
+        width: 84vw;
+      }
+
+      .drawer-section {
+        padding-right: 24px;
+      }
+    }
+
     @media (max-width: 500px) {
       body {
         display: block;
@@ -296,7 +496,7 @@
             <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <div class="brand" aria-label="BAPLCP"></div>
+        <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
         <div class="topbar-title" aria-hidden="true">華江高中臨打報名</div>
         <button class="icon-button" type="button" aria-label="開啟選單">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -320,7 +520,7 @@
             <p class="event-date">4.09 (日)<span class="divider">｜</span>8:00-11:00</p>
             <p class="event-location">板橋柏吉倫排球場</p>
           </div>
-          <a class="go-button" href="./index-v2.html">前往</a>
+          <a class="go-button" href="./active-activity.html">前往</a>
         </article>
 
         <h2 class="section-title history-title">已結束活動</h2>
@@ -381,6 +581,7 @@
     </div>
   </main>
 
+  <script src="./menu-drawer.js"></script>
   <script>
     var backButton = document.getElementById("back-button");
 
