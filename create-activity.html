@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建立新球局 | BAPLCP 排球報名系統</title>
+  <meta name="description" content="建立 BAPLCP 新球局，設定日期、時間、費用、季打與臨打報名規則。">
+  <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
+  <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
+  <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
+  <style>
+    :root {
+      --primary: #6574ff;
+      --secondary: #5cc7c4;
+      --text: #101840;
+      --muted: #696f8c;
+      --muted-soft: #8f95b2;
+      --line: #d8dae5;
+      --line-soft: #e6e8f0;
+      --section: #f6f6f6;
+      --surface: #ffffff;
+      --selected: #eef1ff;
+      --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(87, 104, 255, 0.14), transparent 32%),
+        linear-gradient(180deg, #f5f6fb 0%, #edf0f8 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      padding: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 41px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      outline: none;
+      appearance: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input::placeholder {
+      color: var(--muted-soft);
+    }
+
+    input:focus,
+    select:focus,
+    .control-button:focus {
+      border-color: rgba(87, 104, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
+    }
+
+    select {
+      background-image:
+        linear-gradient(45deg, transparent 50%, #646a80 50%),
+        linear-gradient(135deg, #646a80 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 36px;
+    }
+
+    .app-shell {
+      width: min(100%, 390px);
+      height: min(844px, calc(100vh - 48px));
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .app-scroll {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 188px;
+    }
+
+    .app-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sheet-topbar {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: #fff;
+    }
+
+    .cancel-link {
+      color: var(--muted-soft);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .page {
+      padding: 24px 16px 0;
+    }
+
+    .page-title {
+      margin: 0 0 20px;
+      color: var(--text);
+      font-size: 24px;
+      line-height: 1.36;
+      letter-spacing: 0.48px;
+      font-weight: 600;
+    }
+
+    .form-block,
+    .section,
+    .field-list,
+    .field {
+      display: grid;
+    }
+
+    .section {
+      gap: 20px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.36;
+      letter-spacing: 0.36px;
+      font-weight: 600;
+    }
+
+    .section-divider {
+      height: 8px;
+      margin: 22px -16px 20px;
+      background: var(--section);
+    }
+
+    .field-list {
+      gap: 20px;
+    }
+
+    .field {
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .field-label {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 55px;
+      padding: 8px;
+      border-radius: 12px;
+      background: var(--selected);
+    }
+
+    .type-card {
+      min-height: 47px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 400;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .type-card.is-active {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .control-button {
+      min-height: 41px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      color: var(--muted-soft);
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .control-button.has-value {
+      color: var(--text);
+    }
+
+    .control-button::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #646a80;
+      border-radius: 2px;
+      flex: 0 0 auto;
+      margin-left: 12px;
+    }
+
+    .helper-note,
+    .auto-note {
+      margin: 0;
+      color: var(--secondary);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 400;
+    }
+
+    .date-count-note[hidden],
+    .season-area[hidden] {
+      display: none;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+
+    .time-row.is-rule {
+      grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .inline-text {
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .select-wrap {
+      display: block;
+      min-width: 0;
+      position: relative;
+    }
+
+    .select-wrap select[data-time-select] {
+      pointer-events: none;
+    }
+
+    .fee-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .fee-mini-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mini-label {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 400;
+    }
+
+    .money-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 41px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .money-input input {
+      min-height: 0;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+      font-size: 13px;
+    }
+
+    .fee-card {
+      display: grid;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .fee-check-row {
+      min-height: 41px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .fee-check {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border: 1.5px solid #1bc4bf;
+      border-radius: 4px;
+      background: #1bc4bf;
+      color: #fff;
+      flex: 0 0 auto;
+      transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    }
+
+    #season-include-ac:not(:checked) + .fee-check {
+      border-color: var(--line-soft);
+      background: #fff;
+      color: transparent;
+    }
+
+    .fee-check svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .fee-input-row {
+      min-height: 41px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .fee-input-row input {
+      min-height: 0;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+      font-size: 13px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .switch {
+      width: 40px;
+      height: 24px;
+      border-radius: 999px;
+      background: #dfe3ee;
+      padding: 2px;
+      transition: background-color 0.2s ease;
+      flex: 0 0 auto;
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s ease;
+    }
+
+    .switch.is-on {
+      background: var(--secondary);
+    }
+
+    .switch.is-on::after {
+      transform: translateX(16px);
+    }
+
+    .season-fields {
+      overflow: hidden;
+      transition: max-height 0.24s ease, opacity 0.2s ease, margin-top 0.2s ease;
+      max-height: 900px;
+      opacity: 1;
+    }
+
+    .season-fields.is-collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: -20px;
+      pointer-events: none;
+    }
+
+    .choice-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .choice-card {
+      min-height: 80px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 14px;
+    }
+
+    .choice-card.is-condensed {
+      align-items: center;
+      min-height: 66px;
+    }
+
+    .choice-card.is-active {
+      border-color: var(--primary);
+    }
+
+    .radio-mark {
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid var(--line-soft);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      margin-top: 2px;
+    }
+
+    .choice-card.is-active .radio-mark {
+      border-color: var(--primary);
+    }
+
+    .choice-card.is-active .radio-mark::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .choice-summary,
+    .choice-content {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .choice-title {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+
+    .choice-copy {
+      color: var(--muted-soft);
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 400;
+    }
+
+    .choice-rule {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .choice-card.is-condensed .choice-rule {
+      display: none;
+    }
+
+    .cta-fade {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 8;
+      padding: 46px 16px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 38%, #fff 100%);
+      pointer-events: none;
+    }
+
+    .submit-button {
+      width: 100%;
+      min-height: 64px;
+      border-radius: 10px;
+      background: var(--secondary);
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+      pointer-events: auto;
+    }
+
+    .calendar-overlay,
+    .time-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: flex-end;
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .calendar-overlay.is-open,
+    .time-overlay.is-open {
+      display: flex;
+    }
+
+    .calendar-sheet,
+    .time-sheet {
+      width: 100%;
+      padding: 16px;
+      border-radius: 18px 18px 0 0;
+      background: #fff;
+    }
+
+    .calendar-header,
+    .time-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .calendar-title,
+    .time-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.36;
+      font-weight: 600;
+    }
+
+    .calendar-nav,
+    .time-close {
+      min-width: 40px;
+      min-height: 36px;
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+    }
+
+    .time-close {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-weekdays {
+      margin-bottom: 6px;
+      color: var(--muted-soft);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .calendar-day {
+      min-height: 36px;
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .calendar-day.is-muted {
+      color: #bdc1d1;
+    }
+
+    .calendar-day.is-selected {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .calendar-actions,
+    .time-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .calendar-action,
+    .time-action {
+      min-height: 44px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .calendar-action.is-muted,
+    .time-action.is-muted {
+      background: #f4f6fa;
+      color: var(--muted);
+    }
+
+    .calendar-action.is-primary,
+    .time-action.is-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .time-wheels {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      padding: 8px 0;
+    }
+
+    .time-wheels::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 44px;
+      border-radius: 10px;
+      background: #f4f6fa;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .time-wheel-column {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 4px;
+    }
+
+    .time-wheel {
+      height: 220px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .time-wheel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .time-wheel::before,
+    .time-wheel::after {
+      content: "";
+      display: block;
+      height: 88px;
+    }
+
+    .time-wheel-option {
+      min-height: 44px;
+      width: 100%;
+      display: grid;
+      place-items: center;
+      scroll-snap-align: center;
+      color: #9aa0b8;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 400;
+    }
+
+    .time-wheel-option.is-selected {
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 500;
+    }
+
+    .time-wheel-arrow {
+      display: none;
+      min-height: 28px;
+      place-items: center;
+      color: var(--muted);
+      border-radius: 8px;
+      transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .time-wheel-arrow svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .time-wheel-arrow:hover {
+      background: #f4f6fa;
+      color: var(--text);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .time-wheel-arrow {
+        display: grid;
+      }
+
+      .time-wheel {
+        height: 176px;
+      }
+
+      .time-wheel::before,
+      .time-wheel::after {
+        height: 66px;
+      }
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 0;
+        display: block;
+        background: #fff;
+      }
+
+      .app-shell {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="app-scroll">
+      <header class="sheet-topbar">
+        <button class="cancel-link" id="cancel-button" type="button">取消</button>
+      </header>
+
+      <section class="page">
+        <h1 class="page-title">建立新球局</h1>
+
+        <form class="form-block" id="create-activity-form">
+          <section class="section" aria-labelledby="details-title">
+            <h2 class="section-title" id="details-title">詳細資訊</h2>
+            <div class="type-grid" role="radiogroup" aria-label="球局種類">
+              <button class="type-card is-active" type="button" data-game-type="season" aria-pressed="true">多次</button>
+              <button class="type-card" type="button" data-game-type="single" aria-pressed="false">單次</button>
+            </div>
+            <input id="game-type" name="gameType" type="hidden" value="season">
+
+            <label class="field">
+              <span class="field-label">地點</span>
+              <input id="location" name="location" type="text" autocomplete="off">
+            </label>
+
+            <div class="field">
+              <p class="field-label" id="date-field-label">日期（多選）</p>
+              <button class="control-button" id="date-picker-button" type="button">請選擇日期</button>
+              <input id="activity-dates" name="activityDates" type="hidden">
+              <p class="date-count-note helper-note" id="date-count-note" hidden>共 0 次</p>
+            </div>
+
+            <div class="field">
+              <p class="field-label">時間</p>
+              <div class="time-row">
+                <span class="select-wrap">
+                  <select id="activity-start-time" name="activityStartTime" data-time-select data-time-placeholder="開始時間">
+                    <option value="">開始時間</option>
+                  </select>
+                </span>
+                <span class="inline-text">至</span>
+                <span class="select-wrap">
+                  <select id="activity-end-time" name="activityEndTime" data-time-select data-time-placeholder="結束時間">
+                    <option value="">結束時間</option>
+                  </select>
+                </span>
+              </div>
+            </div>
+
+            <div class="field">
+              <p class="field-label">單次收費</p>
+              <div class="fee-grid">
+                <label class="fee-mini-field">
+                  <span class="mini-label">季打</span>
+                  <span class="money-input">
+                    <span>$</span>
+                    <input id="season-single-fee" name="seasonSingleFee" type="number" min="0" inputmode="numeric">
+                  </span>
+                </label>
+                <label class="fee-mini-field">
+                  <span class="mini-label">臨打</span>
+                  <span class="money-input">
+                    <span>$</span>
+                    <input id="pickup-single-fee" name="pickupSingleFee" type="number" min="0" inputmode="numeric">
+                  </span>
+                </label>
+                <label class="fee-mini-field">
+                  <span class="mini-label">冷氣</span>
+                  <span class="money-input">
+                    <span>$</span>
+                    <input id="ac-fee" name="acFee" type="number" min="0" inputmode="numeric">
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <label class="field">
+              <span class="field-label">單次人數</span>
+              <input id="single-capacity" name="singleCapacity" type="number" min="1" value="18" inputmode="numeric">
+            </label>
+          </section>
+
+          <div class="section-divider" aria-hidden="true"></div>
+
+          <section class="section season-area" id="season-area" aria-labelledby="season-title">
+            <div class="section-header">
+              <h2 class="section-title" id="season-title">季打報名開放</h2>
+              <button class="switch is-on" id="season-switch" type="button" role="switch" aria-checked="true" aria-label="季打報名開放"></button>
+            </div>
+
+            <div class="field-list season-fields" id="season-fields">
+              <div class="field">
+                <p class="field-label"><strong>季打費用</strong></p>
+                <div class="fee-card">
+                  <label class="fee-check-row">
+                    <input id="season-include-ac" name="seasonIncludeAc" type="checkbox" checked hidden>
+                    <span class="fee-check" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12.5L9.5 17L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                    <span>含冷氣費</span>
+                  </label>
+                  <label class="fee-input-row">
+                    <span>$</span>
+                    <input id="season-fee" name="seasonFee" type="number" min="0" inputmode="numeric" aria-label="季打費用" readonly>
+                  </label>
+                </div>
+                <p class="auto-note fee-note">*自動填入</p>
+              </div>
+
+              <label class="field">
+                <span class="field-label">季打名額</span>
+                <span class="select-wrap">
+                  <select id="season-capacity" name="seasonCapacity">
+                    <option value="">請選擇人數</option>
+                  </select>
+                </span>
+              </label>
+
+              <div class="field">
+                <p class="field-label">季打開放報名時間</p>
+                <div class="time-row">
+                  <button class="control-button" id="season-open-date-button" type="button">請選擇日期</button>
+                  <input id="season-open-date" name="seasonOpenDate" type="hidden">
+                  <span class="inline-text">的</span>
+                  <span class="select-wrap">
+                    <select id="season-open-time" name="seasonOpenTime" data-time-select data-time-placeholder="幾點">
+                      <option value="">幾點</option>
+                    </select>
+                  </span>
+                </div>
+              </div>
+
+              <div class="field">
+                <p class="field-label"><strong>季打截止時間</strong></p>
+                <div class="choice-stack">
+                  <div class="choice-card is-active is-condensed" role="button" tabindex="0" data-season-deadline-type="unlimited" aria-pressed="true">
+                    <span class="radio-mark" aria-hidden="true"></span>
+                    <span class="choice-summary">
+                      <span class="choice-title">不限時間</span>
+                      <span class="choice-copy">管理員可手動關閉</span>
+                    </span>
+                  </div>
+                  <div class="choice-card is-condensed" role="button" tabindex="0" data-season-deadline-type="custom" aria-pressed="false">
+                    <span class="radio-mark" aria-hidden="true"></span>
+                    <span class="choice-content">
+                      <span class="choice-title">設定截止時間</span>
+                      <span class="choice-rule">
+                        <span>每次活動</span>
+                        <span class="select-wrap">
+                          <select id="season-close-date" name="seasonCloseDate">
+                            <option value="">請選擇日期</option>
+                            <option>活動前 1 天</option>
+                            <option>活動前 2 天</option>
+                          </select>
+                        </span>
+                        <span>的</span>
+                        <span class="select-wrap">
+                          <select id="season-close-time" name="seasonCloseTime" data-time-select data-time-placeholder="幾點">
+                            <option value="">幾點</option>
+                          </select>
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <input id="season-deadline-type" name="seasonDeadlineType" type="hidden" value="unlimited">
+              </div>
+            </div>
+          </section>
+
+          <div class="section-divider" aria-hidden="true"></div>
+
+          <section class="section" aria-labelledby="pickup-title">
+            <h2 class="section-title" id="pickup-title">臨打報名</h2>
+            <div class="field">
+              <p class="field-label">開放時間</p>
+              <div class="time-row is-rule">
+                <span class="inline-text">每次活動</span>
+                <span class="select-wrap">
+                  <select id="pickup-open-date" name="pickupOpenDate">
+                    <option value="">幾天前</option>
+                    <option>1 天前</option>
+                    <option>2 天前</option>
+                    <option>7 天前</option>
+                  </select>
+                </span>
+                <span class="inline-text">的</span>
+                <span class="select-wrap">
+                  <select id="pickup-open-time" name="pickupOpenTime" data-time-select data-time-placeholder="幾點">
+                    <option value="">幾點</option>
+                  </select>
+                </span>
+              </div>
+            </div>
+
+            <div class="field">
+              <p class="field-label"><strong>截止時間</strong></p>
+              <div class="choice-stack">
+                <div class="choice-card is-active is-condensed" role="button" tabindex="0" data-deadline-type="unlimited" aria-pressed="true">
+                  <span class="radio-mark" aria-hidden="true"></span>
+                  <span class="choice-summary">
+                    <span class="choice-title">不限時間</span>
+                    <span class="choice-copy">活動開始前皆可報名</span>
+                  </span>
+                </div>
+                <div class="choice-card is-condensed" role="button" tabindex="0" data-deadline-type="custom" aria-pressed="false">
+                  <span class="radio-mark" aria-hidden="true"></span>
+                  <span class="choice-content">
+                    <span class="choice-title">設定截止時間</span>
+                    <span class="choice-rule">
+                      <span>每次活動</span>
+                      <span class="select-wrap">
+                        <select id="pickup-close-date" name="pickupCloseDate">
+                          <option value="">幾天前</option>
+                          <option>1 天前</option>
+                          <option>2 天前</option>
+                        </select>
+                      </span>
+                      <span>的</span>
+                      <span class="select-wrap">
+                        <select id="pickup-close-time" name="pickupCloseTime" data-time-select data-time-placeholder="幾點">
+                          <option value="">幾點</option>
+                        </select>
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <input id="deadline-type" name="deadlineType" type="hidden" value="unlimited">
+            </div>
+          </section>
+        </form>
+      </section>
+    </div>
+
+    <div class="cta-fade">
+      <button class="submit-button" type="submit" form="create-activity-form">建立球局</button>
+    </div>
+
+    <div class="calendar-overlay" id="calendar-overlay" aria-hidden="true">
+      <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
+        <div class="calendar-header">
+          <button class="calendar-nav" id="calendar-prev" type="button" aria-label="上一個月">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+              <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <h2 class="calendar-title" id="calendar-title"></h2>
+          <button class="calendar-nav" id="calendar-next" type="button" aria-label="下一個月">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <div class="calendar-actions">
+          <button class="calendar-action is-muted" id="calendar-cancel" type="button">取消</button>
+          <button class="calendar-action is-primary" id="calendar-done" type="button">完成</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="time-overlay" id="time-overlay" aria-hidden="true">
+      <section class="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-title">
+        <div class="time-header">
+          <h2 class="time-title" id="time-title">選擇時間</h2>
+          <button class="time-close" id="time-close" type="button">完成</button>
+        </div>
+        <div class="time-wheels" aria-label="時間選擇器">
+          <div class="time-wheel-column">
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="hour" data-direction="-1" aria-label="小時減少">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="time-wheel" id="time-hour-wheel" aria-label="小時"></div>
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="hour" data-direction="1" aria-label="小時增加">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="time-wheel-column">
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="minute" data-direction="-1" aria-label="分鐘減少">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="time-wheel" id="time-minute-wheel" aria-label="分鐘"></div>
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="minute" data-direction="1" aria-label="分鐘增加">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="time-wheel-column">
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="period" data-direction="-1" aria-label="上午下午切換">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="time-wheel" id="time-period-wheel" aria-label="上午或下午"></div>
+            <button class="time-wheel-arrow" type="button" data-time-wheel-step="period" data-direction="1" aria-label="上午下午切換">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="time-actions">
+          <button class="time-action is-muted" id="time-cancel" type="button">取消</button>
+          <button class="time-action is-primary" id="time-done" type="button">完成</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    var form = document.getElementById("create-activity-form");
+    var cancelButton = document.getElementById("cancel-button");
+    var typeInput = document.getElementById("game-type");
+    var typeButtons = document.querySelectorAll("[data-game-type]");
+    var seasonArea = document.getElementById("season-area");
+    var seasonSwitch = document.getElementById("season-switch");
+    var seasonFields = document.getElementById("season-fields");
+    var dateButton = document.getElementById("date-picker-button");
+    var dateFieldLabel = document.getElementById("date-field-label");
+    var dateCountNote = document.getElementById("date-count-note");
+    var dateInput = document.getElementById("activity-dates");
+    var seasonOpenDateButton = document.getElementById("season-open-date-button");
+    var seasonOpenDateInput = document.getElementById("season-open-date");
+    var calendarOverlay = document.getElementById("calendar-overlay");
+    var calendarTitle = document.getElementById("calendar-title");
+    var calendarGrid = document.getElementById("calendar-grid");
+    var calendarPrev = document.getElementById("calendar-prev");
+    var calendarNext = document.getElementById("calendar-next");
+    var calendarCancel = document.getElementById("calendar-cancel");
+    var calendarDone = document.getElementById("calendar-done");
+    var deadlineInput = document.getElementById("deadline-type");
+    var deadlineButtons = document.querySelectorAll("[data-deadline-type]");
+    var customDeadlineCard = document.querySelector('[data-deadline-type="custom"]');
+    var seasonDeadlineInput = document.getElementById("season-deadline-type");
+    var seasonDeadlineButtons = document.querySelectorAll("[data-season-deadline-type]");
+    var customSeasonDeadlineCard = document.querySelector('[data-season-deadline-type="custom"]');
+    var seasonCapacity = document.getElementById("season-capacity");
+    var seasonSingleFee = document.getElementById("season-single-fee");
+    var acFee = document.getElementById("ac-fee");
+    var seasonFee = document.getElementById("season-fee");
+    var seasonIncludeAc = document.getElementById("season-include-ac");
+    var timeOverlay = document.getElementById("time-overlay");
+    var timeClose = document.getElementById("time-close");
+    var timeCancel = document.getElementById("time-cancel");
+    var timeDone = document.getElementById("time-done");
+    var timeHourWheel = document.getElementById("time-hour-wheel");
+    var timeMinuteWheel = document.getElementById("time-minute-wheel");
+    var timePeriodWheel = document.getElementById("time-period-wheel");
+    var activeTimeSelect = null;
+    var activeCalendarTarget = "activity";
+    var selectedDates = [];
+    var seasonOpenDate = "";
+    var visibleMonth = new Date();
+    var timePickerValue = { hour: "06", minute: "00", period: "AM" };
+    var timeScrollTimers = new WeakMap();
+
+    visibleMonth.setDate(1);
+
+    function populateCapacityOptions() {
+      for (var number = 1; number <= 18; number += 1) {
+        var option = document.createElement("option");
+        option.value = String(number);
+        option.textContent = String(number);
+        seasonCapacity.appendChild(option);
+      }
+    }
+
+    function populateTimeSelects() {
+      document.querySelectorAll("[data-time-select]").forEach(function (select) {
+        var placeholder = select.dataset.timePlaceholder || "請選擇時間";
+        select.innerHTML = "";
+
+        var placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = placeholder;
+        select.appendChild(placeholderOption);
+
+        for (var minutes = 0; minutes < 24 * 60; minutes += 1) {
+          var hour = String(Math.floor(minutes / 60)).padStart(2, "0");
+          var minute = String(minutes % 60).padStart(2, "0");
+          var value = hour + ":" + minute;
+          var option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        }
+      });
+    }
+
+    function to24HourValue(hour, minute, period) {
+      var hourNumber = Number(hour);
+      if (period === "AM") {
+        hourNumber = hourNumber === 12 ? 0 : hourNumber;
+      } else {
+        hourNumber = hourNumber === 12 ? 12 : hourNumber + 12;
+      }
+      return String(hourNumber).padStart(2, "0") + ":" + minute;
+    }
+
+    function from24HourValue(value) {
+      if (!value) return { hour: "06", minute: "00", period: "AM" };
+
+      var parts = value.split(":");
+      var hourNumber = Number(parts[0]);
+      var period = hourNumber >= 12 ? "PM" : "AM";
+      var hour12 = hourNumber % 12 || 12;
+      return {
+        hour: String(hour12).padStart(2, "0"),
+        minute: parts[1] || "00",
+        period: period
+      };
+    }
+
+    function buildWheel(wheel, values, key) {
+      wheel.innerHTML = "";
+      values.forEach(function (value) {
+        var button = document.createElement("button");
+        button.className = "time-wheel-option";
+        button.type = "button";
+        button.dataset.value = value;
+        button.textContent = value;
+        button.addEventListener("click", function () {
+          timePickerValue[key] = value;
+          syncTimeWheelSelection();
+          scrollWheelToValue(wheel, value, "smooth");
+        });
+        wheel.appendChild(button);
+      });
+
+      wheel.addEventListener("scroll", function () {
+        window.clearTimeout(timeScrollTimers.get(wheel));
+        timeScrollTimers.set(wheel, window.setTimeout(function () {
+          var option = getCenteredWheelOption(wheel);
+          if (!option) return;
+          timePickerValue[key] = option.dataset.value;
+          syncTimeWheelSelection();
+        }, 90));
+      }, { passive: true });
+    }
+
+    function getCenteredWheelOption(wheel) {
+      var options = Array.from(wheel.querySelectorAll(".time-wheel-option"));
+      var wheelCenter = wheel.getBoundingClientRect().top + wheel.clientHeight / 2;
+
+      return options.reduce(function (closest, option) {
+        var optionCenter = option.getBoundingClientRect().top + option.offsetHeight / 2;
+        var distance = Math.abs(optionCenter - wheelCenter);
+        if (!closest || distance < closest.distance) {
+          return { option: option, distance: distance };
+        }
+        return closest;
+      }, null).option;
+    }
+
+    function scrollWheelToValue(wheel, value, behavior) {
+      var option = wheel.querySelector('[data-value="' + value + '"]');
+      if (!option) return;
+      wheel.scrollTo({
+        top: option.offsetTop - (wheel.clientHeight - option.offsetHeight) / 2,
+        behavior: behavior || "auto"
+      });
+    }
+
+    function syncTimeWheelSelection() {
+      [
+        { wheel: timeHourWheel, key: "hour" },
+        { wheel: timeMinuteWheel, key: "minute" },
+        { wheel: timePeriodWheel, key: "period" }
+      ].forEach(function (item) {
+        item.wheel.querySelectorAll(".time-wheel-option").forEach(function (option) {
+          option.classList.toggle("is-selected", option.dataset.value === timePickerValue[item.key]);
+        });
+      });
+    }
+
+    function stepTimeWheel(key, direction) {
+      var wheels = { hour: timeHourWheel, minute: timeMinuteWheel, period: timePeriodWheel };
+      var wheel = wheels[key];
+      if (!wheel) return;
+
+      var options = Array.from(wheel.querySelectorAll(".time-wheel-option"));
+      var currentIndex = options.findIndex(function (option) {
+        return option.dataset.value === timePickerValue[key];
+      });
+      var nextIndex = currentIndex + Number(direction);
+
+      if (nextIndex < 0) nextIndex = options.length - 1;
+      if (nextIndex >= options.length) nextIndex = 0;
+
+      timePickerValue[key] = options[nextIndex].dataset.value;
+      syncTimeWheelSelection();
+      scrollWheelToValue(wheel, timePickerValue[key], "smooth");
+    }
+
+    function setTimePickerOpen(isOpen, select) {
+      timeOverlay.classList.toggle("is-open", isOpen);
+      timeOverlay.setAttribute("aria-hidden", String(!isOpen));
+
+      if (!isOpen) {
+        activeTimeSelect = null;
+        return;
+      }
+
+      activeTimeSelect = select;
+      timePickerValue = from24HourValue(select.value);
+      syncTimeWheelSelection();
+
+      window.requestAnimationFrame(function () {
+        scrollWheelToValue(timeHourWheel, timePickerValue.hour);
+        scrollWheelToValue(timeMinuteWheel, timePickerValue.minute);
+        scrollWheelToValue(timePeriodWheel, timePickerValue.period);
+      });
+    }
+
+    function commitTimePickerValue() {
+      if (!activeTimeSelect) return;
+
+      var value = to24HourValue(timePickerValue.hour, timePickerValue.minute, timePickerValue.period);
+      activeTimeSelect.value = value;
+      activeTimeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      setTimePickerOpen(false);
+    }
+
+    function initTimePicker() {
+      var hours = Array.from({ length: 12 }, function (_, index) {
+        return String(index + 1).padStart(2, "0");
+      });
+      var minutes = Array.from({ length: 60 }, function (_, index) {
+        return String(index).padStart(2, "0");
+      });
+
+      buildWheel(timeHourWheel, hours, "hour");
+      buildWheel(timeMinuteWheel, minutes, "minute");
+      buildWheel(timePeriodWheel, ["AM", "PM"], "period");
+
+      document.querySelectorAll("[data-time-wheel-step]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          stepTimeWheel(button.dataset.timeWheelStep, button.dataset.direction);
+        });
+      });
+
+      document.querySelectorAll("[data-time-select]").forEach(function (select) {
+        var wrapper = select.closest(".select-wrap");
+        if (!wrapper) return;
+        wrapper.addEventListener("click", function () {
+          setTimePickerOpen(true, select);
+        });
+      });
+
+      timeClose.addEventListener("click", commitTimePickerValue);
+      timeDone.addEventListener("click", commitTimePickerValue);
+      timeCancel.addEventListener("click", function () {
+        setTimePickerOpen(false);
+      });
+      timeOverlay.addEventListener("click", function (event) {
+        if (event.target === timeOverlay) setTimePickerOpen(false);
+      });
+    }
+
+    function formatDate(date) {
+      var month = String(date.getMonth() + 1).padStart(2, "0");
+      var day = String(date.getDate()).padStart(2, "0");
+      return date.getFullYear() + "-" + month + "-" + day;
+    }
+
+    function formatDateLabel(value) {
+      var parts = value.split("-");
+      return Number(parts[1]) + "/" + Number(parts[2]);
+    }
+
+    function getSelectedCalendarValues() {
+      return activeCalendarTarget === "season-open"
+        ? (seasonOpenDate ? [seasonOpenDate] : [])
+        : selectedDates;
+    }
+
+    function syncActivityDateText() {
+      dateInput.value = selectedDates.join(",");
+      dateButton.classList.toggle("has-value", selectedDates.length > 0);
+      dateButton.textContent = selectedDates.length
+        ? selectedDates.map(formatDateLabel).join("、")
+        : "請選擇日期";
+      dateCountNote.hidden = selectedDates.length === 0;
+      dateCountNote.textContent = "共 " + selectedDates.length + " 次";
+      updateSeasonFee();
+    }
+
+    function syncSeasonOpenDateText() {
+      seasonOpenDateInput.value = seasonOpenDate;
+      seasonOpenDateButton.classList.toggle("has-value", Boolean(seasonOpenDate));
+      seasonOpenDateButton.textContent = seasonOpenDate ? formatDateLabel(seasonOpenDate) : "請選擇日期";
+    }
+
+    function renderCalendar() {
+      var year = visibleMonth.getFullYear();
+      var month = visibleMonth.getMonth();
+      var firstDay = new Date(year, month, 1);
+      var startOffset = firstDay.getDay();
+      var gridStart = new Date(year, month, 1 - startOffset);
+      var selectedValues = getSelectedCalendarValues();
+
+      calendarTitle.textContent = year + " 年 " + (month + 1) + " 月";
+      calendarGrid.innerHTML = "";
+
+      for (var index = 0; index < 42; index += 1) {
+        var date = new Date(gridStart);
+        date.setDate(gridStart.getDate() + index);
+
+        var value = formatDate(date);
+        var button = document.createElement("button");
+        button.className = "calendar-day";
+        button.type = "button";
+        button.textContent = String(date.getDate());
+        button.dataset.date = value;
+
+        if (date.getMonth() !== month) button.classList.add("is-muted");
+        if (selectedValues.indexOf(value) !== -1) button.classList.add("is-selected");
+
+        button.addEventListener("click", function () {
+          var selectedValue = this.dataset.date;
+
+          if (activeCalendarTarget === "season-open") {
+            seasonOpenDate = selectedValue;
+            syncSeasonOpenDateText();
+          } else {
+            var existingIndex = selectedDates.indexOf(selectedValue);
+            if (typeInput.value === "single") {
+              selectedDates = existingIndex === -1 ? [selectedValue] : [];
+            } else if (existingIndex === -1) {
+              selectedDates.push(selectedValue);
+            } else {
+              selectedDates.splice(existingIndex, 1);
+            }
+            selectedDates.sort();
+            syncActivityDateText();
+          }
+
+          renderCalendar();
+        });
+
+        calendarGrid.appendChild(button);
+      }
+    }
+
+    function setCalendarOpen(isOpen, target) {
+      if (target) activeCalendarTarget = target;
+      calendarOverlay.classList.toggle("is-open", isOpen);
+      calendarOverlay.setAttribute("aria-hidden", String(!isOpen));
+      if (isOpen) renderCalendar();
+    }
+
+    function setGameType(type) {
+      typeInput.value = type;
+      typeButtons.forEach(function (button) {
+        var isActive = button.dataset.gameType === type;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      seasonArea.hidden = type === "single";
+      dateFieldLabel.textContent = type === "single" ? "日期（單選）" : "日期（多選）";
+
+      if (type === "single" && selectedDates.length > 1) {
+        selectedDates = selectedDates.slice(0, 1);
+        syncActivityDateText();
+        renderCalendar();
+      }
+    }
+
+    function syncChoiceGroup(input, buttons, customCard, type, dataKey) {
+      input.value = type;
+      buttons.forEach(function (item) {
+        var isActive = item.dataset[dataKey] === type;
+        item.classList.toggle("is-active", isActive);
+        item.classList.toggle("is-condensed", type === "unlimited");
+        item.setAttribute("aria-pressed", String(isActive));
+      });
+
+      if (customCard) {
+        customCard.classList.toggle("is-condensed", type === "unlimited");
+      }
+    }
+
+    function bindChoiceGroup(input, buttons, customCard, dataKey) {
+      buttons.forEach(function (button) {
+        button.addEventListener("click", function (event) {
+          if (event.target.tagName === "SELECT") return;
+          syncChoiceGroup(input, buttons, customCard, button.dataset[dataKey], dataKey);
+        });
+
+        button.addEventListener("keydown", function (event) {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          syncChoiceGroup(input, buttons, customCard, button.dataset[dataKey], dataKey);
+        });
+      });
+    }
+
+    function updateSeasonFee() {
+      var baseFee = Number(seasonSingleFee.value || 0);
+      var coolingFee = seasonIncludeAc.checked ? Number(acFee.value || 0) : 0;
+      var count = selectedDates.length;
+      seasonFee.value = count > 0 ? String((baseFee + coolingFee) * count) : "";
+    }
+
+    typeButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        setGameType(button.dataset.gameType);
+      });
+    });
+
+    if (seasonSwitch) {
+      seasonSwitch.addEventListener("click", function () {
+        var nextIsOn = seasonSwitch.getAttribute("aria-checked") !== "true";
+        seasonSwitch.classList.toggle("is-on", nextIsOn);
+        seasonSwitch.setAttribute("aria-checked", String(nextIsOn));
+        seasonFields.classList.toggle("is-collapsed", !nextIsOn);
+      });
+    }
+
+    dateButton.addEventListener("click", function () {
+      setCalendarOpen(true, "activity");
+    });
+
+    seasonOpenDateButton.addEventListener("click", function () {
+      setCalendarOpen(true, "season-open");
+    });
+
+    calendarPrev.addEventListener("click", function () {
+      visibleMonth.setMonth(visibleMonth.getMonth() - 1);
+      renderCalendar();
+    });
+
+    calendarNext.addEventListener("click", function () {
+      visibleMonth.setMonth(visibleMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    calendarCancel.addEventListener("click", function () {
+      setCalendarOpen(false);
+    });
+
+    calendarDone.addEventListener("click", function () {
+      setCalendarOpen(false);
+    });
+
+    calendarOverlay.addEventListener("click", function (event) {
+      if (event.target === calendarOverlay) setCalendarOpen(false);
+    });
+
+    if (cancelButton) {
+      cancelButton.addEventListener("click", function () {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        window.location.href = "./group-list.html";
+      });
+    }
+
+    [seasonSingleFee, acFee, seasonIncludeAc].forEach(function (field) {
+      field.addEventListener("input", updateSeasonFee);
+      field.addEventListener("change", updateSeasonFee);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+    });
+
+    populateCapacityOptions();
+    populateTimeSelects();
+    initTimePicker();
+    setGameType("season");
+    bindChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "deadlineType");
+    bindChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "seasonDeadlineType");
+    syncChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "unlimited", "deadlineType");
+    syncChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "unlimited", "seasonDeadlineType");
+    syncActivityDateText();
+    syncSeasonOpenDateText();
+  </script>
+</body>
+</html>

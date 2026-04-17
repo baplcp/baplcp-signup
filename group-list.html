@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>開團列表 | BAPLCP 排球報名系統</title>
-  <meta name="description" content="BAPLCP 開團列表，查看進行中與已結束的排球活動。">
+  <title>已發起的球局 | BAPLCP 排球報名系統</title>
+  <meta name="description" content="BAPLCP 已發起的球局，查看進行中與已結束的排球活動。">
   <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
   <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
   <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
@@ -309,6 +309,8 @@
       padding: 32px 0;
       background: #fff;
       color: var(--text);
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
@@ -394,6 +396,7 @@
     .drawer-content {
       display: grid;
       gap: 23px;
+      flex: 1;
       padding-bottom: 32px;
     }
 
@@ -461,6 +464,26 @@
       background: #edeff5;
     }
 
+    .drawer-footer {
+      margin-top: auto;
+      padding: 0 16px;
+    }
+
+    .drawer-create-button {
+      width: 100%;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: #61c7c4;
+      color: #fff;
+      text-decoration: none;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
     @media (max-width: 380px) {
       .side-menu {
         width: 84vw;
@@ -508,7 +531,7 @@
       </header>
 
       <section class="page">
-        <h1 class="page-title">開團列表</h1>
+        <h1 class="page-title">已發起的球局</h1>
 
         <h2 class="section-title">進行中</h2>
         <article class="active-card">
@@ -523,8 +546,8 @@
           <a class="go-button" href="./active-activity.html">前往</a>
         </article>
 
-        <h2 class="section-title history-title">已結束活動</h2>
-        <div class="history-list" aria-label="已結束活動">
+        <h2 class="section-title history-title">已結束</h2>
+        <div class="history-list" aria-label="已結束">
           <a class="history-row" href="./ended-activity.html">
             <div class="event-content">
               <p class="event-date">4.02 (日)</p>

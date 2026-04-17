@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>已結束活動 | BAPLCP 排球報名系統</title>
-  <meta name="description" content="BAPLCP 已結束活動頁，提供活動名單檢視。">
+  <title>已結束的球局 | BAPLCP 排球報名系統</title>
+  <meta name="description" content="BAPLCP 已結束的球局頁，提供活動名單檢視。">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="BAPLCP 排球報名系統">
   <meta property="og:title" content="BAPLCP 排球報名系統">
@@ -450,6 +450,8 @@
       padding: 32px 0;
       background: #fff;
       color: var(--text);
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
@@ -535,6 +537,7 @@
     .drawer-content {
       display: grid;
       gap: 23px;
+      flex: 1;
       padding-bottom: 32px;
     }
 
@@ -602,6 +605,26 @@
       background: #edeff5;
     }
 
+    .drawer-footer {
+      margin-top: auto;
+      padding: 0 16px;
+    }
+
+    .drawer-create-button {
+      width: 100%;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: #61c7c4;
+      color: #fff;
+      text-decoration: none;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
     @media (max-width: 380px) {
       .side-menu {
         width: 84vw;
@@ -644,7 +667,7 @@
             </svg>
           </button>
           <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
-          <div class="nav-title">已結束活動</div>
+          <div class="nav-title">已結束的球局</div>
           <button class="menu-btn" type="button" aria-label="開啟選單">
             <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
           </button>
@@ -653,7 +676,7 @@
         <section class="hero">
           <div class="hero-layout">
             <div class="hero-copy">
-              <h1>已結束活動</h1>
+              <h1>已結束的球局</h1>
             </div>
           </div>
         </section>
