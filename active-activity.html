@@ -358,8 +358,12 @@
     }
 
     .summary-status-value {
-      color: #17acba;
+      color: #8f95b2;
       font-weight: 400;
+    }
+
+    .summary-status-value.is-success {
+      color: #17acba;
     }
 
     .summary-fee {
@@ -397,6 +401,10 @@
       font-size: 15px;
       line-height: 1.25;
       font-weight: 400;
+    }
+
+    .summary-fee-state[hidden] {
+      display: none;
     }
 
     .leave-button {
@@ -538,6 +546,328 @@
       font-size: 16px;
       font-weight: 500;
       box-shadow: none;
+    }
+
+    .signup-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 38;
+      pointer-events: none;
+    }
+
+    .signup-overlay.is-open {
+      pointer-events: auto;
+    }
+
+    .signup-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+
+    .signup-overlay.is-open .signup-backdrop {
+      opacity: 1;
+    }
+
+    .signup-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: min(422px, calc(100% - 48px));
+      border-radius: 16px 16px 0 0;
+      background: #fff;
+      color: #101840;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .signup-overlay.is-open .signup-sheet {
+      transform: translateY(0);
+    }
+
+    .signup-sheet-header {
+      flex: 0 0 auto;
+      min-height: 74px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 30px 20px 16px;
+    }
+
+    .signup-sheet-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #101840;
+      white-space: nowrap;
+    }
+
+    .prefill-tag {
+      margin-top: 2px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #f7f8fe;
+      color: #5768ff;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .signup-close {
+      width: 24px;
+      height: 24px;
+      margin-left: auto;
+      display: grid;
+      place-items: center;
+      color: #474d66;
+      flex: 0 0 auto;
+    }
+
+    .signup-close svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .signup-sheet-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 20px 18px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .signup-sheet-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .signup-controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    .signup-field-card {
+      width: 100%;
+      border: 1px solid #edeff5;
+      border-radius: 12px;
+      background: #fff;
+      padding: 13px 17px;
+    }
+
+    .signup-field-card.is-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .signup-field-row {
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .signup-field-label {
+      min-width: 0;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 500;
+      color: #101840;
+    }
+
+    .signup-stepper {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 0 0 auto;
+    }
+
+    .stepper-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #5768ff;
+      color: #fff;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .stepper-btn:active:not(:disabled) {
+      transform: scale(0.94);
+    }
+
+    .stepper-btn:disabled {
+      background: #d8dae5;
+      cursor: default;
+    }
+
+    .stepper-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .stepper-value {
+      width: 12px;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 700;
+      text-align: center;
+      color: #393939;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .guest-fields {
+      display: grid;
+      gap: 9px;
+    }
+
+    .guest-fields:empty {
+      display: none;
+    }
+
+    .guest-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 9px;
+    }
+
+    .guest-input,
+    .guest-select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid rgba(86, 103, 137, 0.2);
+      border-radius: 8px;
+      background: #fff;
+      color: #101840;
+      font: inherit;
+      font-size: 14px;
+      line-height: 21px;
+      padding: 10px;
+      outline: none;
+    }
+
+    .guest-select {
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, #696f8c 50%), linear-gradient(135deg, #696f8c 50%, transparent 50%);
+      background-position: calc(100% - 18px) 18px, calc(100% - 13px) 18px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 32px;
+    }
+
+    .guest-input::placeholder,
+    .guest-select:invalid {
+      color: #8f95b2;
+    }
+
+    .signup-count {
+      margin: 0 0 13px;
+      color: #5768ff;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .signup-sheet-footer {
+      flex: 0 0 auto;
+      padding: 0 22px 21px;
+      background: #fff;
+    }
+
+    .confirm-signup {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 10px;
+      background: #5768ff;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .confirm-signup:disabled {
+      background: #d8dae5;
+      cursor: default;
+    }
+
+    .signup-note {
+      margin: 13px 0 0;
+      color: #696f8c;
+      font-size: 13px;
+      line-height: 1.25;
+      text-align: center;
+    }
+
+    .success-dialog-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.24s ease;
+    }
+
+    .success-dialog-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .success-dialog {
+      width: min(100%, 318px);
+      border-radius: 16px;
+      background: #fff;
+      padding: 28px 22px 22px;
+      box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
+      text-align: center;
+      transform: translateY(10px) scale(0.98);
+      transition: transform 0.24s ease;
+    }
+
+    .success-dialog-overlay.is-open .success-dialog {
+      transform: translateY(0) scale(1);
+    }
+
+    .success-dialog-title {
+      margin: 0;
+      color: #101840;
+      font-size: 20px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .success-dialog-copy {
+      margin: 12px 0 24px;
+      color: #474d66;
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    .success-dialog-button {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 10px;
+      background: #5768ff;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
     }
 
     .version {
@@ -832,13 +1162,13 @@
           </div>
           <div class="summary-status">
             <p class="summary-status-text">
-              狀態：<span class="summary-status-value">已報名</span>
+              狀態：<span class="summary-status-value">無報名</span>
             </p>
-            <div class="summary-fee" aria-label="費用 255 元，未付">
+            <div class="summary-fee" aria-label="費用 255 元">
               <img class="summary-fee-money" src="./images/money-icon.png" alt="" aria-hidden="true">
               <img class="summary-fee-air" src="./images/airconditioner-icon.png" alt="" aria-hidden="true">
               <span class="summary-fee-amount">$255</span>
-              <span class="summary-fee-state">未付</span>
+              <span class="summary-fee-state" hidden>未付</span>
             </div>
           </div>
         </section>
@@ -857,13 +1187,82 @@
 
     <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
-      <button class="cta" id="hero-cta" type="button">管理報名</button>
+      <button class="cta" id="hero-cta" type="button">我要報名</button>
+    </div>
+
+    <div class="signup-overlay" id="signup-overlay" aria-hidden="true" inert>
+      <button class="signup-backdrop" type="button" data-signup-close aria-label="關閉報名表"></button>
+      <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
+        <div class="signup-sheet-header">
+          <h2 class="signup-sheet-title" id="signup-sheet-title">報名此球局</h2>
+          <span class="prefill-tag">可預填</span>
+          <button class="signup-close" type="button" data-signup-close aria-label="關閉報名表">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="signup-sheet-scroll">
+          <div class="signup-controls">
+            <div class="signup-field-card">
+              <div class="signup-field-row">
+                <div class="signup-field-label">我</div>
+                <div class="signup-stepper" data-stepper="self">
+                  <button class="stepper-btn" type="button" data-step="down" aria-label="減少我的報名人數">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <output class="stepper-value" id="self-count">0</output>
+                  <button class="stepper-btn" type="button" data-step="up" aria-label="增加我的報名人數">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="signup-field-card is-stack">
+              <div class="signup-field-row">
+                <div class="signup-field-label">群外</div>
+                <div class="signup-stepper" data-stepper="guest">
+                  <button class="stepper-btn" type="button" data-step="down" aria-label="減少群外報名人數">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <output class="stepper-value" id="guest-count">0</output>
+                  <button class="stepper-btn" type="button" data-step="up" aria-label="增加群外報名人數">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="guest-fields" id="guest-fields" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+        <div class="signup-sheet-footer">
+          <p class="signup-count" id="signup-total">共報名 0 位</p>
+          <button class="confirm-signup" id="confirm-signup" type="button">確認報名</button>
+          <p class="signup-note">送出不代表報名成功，請以名單為準</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="success-dialog-overlay" id="success-dialog-overlay" aria-hidden="true" inert>
+      <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
+        <h2 class="success-dialog-title" id="success-dialog-title">報名已送出</h2>
+        <p class="success-dialog-copy" id="success-dialog-copy">已送出報名 0 位，請稍候確認名單是否成功加入</p>
+        <button class="success-dialog-button" id="success-dialog-button" type="button">確認</button>
+      </section>
     </div>
   </main>
 
   <script src="./menu-drawer.js"></script>
   <script>
-    var APP_VERSION = "v2026.04.17-active-01";
+    var APP_VERSION = "v2026.04.18-active-drawer-04";
     var MEMBERS = [
       { name: "Yu-Ting Chen", badge: "Y", image: "./images/profile01.png" },
       { name: "施政維", badge: "施", image: "./images/profile02.png" },
@@ -875,7 +1274,6 @@
       { name: "黃品翰", badge: "黃", color: "linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)", status: "候補" }
     ];
 
-    var TARGET_PAGE = new URL("./signup.html", window.location.href).href;
     var appScroll = document.querySelector(".app-scroll");
     var nav = document.querySelector(".nav");
     var backButton = document.getElementById("back-button");
@@ -883,13 +1281,92 @@
     var signupList = document.getElementById("signup-list");
     var heroCta = document.getElementById("hero-cta");
     var summaryStatusValue = document.querySelector(".summary-status-value");
+    var summaryFee = document.querySelector(".summary-fee");
+    var summaryFeeAmount = document.querySelector(".summary-fee-amount");
+    var summaryFeeState = document.querySelector(".summary-fee-state");
+    var appShell = document.querySelector(".app-shell");
+    var signupOverlay = document.getElementById("signup-overlay");
+    var signupCloseTargets = document.querySelectorAll("[data-signup-close]");
+    var selfCountOutput = document.getElementById("self-count");
+    var guestCountOutput = document.getElementById("guest-count");
+    var guestFields = document.getElementById("guest-fields");
+    var signupTotal = document.getElementById("signup-total");
+    var confirmSignup = document.getElementById("confirm-signup");
+    var successDialogOverlay = document.getElementById("success-dialog-overlay");
+    var successDialogTitle = document.getElementById("success-dialog-title");
+    var successDialogCopy = document.getElementById("success-dialog-copy");
+    var successDialogButton = document.getElementById("success-dialog-button");
+    var signupState = {
+      self: 0,
+      guest: 0,
+      guests: []
+    };
+    var submittedSignupState = cloneSignupState(signupState);
 
     if (appVersion) {
       appVersion.textContent = APP_VERSION;
     }
 
-    if (heroCta && summaryStatusValue) {
-      heroCta.textContent = summaryStatusValue.textContent.trim() === "已報名" ? "管理報名" : "立即報名";
+    function updateSignupSummary(total) {
+      var hasSignup = total > 0;
+      var fee = hasSignup ? total * 255 : 255;
+
+      if (summaryStatusValue) {
+        summaryStatusValue.textContent = hasSignup ? "已成功報名 " + String(total) + " 位" : "無報名";
+        summaryStatusValue.classList.toggle("is-success", hasSignup);
+      }
+
+      if (summaryFeeAmount) {
+        summaryFeeAmount.textContent = "$" + String(fee);
+      }
+
+      if (summaryFeeState) {
+        summaryFeeState.hidden = !hasSignup;
+      }
+
+      if (summaryFee) {
+        summaryFee.setAttribute("aria-label", hasSignup ? "費用 " + String(fee) + " 元，未付" : "費用 255 元");
+      }
+
+      if (heroCta) {
+        heroCta.textContent = hasSignup ? "管理報名" : "我要報名";
+      }
+    }
+
+    function cloneSignupState(state) {
+      return {
+        self: state.self,
+        guest: state.guest,
+        guests: state.guests.map(function (guest) {
+          return {
+            name: guest && guest.name ? guest.name : "",
+            gender: guest && guest.gender ? guest.gender : ""
+          };
+        })
+      };
+    }
+
+    function isSignupChanged() {
+      if (signupState.self !== submittedSignupState.self || signupState.guest !== submittedSignupState.guest) {
+        return true;
+      }
+
+      for (var index = 0; index < signupState.guest; index += 1) {
+        var currentGuest = signupState.guests[index] || { name: "", gender: "" };
+        var submittedGuest = submittedSignupState.guests[index] || { name: "", gender: "" };
+
+        if ((currentGuest.name || "") !== (submittedGuest.name || "") || (currentGuest.gender || "") !== (submittedGuest.gender || "")) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function updateConfirmSignupState() {
+      if (confirmSignup) {
+        confirmSignup.disabled = !isSignupChanged();
+      }
     }
 
     document.querySelectorAll(".segment-tab").forEach(function (tab) {
@@ -957,6 +1434,8 @@
       syncHeaderState();
     }
 
+    updateSignupSummary(0);
+
     if (backButton) {
       backButton.addEventListener("click", function () {
         if (window.history.length > 1) {
@@ -968,11 +1447,204 @@
       });
     }
 
-    if (heroCta) {
-      heroCta.addEventListener("click", function () {
-        window.location.href = TARGET_PAGE;
+    function renderGuestFields() {
+      if (!guestFields) return;
+
+      guestFields.innerHTML = "";
+
+      for (var index = 0; index < signupState.guest; index += 1) {
+        var guestData = signupState.guests[index] || { name: "", gender: "" };
+        var row = document.createElement("div");
+        row.className = "guest-row";
+
+        var nameInput = document.createElement("input");
+        nameInput.className = "guest-input";
+        nameInput.type = "text";
+        nameInput.name = "guest-name-" + String(index + 1);
+        nameInput.placeholder = "群外朋友姓名";
+        nameInput.value = guestData.name;
+        nameInput.setAttribute("aria-label", "第 " + String(index + 1) + " 位群外朋友姓名");
+        nameInput.addEventListener("input", function (event) {
+          var guestIndex = Number(event.target.getAttribute("data-guest-index"));
+          signupState.guests[guestIndex] = signupState.guests[guestIndex] || { name: "", gender: "" };
+          signupState.guests[guestIndex].name = event.target.value;
+          updateConfirmSignupState();
+        });
+        nameInput.setAttribute("data-guest-index", String(index));
+
+        var genderSelect = document.createElement("select");
+        genderSelect.className = "guest-select";
+        genderSelect.name = "guest-gender-" + String(index + 1);
+        genderSelect.required = true;
+        genderSelect.setAttribute("aria-label", "第 " + String(index + 1) + " 位群外朋友性別");
+        genderSelect.setAttribute("data-guest-index", String(index));
+        genderSelect.addEventListener("change", function (event) {
+          var guestIndex = Number(event.target.getAttribute("data-guest-index"));
+          signupState.guests[guestIndex] = signupState.guests[guestIndex] || { name: "", gender: "" };
+          signupState.guests[guestIndex].gender = event.target.value;
+          updateConfirmSignupState();
+        });
+
+        [
+          { value: "", label: "性別" },
+          { value: "female", label: "女" },
+          { value: "male", label: "男" },
+          { value: "other", label: "其他" }
+        ].forEach(function (optionData) {
+          var option = document.createElement("option");
+          option.value = optionData.value;
+          option.textContent = optionData.label;
+          if (!optionData.value) {
+            option.disabled = true;
+            option.selected = !guestData.gender;
+          } else if (optionData.value === guestData.gender) {
+            option.selected = true;
+          }
+          genderSelect.appendChild(option);
+        });
+
+        row.appendChild(nameInput);
+        row.appendChild(genderSelect);
+        guestFields.appendChild(row);
+      }
+    }
+
+    function renderSignupSheet() {
+      var total = signupState.self + signupState.guest;
+
+      if (selfCountOutput) selfCountOutput.textContent = String(signupState.self);
+      if (guestCountOutput) guestCountOutput.textContent = String(signupState.guest);
+      if (signupTotal) signupTotal.textContent = "共報名 " + String(total) + " 位";
+
+      document.querySelectorAll("[data-stepper]").forEach(function (stepper) {
+        var type = stepper.getAttribute("data-stepper");
+        var value = signupState[type];
+        var max = type === "self" ? 1 : 6;
+        var down = stepper.querySelector('[data-step="down"]');
+        var up = stepper.querySelector('[data-step="up"]');
+
+        if (down) down.disabled = value <= 0;
+        if (up) up.disabled = value >= max;
+      });
+
+      renderGuestFields();
+      updateConfirmSignupState();
+    }
+
+    function setSignupOpen(isOpen) {
+      if (!signupOverlay) return;
+
+      signupOverlay.classList.toggle("is-open", isOpen);
+      signupOverlay.setAttribute("aria-hidden", String(!isOpen));
+      signupOverlay.inert = !isOpen;
+      if (appShell) appShell.classList.toggle("signup-open", isOpen);
+
+      var focusTarget = isOpen ? signupOverlay.querySelector(".signup-close") : heroCta;
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      }
+    }
+
+    function setSuccessDialogOpen(isOpen, options) {
+      if (!successDialogOverlay) return;
+
+      if (options) {
+        if (successDialogTitle && options.title) {
+          successDialogTitle.textContent = options.title;
+        }
+
+        if (successDialogCopy && options.copy) {
+          successDialogCopy.textContent = options.copy;
+        }
+
+        if (successDialogButton && options.buttonText) {
+          successDialogButton.textContent = options.buttonText;
+        }
+      }
+
+      successDialogOverlay.classList.toggle("is-open", isOpen);
+      successDialogOverlay.setAttribute("aria-hidden", String(!isOpen));
+      successDialogOverlay.inert = !isOpen;
+
+      var focusTarget = isOpen ? successDialogButton : (signupOverlay && signupOverlay.classList.contains("is-open") ? confirmSignup : heroCta);
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      }
+    }
+
+    document.querySelectorAll("[data-stepper] [data-step]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var stepper = button.closest("[data-stepper]");
+        var type = stepper ? stepper.getAttribute("data-stepper") : "";
+        var direction = button.getAttribute("data-step") === "up" ? 1 : -1;
+        var max = type === "self" ? 1 : 6;
+
+        if (!type) return;
+
+        signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction));
+        signupState.guests = signupState.guests.slice(0, signupState.guest);
+        renderSignupSheet();
+      });
+    });
+
+    signupCloseTargets.forEach(function (target) {
+      target.addEventListener("click", function () {
+        setSignupOpen(false);
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && signupOverlay && signupOverlay.classList.contains("is-open")) {
+        setSignupOpen(false);
+      } else if (event.key === "Escape" && successDialogOverlay && successDialogOverlay.classList.contains("is-open")) {
+        setSuccessDialogOpen(false);
+      }
+    });
+
+    if (confirmSignup) {
+      confirmSignup.addEventListener("click", function () {
+        if (confirmSignup.disabled) return;
+
+        var total = signupState.self + signupState.guest;
+        var previousTotal = submittedSignupState.self + submittedSignupState.guest;
+        var isUpdatingExistingSignup = previousTotal > 0;
+
+        if (total <= 0 && previousTotal <= 0) {
+          setSuccessDialogOpen(true, {
+            title: "還沒有選擇人數",
+            copy: "目前沒有任何人被加入報名，請先選擇「我」或「群外」人數後再送出。",
+            buttonText: "回去選人"
+          });
+          return;
+        }
+
+        updateSignupSummary(total);
+        submittedSignupState = cloneSignupState(signupState);
+        renderSignupSheet();
+        setSignupOpen(false);
+        setSuccessDialogOpen(true, {
+          title: isUpdatingExistingSignup || total <= 0 ? "報名已更新" : "報名已送出",
+          copy: total > 0
+            ? (isUpdatingExistingSignup ? "已更新報名 " : "已送出報名 ") + String(total) + " 位，請稍候確認名單是否成功加入"
+            : "已更新為無報名，請稍候確認名單是否同步完成",
+          buttonText: "確認"
+        });
       });
     }
+
+    if (successDialogButton) {
+      successDialogButton.addEventListener("click", function () {
+        setSuccessDialogOpen(false);
+      });
+    }
+
+    if (heroCta) {
+      heroCta.addEventListener("click", function () {
+        setSignupOpen(true);
+      });
+    }
+
+    renderSignupSheet();
   </script>
 </body>
 </html>
