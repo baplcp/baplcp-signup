@@ -11,7 +11,7 @@
   <style>
     :root {
       --primary: #6574ff;
-      --secondary: #5cc7c4;
+      --secondary: #1BC4BF;
       --text: #101840;
       --muted: #696f8c;
       --muted-soft: #8f95b2;
@@ -73,6 +73,10 @@
 
     input::placeholder {
       color: var(--muted-soft);
+    }
+
+    select.is-placeholder {
+      color: #696F8C;
     }
 
     input:focus,
@@ -155,7 +159,7 @@
     }
 
     .section {
-      gap: 20px;
+      gap: 18px;
     }
 
     .section-title {
@@ -226,7 +230,7 @@
       border-radius: 8px;
       background: #fff;
       padding: 10px;
-      color: var(--muted-soft);
+      color: #696F8C;
       font-size: 14px;
       line-height: 1.5;
       text-align: left;
@@ -532,16 +536,16 @@
       position: absolute;
       left: 0;
       right: 0;
-      bottom: 2px;
+      bottom: 0;
       z-index: 8;
-      padding: 46px 16px 16px;
+      padding: 46px 16px 20px;
       background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 38%, #fff 100%);
       pointer-events: none;
     }
 
     .submit-button {
       width: 100%;
-      min-height: 60px;
+      min-height: 54px;
       border-radius: 10px;
       background: var(--secondary);
       color: #fff;
@@ -1187,6 +1191,19 @@
       });
     }
 
+    function syncSelectPlaceholder(select) {
+      select.classList.toggle("is-placeholder", select.value === "");
+    }
+
+    function initSelectPlaceholders() {
+      document.querySelectorAll("select").forEach(function (select) {
+        syncSelectPlaceholder(select);
+        select.addEventListener("change", function () {
+          syncSelectPlaceholder(select);
+        });
+      });
+    }
+
     function to24HourValue(hour, minute, period) {
       var hourNumber = Number(hour);
       if (period === "AM") {
@@ -1317,6 +1334,7 @@
 
       var value = to24HourValue(timePickerValue.hour, timePickerValue.minute, timePickerValue.period);
       activeTimeSelect.value = value;
+      syncSelectPlaceholder(activeTimeSelect);
       activeTimeSelect.dispatchEvent(new Event("change", { bubbles: true }));
       setTimePickerOpen(false);
     }
@@ -1569,6 +1587,7 @@
 
     populateCapacityOptions();
     populateTimeSelects();
+    initSelectPlaceholders();
     initTimePicker();
     setGameType("season");
     bindChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "deadlineType");
