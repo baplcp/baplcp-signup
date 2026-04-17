@@ -32,7 +32,7 @@
       --accent-text: #7f5a3e;
       --line: #edf0fb;
       --shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
-      --card-shadow: 2px 2px 28px rgba(90, 90, 226, 0.3);
+      --card-shadow: 2px 2px 28px rgba(143, 149, 178, 0.24);
     }
 
     * {
@@ -96,11 +96,11 @@
       background:
         linear-gradient(
           180deg,
-          #5768ff 0%,
-          #6373ff 7%,
-          #7d8af9 13%,
-          #c1c6f1 20%,
-          #e8e9f5 27%,
+          #8f95b2 0%,
+          #9ba0ba 7%,
+          #adb2c8 13%,
+          #ccd0dc 20%,
+          #eceef4 27%,
           #fff 35%,
           #fff 100%
         );
@@ -214,7 +214,7 @@
 
     .hero-copy h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       line-height: 1.36;
       font-weight: 700;
       letter-spacing: 0.56px;
@@ -222,8 +222,8 @@
 
     .summary-card {
       position: relative;
-      z-index: 2;
-      margin: -82px 16px 0;
+      z-index: 3;
+      margin: -88px 16px 0;
       min-height: 107px;
       padding: 16px 16px 0;
       background: var(--surface);
@@ -245,7 +245,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .summary-time {
@@ -253,7 +253,7 @@
       display: flex;
       align-items: center;
       gap: 0;
-      font-size: 18px;
+      font-size: 22px;
       line-height: 1.25;
       font-weight: 700;
       color: #474d66;
@@ -269,28 +269,35 @@
 
     .summary-weekday {
       display: inline-block;
+      font-size: 13px;
       transform: translateX(-4px);
     }
 
     .summary-separator {
+      display: inline-block;
+      width: 1px;
+      height: 18px;
       color: #d8dae5;
-      font-weight: 700;
-      margin: 0 10px 0 0;
+      background: currentColor;
+      font-size: 0;
+      line-height: 0;
+      font-weight: 400;
+      margin: 0 12px 0 2px;
     }
 
     .summary-location {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.25;
       font-weight: 400;
-      color: #696f8c;
+      color: #474d66;
       opacity: 0.85;
       white-space: nowrap;
     }
 
     .summary-status {
       margin: 0 -16px;
-      padding: 13px 16px 14px;
+      padding: 16px 16px;
       border-top: 1px solid #edf0fb;
       display: flex;
       align-items: center;
@@ -301,7 +308,7 @@
     .summary-status-text {
       margin: 0;
       min-width: 0;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.4;
       font-weight: 400;
       color: #474d66;
@@ -310,7 +317,45 @@
 
     .summary-status-value {
       color: #17acba;
-      font-weight: 500;
+      font-weight: 400;
+    }
+
+    .summary-fee {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      gap: 8px;
+      color: #474d66;
+      white-space: nowrap;
+    }
+
+    .summary-fee-money {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      margin-right: -10px;
+    }
+
+    .summary-fee-air {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      margin-right: -4px;
+    }
+
+    .summary-fee-amount {
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: 0;
+      margin-right: -4px;
+    }
+
+    .summary-fee-state {
+      color: #17acba;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 400;
     }
 
     .content {
@@ -694,8 +739,14 @@
           </div>
           <div class="summary-status">
             <p class="summary-status-text">
-              我的狀態：<span class="summary-status-value">已參加</span>
+              狀態：<span class="summary-status-value">已參加</span>
             </p>
+            <div class="summary-fee" aria-label="費用 255 元，已付">
+              <img class="summary-fee-money" src="./images/money-icon.png" alt="" aria-hidden="true">
+              <img class="summary-fee-air" src="./images/airconditioner-icon.png" alt="" aria-hidden="true">
+              <span class="summary-fee-amount">$255</span>
+              <span class="summary-fee-state">已付</span>
+            </div>
           </div>
         </section>
 

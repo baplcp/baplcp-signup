@@ -226,7 +226,7 @@
 
     .hero-copy h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       line-height: 1.36;
       font-weight: 700;
       letter-spacing: 0.56px;
@@ -235,7 +235,7 @@
     .summary-card {
       position: relative;
       z-index: 3;
-      margin: -82px 16px 0;
+      margin: -88px 16px 0;
       min-height: 107px;
       padding: 16px 16px 0;
       background: var(--surface);
@@ -275,7 +275,7 @@
 
     .summary-vacancy-value {
       margin: 0;
-      font-size: 34px;
+      font-size: 32px;
       line-height: 1.25;
       font-weight: 700;
       color: #17acba;
@@ -287,7 +287,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .summary-time {
@@ -295,7 +295,7 @@
       display: flex;
       align-items: center;
       gap: 0;
-      font-size: 18px;
+      font-size: 22px;
       line-height: 1.25;
       font-weight: 700;
       color: #474d66;
@@ -311,28 +311,35 @@
 
     .summary-weekday {
       display: inline-block;
+      font-size: 13px;
       transform: translateX(-4px);
     }
 
     .summary-separator {
+      display: inline-block;
+      width: 1px;
+      height: 18px;
       color: #d8dae5;
-      font-weight: 700;
-      margin: 0 10px 0 0;
+      background: currentColor;
+      font-size: 0;
+      line-height: 0;
+      font-weight: 400;
+      margin: 0 12px 0 2px;
     }
 
     .summary-location {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.25;
       font-weight: 400;
-      color: #696f8c;
+      color: #474d66;
       opacity: 0.85;
       white-space: nowrap;
     }
 
     .summary-status {
       margin: 0 -16px;
-      padding: 13px 16px 14px;
+      padding: 16px 16px;
       border-top: 1px solid #edf0fb;
       display: flex;
       align-items: center;
@@ -343,7 +350,7 @@
     .summary-status-text {
       margin: 0;
       min-width: 0;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.4;
       font-weight: 400;
       color: #474d66;
@@ -352,7 +359,44 @@
 
     .summary-status-value {
       color: #17acba;
-      font-weight: 500;
+      font-weight: 400;
+    }
+
+    .summary-fee {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      gap: 8px;
+      color: #474d66;
+      white-space: nowrap;
+    }
+
+    .summary-fee-money {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      margin-right: -10px;
+    }
+
+    .summary-fee-air {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      margin-right: -4px;
+    }
+
+    .summary-fee-amount {
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: 0;
+      margin-right: -4px;
+    }
+
+    .summary-fee-state {
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 400;
     }
 
     .leave-button {
@@ -756,7 +800,7 @@
             </svg>
           </button>
           <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
-          <div class="nav-title">本週球局</div>
+          <div class="nav-title">最新球局報名</div>
           <button class="menu-btn" type="button" aria-label="開啟選單">
             <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="">
           </button>
@@ -766,7 +810,7 @@
           <img class="hero-cat" src="./images/cat-hide.png" alt="" aria-hidden="true">
           <div class="hero-layout">
             <div class="hero-copy">
-              <h1>本週球局</h1>
+              <h1>最新球局報名</h1>
             </div>
           </div>
         </section>
@@ -788,9 +832,14 @@
           </div>
           <div class="summary-status">
             <p class="summary-status-text">
-              我的狀態：<span class="summary-status-value">已報名季打</span>
+              狀態：<span class="summary-status-value">已報名</span>
             </p>
-            <button class="leave-button" type="button">我要請假</button>
+            <div class="summary-fee" aria-label="費用 255 元，未付">
+              <img class="summary-fee-money" src="./images/money-icon.png" alt="" aria-hidden="true">
+              <img class="summary-fee-air" src="./images/airconditioner-icon.png" alt="" aria-hidden="true">
+              <span class="summary-fee-amount">$255</span>
+              <span class="summary-fee-state">未付</span>
+            </div>
           </div>
         </section>
 
@@ -808,7 +857,7 @@
 
     <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
-      <button class="cta" id="hero-cta" type="button">立即報名</button>
+      <button class="cta" id="hero-cta" type="button">管理報名</button>
     </div>
   </main>
 
@@ -833,9 +882,14 @@
     var appVersion = document.getElementById("app-version");
     var signupList = document.getElementById("signup-list");
     var heroCta = document.getElementById("hero-cta");
+    var summaryStatusValue = document.querySelector(".summary-status-value");
 
     if (appVersion) {
       appVersion.textContent = APP_VERSION;
+    }
+
+    if (heroCta && summaryStatusValue) {
+      heroCta.textContent = summaryStatusValue.textContent.trim() === "已報名" ? "管理報名" : "立即報名";
     }
 
     document.querySelectorAll(".segment-tab").forEach(function (tab) {
