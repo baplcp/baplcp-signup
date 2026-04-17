@@ -54,6 +54,10 @@
       cursor: pointer;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .app-shell {
       width: min(100%, 390px);
       height: min(844px, calc(100vh - 48px));
@@ -101,21 +105,6 @@
       flex: 0 0 auto;
     }
 
-    .brand {
-      width: 65px;
-      height: 22px;
-      background: url("./images/logo-purple.svg") center/contain no-repeat;
-      flex: 0 0 auto;
-    }
-
-    .topbar-title {
-      flex: 1;
-      text-align: center;
-      font-size: 16px;
-      color: transparent;
-      user-select: none;
-    }
-
     .page {
       padding: 31px 16px 0;
     }
@@ -129,13 +118,71 @@
       color: var(--text);
     }
 
+    .segment-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-items: end;
+      margin: 20px 0 0;
+      border-bottom: 1px solid rgba(237, 239, 245, 0.9);
+    }
+
+    .segment-tab {
+      position: relative;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 2px 11px;
+      color: var(--muted-soft);
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    .segment-tab.is-active {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .segment-tab.is-active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
     .section-title {
-      margin: 22px 0 12px;
+      margin: 28px 0 12px;
       font-size: 18px;
       line-height: 1.36;
       letter-spacing: 0.36px;
       font-weight: 700;
       color: var(--text);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 28px 0 12px;
+    }
+
+    .section-heading .section-title {
+      margin: 0;
+    }
+
+    .more-button {
+      color: var(--primary);
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 400;
+      white-space: nowrap;
     }
 
     .active-card {
@@ -145,7 +192,7 @@
       gap: 12px;
       padding: 12px;
       border-radius: 12px;
-      background: var(--soft);
+      background: rgba(239, 241, 254, 0.8);
     }
 
     .active-count {
@@ -206,6 +253,10 @@
       text-overflow: ellipsis;
     }
 
+    .active-card .event-location {
+      font-size: 14px;
+    }
+
     .go-button {
       min-width: 64px;
       min-height: 44px;
@@ -223,12 +274,17 @@
     }
 
     .history-title {
-      margin-top: 37px;
-      margin-bottom: 0;
+      margin-top: 28px;
+      margin-bottom: 12px;
     }
 
     .history-list {
       margin-top: 0;
+    }
+
+    .upcoming-list {
+      display: grid;
+      gap: 0;
     }
 
     .history-row {
@@ -239,8 +295,24 @@
       border-bottom: 1px solid var(--line);
     }
 
+    .upcoming-list .history-row {
+      padding: 16px 0 16px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .history-list .history-row {
+      padding-left: 12px;
+    }
+
+    .upcoming-list .history-row .event-date,
+    .history-list .history-row .event-date {
+      color: var(--text);
+    }
+
     .history-row .event-location {
-      color: var(--muted);
+      color: var(--muted-soft);
       font-size: 14px;
     }
 
@@ -253,7 +325,7 @@
       border-radius: 6px;
       font-size: 13px;
       line-height: 1.4;
-      font-weight: 700;
+      font-weight: 400;
       white-space: nowrap;
       flex: 0 0 auto;
     }
@@ -519,21 +591,19 @@
             <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
-        <div class="topbar-title" aria-hidden="true">華江高中臨打報名</div>
-        <button class="icon-button" type="button" aria-label="開啟選單">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 7H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M4 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </button>
       </header>
 
       <section class="page">
         <h1 class="page-title">已發起的球局</h1>
 
-        <h2 class="section-title">進行中</h2>
+        <nav class="segment-tabs" aria-label="球局分類">
+          <button class="segment-tab is-active" type="button" data-segment="all">全部</button>
+          <button class="segment-tab" type="button" data-segment="latest">最新球局</button>
+          <button class="segment-tab" type="button" data-segment="upcoming">即將到來</button>
+          <button class="segment-tab" type="button" data-segment="ended">已結束</button>
+        </nav>
+
+        <h2 class="section-title" id="latest-section">最新球局</h2>
         <article class="active-card">
           <div class="active-count" aria-label="臨打缺 9 人">
             <span class="active-count-label">臨打缺</span>
@@ -546,7 +616,49 @@
           <a class="go-button" href="./active-activity.html">前往</a>
         </article>
 
-        <h2 class="section-title history-title">已結束</h2>
+        <div class="section-heading" id="upcoming-section">
+          <h2 class="section-title">即將到來</h2>
+          <button class="more-button" type="button" data-target-segment="upcoming">更多</button>
+        </div>
+        <div class="upcoming-list" aria-label="即將到來">
+          <a class="history-row" href="./active-activity.html">
+            <div class="event-content">
+              <p class="event-date">4.16 (日)<span class="divider">｜</span>12:20-15:20</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <span class="badge badge-muted">未開放報名</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./active-activity.html">
+            <div class="event-content">
+              <p class="event-date">4.23 (日)<span class="divider">｜</span>12:20-15:20</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <span class="badge badge-muted">未開放報名</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+
+          <a class="history-row" href="./active-activity.html">
+            <div class="event-content">
+              <p class="event-date">4.30 (日)<span class="divider">｜</span>12:20-15:20</p>
+              <p class="event-location">板橋柏吉倫排球場</p>
+            </div>
+            <span class="badge badge-muted">未開放報名</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="section-heading history-title" id="ended-section">
+          <h2 class="section-title">已結束</h2>
+          <button class="more-button" type="button" data-target-segment="ended">更多</button>
+        </div>
         <div class="history-list" aria-label="已結束">
           <a class="history-row" href="./ended-activity.html">
             <div class="event-content">
@@ -618,6 +730,62 @@
         window.location.href = "./index.html";
       });
     }
+
+    var segmentTabs = document.querySelectorAll("[data-segment]");
+    var moreButtons = document.querySelectorAll("[data-target-segment]");
+    var historyRows = document.querySelectorAll(".history-list .history-row");
+    var segmentSections = {
+      latest: [
+        document.getElementById("latest-section"),
+        document.querySelector(".active-card")
+      ],
+      upcoming: [
+        document.getElementById("upcoming-section"),
+        document.querySelector(".upcoming-list")
+      ],
+      ended: [
+        document.getElementById("ended-section"),
+        document.querySelector(".history-list")
+      ]
+    };
+
+    function setSegment(segment) {
+      segmentTabs.forEach(function (tab) {
+        tab.classList.toggle("is-active", tab.dataset.segment === segment);
+      });
+
+      Object.keys(segmentSections).forEach(function (key) {
+        var shouldShow = segment === "all" || segment === key;
+
+        segmentSections[key].forEach(function (node) {
+          if (node) {
+            node.hidden = !shouldShow;
+          }
+        });
+      });
+
+      moreButtons.forEach(function (button) {
+        button.hidden = segment !== "all";
+      });
+
+      historyRows.forEach(function (row, index) {
+        row.hidden = segment === "all" && index > 2;
+      });
+    }
+
+    segmentTabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        setSegment(tab.dataset.segment);
+      });
+    });
+
+    moreButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        setSegment(button.dataset.targetSegment);
+      });
+    });
+
+    setSegment("all");
   </script>
 </body>
 </html>
