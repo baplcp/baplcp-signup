@@ -302,6 +302,14 @@
       filter: drop-shadow(var(--shadow-card-icon));
     }
 
+    .info-card.is-pending,
+    .utility-item.is-pending,
+    .drawer-link.is-pending {
+      opacity: 0.4;
+      pointer-events: none;
+      cursor: default;
+    }
+
     .section {
       margin-top: 28px;
     }
@@ -715,8 +723,8 @@
           </div>
 
             <div class="hero-copy">
-              <h1>本週球局</h1>
-              <p>本週臨打報名及季打請假</p>
+              <h1>球局報名區</h1>
+              <p>最新臨打報名及季打請假</p>
               <button class="cta" id="hero-cta" type="button">立即前往</button>
             </div>
           </div>
@@ -724,44 +732,44 @@
 
         <section class="content">
           <div class="top-cards">
-            <article class="info-card">
-              <p class="info-card-title">我的紀錄</p>
-              <p class="info-card-subtitle">報名與請假</p>
-            <img src="./images/card-calendar.png" alt="">
-            </article>
             <a class="info-card" href="./group-list.html">
               <p class="info-card-title">球局列表</p>
               <p class="info-card-subtitle">各週人員名單</p>
             <img src="./images/card-party.png" alt="">
             </a>
+            <article class="info-card is-pending">
+              <p class="info-card-title">我的紀錄</p>
+              <p class="info-card-subtitle">報名與請假</p>
+            <img src="./images/card-calendar.png" alt="">
+            </article>
           </div>
 
           <section class="section" aria-labelledby="utility-title">
             <h2 id="utility-title">常用功能</h2>
             <div class="utility-grid">
-              <a class="utility-item" href="./group-list.html">
-                <div class="utility-icon">
-                  <img src="./images/Registration list.png" alt="">
-                </div>
-                <span>臨打名單</span>
-              </a>
-              <a class="utility-item" href="#">
-                <div class="utility-icon">
-                  <img src="./images/ball.png" alt="">
-                </div>
-                <span>球隊公約</span>
-              </a>
-              <a class="utility-item" href="#">
-                <div class="utility-icon">
-                  <img src="./images/icon-album.png" alt="">
-                </div>
-                <span>活動相簿</span>
-              </a>
               <a class="utility-item warm" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
                 <div class="utility-icon">
                   <img src="./images/icon-donate.png" alt="">
                 </div>
                 <span>贊助胖貓貓</span>
+              </a>
+              <a class="utility-item is-pending" href="./group-list.html" aria-disabled="true" tabindex="-1">
+                <div class="utility-icon">
+                  <img src="./images/Registration list.png" alt="">
+                </div>
+                <span>臨打名單</span>
+              </a>
+              <a class="utility-item is-pending" href="#" aria-disabled="true" tabindex="-1">
+                <div class="utility-icon">
+                  <img src="./images/ball.png" alt="">
+                </div>
+                <span>球隊公約</span>
+              </a>
+              <a class="utility-item is-pending" href="#" aria-disabled="true" tabindex="-1">
+                <div class="utility-icon">
+                  <img src="./images/icon-album.png" alt="">
+                </div>
+                <span>活動相簿</span>
               </a>
             </div>
           </section>
@@ -854,14 +862,6 @@
             <section class="drawer-section" aria-labelledby="drawer-common-title">
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
-                <a class="drawer-link" href="./signup.html">
-                  <span class="drawer-icon"><img src="./images/ball.png" alt=""></span>
-                  <span>季打報名</span>
-                </a>
-                <a class="drawer-link" href="./active-activity.html">
-                  <span class="drawer-icon"><img src="./images/icon-album.png" alt=""></span>
-                  <span>參與紀錄</span>
-                </a>
                 <a class="drawer-link" href="./group-list.html">
                   <span class="drawer-icon"><img src="./images/Registration list.png" alt=""></span>
                   <span>已發起的球局</span>
@@ -869,6 +869,14 @@
                 <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
                   <span class="drawer-icon is-warm"><img src="./images/icon-donate.png" alt=""></span>
                   <span>贊助胖貓貓</span>
+                </a>
+                <a class="drawer-link is-pending" href="./signup.html" aria-disabled="true" tabindex="-1">
+                  <span class="drawer-icon"><img src="./images/ball.png" alt=""></span>
+                  <span>季打報名</span>
+                </a>
+                <a class="drawer-link is-pending" href="./active-activity.html" aria-disabled="true" tabindex="-1">
+                  <span class="drawer-icon"><img src="./images/icon-album.png" alt=""></span>
+                  <span>參與紀錄</span>
                 </a>
               </nav>
             </section>
