@@ -2,7 +2,7 @@
 
 set -u
 
-cd "$(dirname "$0")" || exit 1
+cd "$(dirname "$0")/.." || exit 1
 
 REMOTE="origin"
 BRANCH="main"
@@ -74,7 +74,7 @@ fi
 
 echo ""
 echo "4/4 推上 GitHub Pages..."
-if ! git push "$REMOTE" "$BRANCH"; then
+if ! git push "$REMOTE" "HEAD:$BRANCH"; then
   echo ""
   echo "推上線失敗。請確認 GitHub 登入權限或網路連線。"
   echo ""
