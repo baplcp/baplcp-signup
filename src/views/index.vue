@@ -179,3 +179,326 @@ onMounted(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.phone-scroll {
+  --muted: #65708b;
+  --line: #f2f4fa;
+  --hero-start: #5768ff;
+  --hero-end: #8591f7;
+  --card-start: #5768ff;
+  --card-end: #8894ff;
+  --accent-start: #ffe3c3;
+  --accent-mid: #ffd2a0;
+  --accent-end: #f2b47a;
+  --accent-text: #774d38;
+  --shadow-hero: 2px 2px 28px rgba(90, 90, 226, 0.3);
+  --shadow-cat: -8px 9px 22.9px rgba(16, 24, 67, 0.45);
+  --shadow-card-icon: 3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45);
+  --shadow-utility: 3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6);
+  --shadow-utility-warm: 3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5);
+  --shadow-button: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  height: 100%;
+  overflow-anchor: none;
+}
+
+.phone-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hero {
+  position: relative;
+  min-height: 274px;
+  padding: 44px 0 106px;
+  background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
+  box-shadow: var(--shadow-hero);
+  overflow: hidden;
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 8px;
+  padding: 22px 14px 0 0;
+  align-items: center;
+  margin-top: -36px;
+}
+
+.hero-cat {
+  position: relative;
+  height: 188px;
+  margin-top: 26px;
+  overflow: visible;
+}
+
+.hero-cat img.cat-main {
+  position: absolute;
+  left: -2px;
+  top: -18px;
+  width: 210px;
+  height: 224px;
+  object-fit: contain;
+  filter: drop-shadow(var(--shadow-cat));
+}
+
+.hero-copy {
+  padding-right: 14px;
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-copy h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.36;
+  font-weight: 700;
+  letter-spacing: 0.56px;
+}
+
+.hero-copy p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.cta {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 182px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-start) 6.25%, var(--accent-mid) 47.596%, var(--accent-end) 100%);
+  color: var(--accent-text);
+  font-size: 16px;
+  font-weight: 500;
+  box-shadow: var(--shadow-button);
+}
+
+.content {
+  position: relative;
+  margin-top: -124px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 30px 16px 40px;
+  min-height: calc(100% - 251px);
+  z-index: 1;
+}
+
+.top-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.info-card {
+  position: relative;
+  min-height: 78px;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 17px 12px;
+  background: linear-gradient(180deg, var(--card-start) 0%, var(--card-end) 100%);
+  color: #fff;
+  text-decoration: none;
+}
+
+.info-card-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.34px;
+  line-height: 1.4;
+}
+
+.info-card-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.info-card img {
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(var(--shadow-card-icon));
+}
+
+.info-card.is-pending,
+.utility-item.is-pending {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.utility-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.utility-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.utility-icon {
+  width: 76px;
+  height: 76px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.utility-icon::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 999px;
+  background: #bac5ff;
+}
+
+.utility-item.warm .utility-icon::before {
+  background: #f2ba78;
+}
+
+.utility-icon img {
+  position: relative;
+  z-index: 1;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(var(--shadow-utility));
+}
+
+.utility-item.warm .utility-icon img {
+  width: 58px;
+  height: 58px;
+  filter: drop-shadow(var(--shadow-utility-warm));
+}
+
+.utility-item span {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+  overflow-anchor: none;
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px;
+  text-align: left;
+}
+
+.faq-question span {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.faq-arrow {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #f3f5ff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.faq-arrow::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid #8e99ff;
+  border-right: 2px solid #8e99ff;
+  transform: rotate(45deg);
+  margin-left: -2px;
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+  opacity: 0;
+  transition:
+    max-height 0.24s ease,
+    opacity 0.18s ease,
+    padding 0.24s ease;
+}
+
+.faq-item.is-open .faq-answer {
+  max-height: 180px;
+  padding: 0 12px 14px;
+  opacity: 1;
+}
+
+.faq-item.is-open .faq-arrow {
+  transform: rotate(90deg);
+}
+
+.app-version {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #7a84a7;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 500px) {
+  .phone-scroll {
+    overflow-y: auto;
+  }
+
+  .app-version {
+    margin: 20px 0 12px;
+  }
+}
+</style>
