@@ -1,0 +1,28 @@
+{
+  "name": "baplcp-signup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baplcp/baplcp-signup.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/baplcp/baplcp-signup/issues"
+  },
+  "homepage": "https://github.com/baplcp/baplcp-signup#readme",
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "vite": "^8.0.8",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.4"
+  }
+}
