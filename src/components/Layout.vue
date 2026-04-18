@@ -6,7 +6,7 @@
 
   const isMenuOpen = ref(false)
 
-  const hiddenHeaderPath = ['group-list', 'create-activity']
+  const hiddenHeaderPath = ['group-list', 'create-activity', 'ended-activity']
   const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
 
   function toggleMenu() {
