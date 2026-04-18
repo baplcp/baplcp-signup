@@ -14,7 +14,7 @@
 
 <template>
   <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
-    <header class="nav">
+    <header class="nav z-999">
       <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <div class="nav-title">華江高中臨打報名</div>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
@@ -52,7 +52,7 @@
             <section class="drawer-section" aria-labelledby="drawer-common-title">
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
-                <RouterLink class="drawer-link" to="/group-list">
+                <RouterLink @click="closeMenu" class="drawer-link" to="/group-list">
                   <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
                   <span>已發起的球局</span>
                 </RouterLink>
@@ -60,14 +60,14 @@
                   <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
                   <span>贊助胖貓貓</span>
                 </a>
-                <a class="drawer-link is-pending" href="./signup.html" aria-disabled="true" tabindex="-1">
+                <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
                   <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
-                </a>
-                <a class="drawer-link is-pending" href="./active-activity.html" aria-disabled="true" tabindex="-1">
+                </RouterLink>
+                <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
                   <span class="drawer-icon"><img src="/images/icon-album.png" alt="" /></span>
                   <span>參與紀錄</span>
-                </a>
+                </RouterLink>
               </nav>
             </section>
           </div>
