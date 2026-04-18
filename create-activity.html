@@ -380,6 +380,7 @@
       color: var(--text);
       font-size: 15px;
       line-height: 1.25;
+      white-space: nowrap;
     }
 
     .fee-input-row input {
@@ -389,6 +390,19 @@
       padding: 0;
       box-shadow: none;
       font-size: 15px;
+    }
+
+    #season-fee {
+      width: calc((var(--season-fee-digits, 1) * 1ch) + 2px);
+      flex: 0 0 auto;
+    }
+
+    .fee-unit {
+      margin-left: 0;
+    }
+
+    .fee-input-row input:placeholder-shown + .fee-unit {
+      display: none;
     }
 
     .section-header {
@@ -941,7 +955,8 @@
                   </label>
                   <label class="fee-input-row">
                     <span>$</span>
-                    <input id="season-fee" name="seasonFee" type="number" min="0" inputmode="numeric" aria-label="季打費用" readonly>
+                    <input id="season-fee" name="seasonFee" type="text" inputmode="numeric" aria-label="季打費用" placeholder=" " readonly>
+                    <span class="fee-unit">/人</span>
                   </label>
                 </div>
                 <p class="auto-note fee-note">*自動填入</p>
@@ -1572,6 +1587,7 @@
       var coolingFee = seasonIncludeAc.checked ? Number(acFee.value || 0) : 0;
       var count = selectedDates.length;
       seasonFee.value = count > 0 ? String((baseFee + coolingFee) * count) : "";
+      seasonFee.style.setProperty("--season-fee-digits", String(Math.max(seasonFee.value.length, 1)));
     }
 
     function setSeasonSignupOpen(isOpen) {
