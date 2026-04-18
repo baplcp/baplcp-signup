@@ -95,7 +95,7 @@ onMounted(() => {
             <p class="event-date">4.09 (日)<span class="divider">｜</span>8:00-11:00</p>
             <p class="event-location">板橋柏吉倫排球場</p>
           </div>
-          <a class="go-button" href="./active-activity.html">前往</a>
+          <RouterLink to="/active-activity" class="go-button">前往</RouterLink>
         </article>
 
         <div class="section-heading" id="upcoming-section">
@@ -103,7 +103,7 @@ onMounted(() => {
           <button class="more-button" type="button" data-target-segment="upcoming">更多</button>
         </div>
         <div class="upcoming-list" aria-label="即將到來">
-          <a class="history-row" href="./active-activity.html">
+          <RouterLink class="history-row" to="/active-activity">
             <div class="event-content">
               <p class="event-date">4.16 (日)<span class="divider">｜</span>12:20-15:20</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -112,9 +112,10 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./active-activity.html">
+
+          <RouterLink class="history-row" to="/active-activity">
             <div class="event-content">
               <p class="event-date">4.23 (日)<span class="divider">｜</span>12:20-15:20</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -123,9 +124,9 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./active-activity.html">
+          <RouterLink class="history-row" to="/active-activity">
             <div class="event-content">
               <p class="event-date">4.30 (日)<span class="divider">｜</span>12:20-15:20</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -134,7 +135,7 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
         </div>
 
         <div class="section-heading history-title" id="ended-section">
@@ -142,7 +143,8 @@ onMounted(() => {
           <button class="more-button" type="button" data-target-segment="ended">更多</button>
         </div>
         <div class="history-list" aria-label="已結束">
-          <a class="history-row" href="./ended-activity.html">
+
+          <RouterLink class="history-row" to="/ended-activity">
             <div class="event-content">
               <p class="event-date">4.02 (日)</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -151,9 +153,9 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./ended-activity.html">
+          <RouterLink class="history-row" to="/ended-activity">
             <div class="event-content">
               <p class="event-date">3.28 (日)</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -161,9 +163,9 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./ended-activity.html">
+          <RouterLink class="history-row" to="/ended-activity">
             <div class="event-content">
               <p class="event-date">3.21 (日)</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -172,9 +174,9 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./ended-activity.html">
+          <RouterLink class="history-row" to="/ended-activity">
             <div class="event-content">
               <p class="event-date">3.14 (日)</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -182,9 +184,10 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
 
-          <a class="history-row" href="./ended-activity.html">
+          
+          <RouterLink class="history-row" to="/ended-activity">
             <div class="event-content">
               <p class="event-date">3.07(日)</p>
               <p class="event-location">板橋柏吉倫排球場</p>
@@ -192,7 +195,7 @@ onMounted(() => {
             <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </a>
+          </RouterLink>
         </div>
       </section>
     </div>

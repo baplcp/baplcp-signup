@@ -107,12 +107,12 @@ onMounted(() => {
             </div>
             <span>贊助胖貓貓</span>
           </a>
-          <a class="utility-item is-pending" href="./group-list.html" aria-disabled="true" tabindex="-1">
+          <RouterLink to="/group-list" class="utility-item is-pending" aria-disabled="true" tabindex="-1">
             <div class="utility-icon">
               <img src="/images/Registration list.png" alt="" />
             </div>
             <span>臨打名單</span>
-          </a>
+          </RouterLink>
           <a class="utility-item is-pending" href="#" aria-disabled="true" tabindex="-1">
             <div class="utility-icon">
               <img src="/images/ball.png" alt="" />

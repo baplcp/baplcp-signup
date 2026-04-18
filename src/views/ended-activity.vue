@@ -112,7 +112,7 @@ onMounted(() => {
               <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
+          <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
           <div class="nav-title">已結束的球局</div>
           <button class="menu-btn" type="button" aria-label="開啟選單">
             <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
