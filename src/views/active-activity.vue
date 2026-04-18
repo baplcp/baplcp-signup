@@ -4,13 +4,13 @@ import { onMounted } from 'vue'
 onMounted(() => {
   var APP_VERSION = 'v2026.04.18-active-drawer-04'
   var MEMBERS = [
-    { name: '莊則元', badge: '莊', image: './images/profile01.png' },
-    { name: '施政維', badge: '施', image: './images/profile02.png' },
-    { name: '莊宸豪', badge: '莊', image: './images/profile03.png' },
-    { name: '蔚', badge: '蔚', image: './images/profile04.png' },
-    { name: '乃瑄', badge: '乃', image: './images/profile05.png' },
-    { name: '莊辰豪', badge: '莊', image: './images/profile06.png' },
-    { name: '黃品諭', badge: '黃', image: './images/profile07.png', status: '候補' },
+    { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
+    { name: '施政維', badge: '施', image: '/images/profile02.png' },
+    { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
+    { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
+    { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
+    { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
+    { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
     { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
   ]
 
@@ -391,7 +391,7 @@ onMounted(() => {
     <div class="app-scroll">
       <div class="scroll-content">
         <section class="hero">
-          <img class="hero-cat" src="./images/cat-hide.png" alt="" aria-hidden="true" />
+          <img class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
           <div class="hero-layout">
             <div class="hero-copy">
               <h1>最新球局報名</h1>
@@ -417,8 +417,8 @@ onMounted(() => {
           <div class="summary-status">
             <p class="summary-status-text">狀態：<span class="summary-status-value">無報名</span></p>
             <div class="summary-fee" aria-label="費用 255 元">
-              <img class="summary-fee-money" src="./images/money-icon.png" alt="" aria-hidden="true" />
-              <img class="summary-fee-air" src="./images/airconditioner-icon.png" alt="" aria-hidden="true" />
+              <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
+              <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
               <span class="summary-fee-amount">$255</span>
               <span class="summary-fee-state" hidden>未付</span>
             </div>
@@ -638,7 +638,7 @@ button {
 .brand {
   width: 65px;
   height: 22px;
-  background: url('./images/logo-white.svg') center/contain no-repeat;
+  background: url('/images/logo-white.svg') center/contain no-repeat;
   flex: 0 0 auto;
   transition: filter 0.25s ease;
 }
@@ -670,7 +670,7 @@ button {
 }
 
 .nav.is-scrolled .brand {
-  background-image: url('./images/logo-purple.svg');
+  background-image: url('/images/logo-purple.svg');
   filter: none;
 }
 
