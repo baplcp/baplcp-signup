@@ -1,113 +1,48 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, ref } from 'vue'
 
-onMounted(() => {
-  var APP_VERSION = 'v2026.04.15-ended-01'
-  var MEMBERS = [
-    { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
-    { name: '施政維', badge: '施', image: '/images/profile02.png' },
-    { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
-    { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
-    { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
-    { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
-    { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
-    { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
-  ]
+const APP_VERSION = 'v2026.04.15-ended-01'
+const SEGMENT_TABS = ['全部', '臨打', '季打']
+const MEMBERS = [
+  { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
+  { name: '施政維', badge: '施', image: '/images/profile02.png' },
+  { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
+  { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
+  { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
+  { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
+  { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
+  { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
+]
 
-  var appScroll = document.querySelector('.app-scroll')
-  var nav = document.querySelector('.nav')
-  var backButton = document.getElementById('back-button')
-  var appVersion = document.getElementById('app-version')
-  var signupList = document.getElementById('signup-list')
+const activeSegment = ref(SEGMENT_TABS[0])
+const navProgress = ref(0)
+const isNavScrolled = computed(() => navProgress.value > 0.55)
+const navStyle = computed(() => ({
+  '--nav-progress': String(navProgress.value),
+  '--nav-bg-opacity': String(navProgress.value * 0.94),
+}))
 
-  if (appVersion) {
-    appVersion.textContent = APP_VERSION
+function handleScroll(event) {
+  const fadeDistance = 120
+  navProgress.value = Math.max(0, Math.min(event.currentTarget.scrollTop / fadeDistance, 1))
+}
+
+function goBack() {
+  if (window.history.length > 1) {
+    window.history.back()
+    return
   }
 
-  document.querySelectorAll('.segment-tab').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      document.querySelectorAll('.segment-tab').forEach(function (item) {
-        var isActive = item === tab
-        item.classList.toggle('is-active', isActive)
-        item.setAttribute('aria-selected', String(isActive))
-      })
-    })
-  })
-
-  if (signupList) {
-    MEMBERS.forEach(function (member, index) {
-      var row = document.createElement('div')
-      row.className = 'row'
-
-      var rank = document.createElement('div')
-      rank.className = 'rank'
-      rank.textContent = String(index + 1)
-
-      var avatar = document.createElement('div')
-      avatar.className = 'avatar'
-
-      if (member.image) {
-        var avatarImage = document.createElement('img')
-        avatarImage.src = member.image
-        avatarImage.alt = ''
-        avatar.appendChild(avatarImage)
-      } else {
-        avatar.textContent = member.badge
-        avatar.style.background = member.color
-      }
-
-      var name = document.createElement('div')
-      name.className = 'name'
-      name.textContent = member.name
-
-      row.appendChild(rank)
-      row.appendChild(avatar)
-      row.appendChild(name)
-
-      if (member.status) {
-        var status = document.createElement('div')
-        status.className = 'status-tag'
-        status.textContent = member.status
-        row.appendChild(status)
-      }
-
-      signupList.appendChild(row)
-    })
-  }
-
-  function syncHeaderState() {
-    if (!appScroll || !nav) return
-    var fadeDistance = 120
-    var progress = Math.max(0, Math.min(appScroll.scrollTop / fadeDistance, 1))
-    nav.style.setProperty('--nav-progress', String(progress))
-    nav.style.setProperty('--nav-bg-opacity', String(progress * 0.94))
-    nav.classList.toggle('is-scrolled', progress > 0.55)
-  }
-
-  if (appScroll) {
-    appScroll.addEventListener('scroll', syncHeaderState, { passive: true })
-    syncHeaderState()
-  }
-
-  if (backButton) {
-    backButton.addEventListener('click', function () {
-      if (window.history.length > 1) {
-        window.history.back()
-        return
-      }
-
-      window.location.href = './index.html'
-    })
-  }
-})
+  window.location.href = './index.html'
+}
 </script>
 
 <template>
   <main class="app-shell ended-activity-page">
-    <div class="app-scroll">
+    <div class="app-scroll" @scroll.passive="handleScroll">
       <div class="scroll-content">
-        <header class="nav">
-          <button class="back-btn" id="back-button" type="button" aria-label="返回上一頁">
+        <header class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
+          <button class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -151,12 +86,31 @@ onMounted(() => {
 
         <section class="content">
           <div class="segment-tabs" role="tablist" aria-label="名單分類">
-            <button class="segment-tab is-active" type="button" role="tab" aria-selected="true">全部</button>
-            <button class="segment-tab" type="button" role="tab" aria-selected="false">臨打</button>
-            <button class="segment-tab" type="button" role="tab" aria-selected="false">季打</button>
+            <button
+              v-for="tab in SEGMENT_TABS"
+              :key="tab"
+              class="segment-tab"
+              :class="{ 'is-active': activeSegment === tab }"
+              type="button"
+              role="tab"
+              :aria-selected="String(activeSegment === tab)"
+              @click="activeSegment = tab"
+            >
+              {{ tab }}
+            </button>
           </div>
-          <div class="list" id="signup-list"></div>
-          <div class="version" id="app-version">v--</div>
+          <div class="list">
+            <div v-for="(member, index) in MEMBERS" :key="`${member.name}-${index}`" class="row">
+              <div class="rank">{{ index + 1 }}</div>
+              <div class="avatar" :style="member.image ? undefined : { background: member.color }">
+                <img v-if="member.image" :src="member.image" alt="" />
+                <template v-else>{{ member.badge }}</template>
+              </div>
+              <div class="name">{{ member.name }}</div>
+              <div v-if="member.status" class="status-tag">{{ member.status }}</div>
+            </div>
+          </div>
+          <div class="version">{{ APP_VERSION }}</div>
         </section>
       </div>
     </div>
