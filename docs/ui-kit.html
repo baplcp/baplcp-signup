@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>BAPLCP 首頁 UI Kit</title>
+  <style>
+    :root {
+      --page-bg: #eef1ff;
+      --surface: #ffffff;
+      --text: #101840;
+      --muted: #65708b;
+      --line: #f2f4fa;
+      --hero-start: #5768ff;
+      --hero-end: #8591f7;
+      --card-start: #5768ff;
+      --card-end: #8894ff;
+      --accent-start: #ffe3c3;
+      --accent-mid: #ffd2a0;
+      --accent-end: #f2b47a;
+      --accent-text: #774d38;
+      --warm: #f2ba78;
+      --teal: #1BC4BF;
+      --shadow-hero: 2px 2px 28px rgba(90, 90, 226, 0.3);
+      --shadow-card-icon: 3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45);
+      --shadow-utility: 3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6);
+      --shadow-utility-warm: 3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5);
+      --shadow-button: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
+      --radius-xl: 24px;
+      --radius-lg: 20px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --radius-xs: 6px;
+      --radius-pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--page-bg);
+      color-scheme: light;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, #f5f7ff 0%, var(--page-bg) 100%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin-bottom: 14px;
+      font-size: 22px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 17px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #f3f5ff;
+      color: #4554d9;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .intro {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .intro p,
+    .rule-text {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: 0 20px 60px rgba(71, 82, 163, 0.12);
+      overflow: hidden;
+    }
+
+    .panel-body {
+      padding: 22px;
+    }
+
+    .section {
+      display: grid;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .section:first-child {
+      margin-top: 0;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 10px;
+      padding-left: 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .token {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+    }
+
+    .swatch {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid rgba(16, 24, 64, 0.08);
+    }
+
+    .token-name {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .token-value {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .type-scale {
+      display: grid;
+      gap: 12px;
+    }
+
+    .type-row {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .type-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .preview-phone {
+      border-radius: 23px;
+      background: var(--surface);
+      box-shadow: 0 20px 60px rgba(71, 82, 163, 0.18);
+      overflow: hidden;
+    }
+
+    .hero {
+      min-height: 174px;
+      padding: 44px 16px 72px;
+      background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
+      box-shadow: var(--shadow-hero);
+      color: #fff;
+      text-align: center;
+    }
+
+    .hero h2 {
+      margin: 0 0 6px;
+      color: #fff;
+      font-size: 28px;
+      line-height: 1.36;
+      letter-spacing: 0.56px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .cta {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 182px;
+      margin-top: 12px;
+      padding: 12px 24px;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(180deg, var(--accent-start) 6.25%, var(--accent-mid) 47.596%, var(--accent-end) 100%);
+      box-shadow: var(--shadow-button);
+      color: var(--accent-text);
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .phone-content {
+      margin-top: -42px;
+      padding: 22px 16px 26px;
+      border-radius: 20px 20px 0 0;
+      background: var(--surface);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .info-card {
+      position: relative;
+      min-height: 78px;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      padding: 17px 12px;
+      background: linear-gradient(180deg, var(--card-start) 0%, var(--card-end) 100%);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .info-card-title {
+      font-size: 17px;
+      line-height: 1.4;
+      font-weight: 700;
+      letter-spacing: 0.34px;
+    }
+
+    .info-card-subtitle {
+      margin-top: 2px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 500;
+      letter-spacing: 0.24px;
+    }
+
+    .info-mark {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: var(--shadow-card-icon);
+    }
+
+    .pending {
+      opacity: 0.4;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .utility-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .utility-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      text-align: center;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    .utility-icon {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      display: grid;
+      place-items: center;
+    }
+
+    .utility-icon::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: var(--radius-pill);
+      background: #bac5ff;
+    }
+
+    .utility-item.warm .utility-icon::before {
+      background: var(--warm);
+    }
+
+    .utility-dot {
+      position: relative;
+      z-index: 1;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: var(--shadow-utility);
+    }
+
+    .utility-item.warm .utility-dot {
+      box-shadow: var(--shadow-utility-warm);
+    }
+
+    .drawer-demo {
+      position: relative;
+      min-height: 470px;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      background: #dfe4ff;
+    }
+
+    .menu-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .side-menu {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: min(329px, calc(100% - 61px));
+      height: 100%;
+      padding: 32px 0;
+      background: #fff;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .drawer-profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px 28px;
+    }
+
+    .drawer-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #ffe0bd, #f2b57c);
+    }
+
+    .drawer-user {
+      margin-bottom: 4px;
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
+    .drawer-role {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border: 1px solid rgba(217, 141, 53, 0.3);
+      border-radius: var(--radius-xs);
+      background: rgba(248, 222, 183, 0.2);
+      color: #c79051;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .drawer-section {
+      padding: 0 32px 0 16px;
+    }
+
+    .drawer-section-title {
+      margin: 0 0 16px;
+      color: #8f95b2;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 400;
+    }
+
+    .drawer-list {
+      display: grid;
+      gap: 20px;
+    }
+
+    .drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 36px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .drawer-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: #a8b1f4;
+      overflow: hidden;
+    }
+
+    .drawer-icon::before {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      filter: drop-shadow(3.2px 3.2px 12px rgba(87, 104, 255, 0.55));
+    }
+
+    .drawer-icon.is-warm {
+      background: #f2b57c;
+    }
+
+    .drawer-icon.is-warm::before {
+      filter: drop-shadow(3.8px 3.8px 14px rgba(148, 77, 27, 0.45));
+    }
+
+    .drawer-footer {
+      margin-top: auto;
+      padding: 0 16px;
+    }
+
+    .drawer-create-button {
+      width: 100%;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      background: var(--teal);
+      color: #fff;
+      text-decoration: none;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
+    .snippet {
+      overflow-x: auto;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: #101840;
+      color: #eef1ff;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-phone {
+        max-width: 390px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <h1>BAPLCP 首頁 UI Kit</h1>
+      <p>這份文件整理首頁目前使用的視覺規則、字級、顏色與抽屜式 dialog 樣式。日後新增首頁元件時，優先沿用這裡的 token、尺寸與狀態命名。</p>
+    </header>
+
+    <div class="layout">
+      <div class="panel">
+        <div class="panel-body">
+          <section class="section">
+            <h2>文字敘述規則</h2>
+            <ul class="rule-list">
+              <li>文案保持短句，首頁標題使用「功能區」或「任務」語氣，例如「球局報名區」。</li>
+              <li>副標用一行補充使用情境，例如「最新臨打報名及季打請假」。不要在卡片內寫操作教學。</li>
+              <li>主要行動按鈕使用明確動詞，例如「立即前往」、「建立新球局」。</li>
+              <li>未完成功能使用 <code>is-pending</code> 狀態，透明度 40%，並停用點擊。</li>
+            </ul>
+          </section>
+
+          <section class="section">
+            <h2>視覺規則</h2>
+            <ul class="rule-list">
+              <li>頁面背景固定為淺紫藍，不使用深色模式；首屏載入也要維持 light scheme。</li>
+              <li>手機容器最大寬度 390px，桌機置中顯示；手機 viewport 下鋪滿全寬。</li>
+              <li>主要品牌區使用紫藍垂直漸層，輔助行動使用奶油橘漸層。</li>
+              <li>卡片圓角 16px，主要內容面板圓角 20px，抽屜底部按鈕圓角 12px。</li>
+              <li>圖示入口使用 76px 固定區塊與圓形底，避免載入圖示時版面跳動。</li>
+              <li>抽屜 dialog 從右側滑入，寬度為 <code>min(329px, calc(100% - 61px))</code>，遮罩為 40% 黑。</li>
+            </ul>
+          </section>
+
+          <section class="section">
+            <h2>字級</h2>
+            <div class="type-scale">
+              <div class="type-row">
+                <h3 style="font-size: 28px; letter-spacing: 0.56px;">Hero 標題 28px / 700</h3>
+                <p class="rule-text">用於首頁第一屏主標，行高 1.36。</p>
+              </div>
+              <div class="type-row">
+                <h3 style="font-size: 20px;">Section 標題 20px / 600</h3>
+                <p class="rule-text">用於「常用功能」、「常見問題」等區塊標題。</p>
+              </div>
+              <div class="type-row">
+                <h3 style="font-size: 17px;">卡片標題與底部主按鈕 17px</h3>
+                <p class="rule-text">卡片標題 700，抽屜底部主按鈕 500。</p>
+              </div>
+              <div class="type-row">
+                <h3 style="font-size: 16px; font-weight: 500;">一般操作文字 16px / 500</h3>
+                <p class="rule-text">Hero 副標、主要 CTA、抽屜選單項目使用這個級距。</p>
+              </div>
+              <div class="type-row">
+                <h3 style="font-size: 13px; font-weight: 500;">小型入口標籤 13px / 500</h3>
+                <p class="rule-text">常用功能 icon 下方文字。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>顏色 Token</h2>
+            <div class="token-grid">
+              <div class="token"><span class="swatch" style="background:#eef1ff"></span><span><span class="token-name">Page BG</span><br><span class="token-value">#eef1ff</span></span></div>
+              <div class="token"><span class="swatch" style="background:#ffffff"></span><span><span class="token-name">Surface</span><br><span class="token-value">#ffffff</span></span></div>
+              <div class="token"><span class="swatch" style="background:#101840"></span><span><span class="token-name">Text</span><br><span class="token-value">#101840</span></span></div>
+              <div class="token"><span class="swatch" style="background:#65708b"></span><span><span class="token-name">Muted</span><br><span class="token-value">#65708b</span></span></div>
+              <div class="token"><span class="swatch" style="background:#5768ff"></span><span><span class="token-name">Brand Start</span><br><span class="token-value">#5768ff</span></span></div>
+              <div class="token"><span class="swatch" style="background:#8591f7"></span><span><span class="token-name">Hero End</span><br><span class="token-value">#8591f7</span></span></div>
+              <div class="token"><span class="swatch" style="background:#f2ba78"></span><span><span class="token-name">Warm Icon</span><br><span class="token-value">#f2ba78</span></span></div>
+              <div class="token"><span class="swatch" style="background:#1BC4BF"></span><span><span class="token-name">Create CTA</span><br><span class="token-value">#1BC4BF</span></span></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>可直接沿用的狀態</h2>
+            <div class="snippet">.is-pending {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* anchor pending 狀態請同時加上 */
+aria-disabled="true" tabindex="-1"</div>
+          </section>
+        </div>
+      </div>
+
+      <aside class="preview-phone" aria-label="首頁元件預覽">
+        <section class="hero">
+          <h2>球局報名區</h2>
+          <p>最新臨打報名及季打請假</p>
+          <a class="cta" href="#">立即前往</a>
+        </section>
+
+        <section class="phone-content">
+          <div class="cards">
+            <a class="info-card" href="#">
+              <p class="info-card-title">球局列表</p>
+              <p class="info-card-subtitle">各週人員名單</p>
+              <span class="info-mark" aria-hidden="true"></span>
+            </a>
+            <article class="info-card pending">
+              <p class="info-card-title">我的紀錄</p>
+              <p class="info-card-subtitle">報名與請假</p>
+              <span class="info-mark" aria-hidden="true"></span>
+            </article>
+          </div>
+
+          <div class="utility-grid">
+            <a class="utility-item warm" href="#">
+              <span class="utility-icon"><span class="utility-dot"></span></span>
+              <span>贊助胖貓貓</span>
+            </a>
+            <a class="utility-item pending" href="#" aria-disabled="true" tabindex="-1">
+              <span class="utility-icon"><span class="utility-dot"></span></span>
+              <span>臨打名單</span>
+            </a>
+            <a class="utility-item pending" href="#" aria-disabled="true" tabindex="-1">
+              <span class="utility-icon"><span class="utility-dot"></span></span>
+              <span>球隊公約</span>
+            </a>
+            <a class="utility-item pending" href="#" aria-disabled="true" tabindex="-1">
+              <span class="utility-icon"><span class="utility-dot"></span></span>
+              <span>活動相簿</span>
+            </a>
+          </div>
+
+          <section class="section">
+            <h2>Dialog / Drawer</h2>
+            <div class="drawer-demo">
+              <div class="menu-backdrop"></div>
+              <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+                <div class="drawer-profile">
+                  <span class="drawer-avatar" aria-hidden="true"></span>
+                  <div>
+                    <p class="drawer-user" id="drawer-title">吳佳穎</p>
+                    <span class="drawer-role">一般會員</span>
+                  </div>
+                </div>
+                <div class="drawer-section">
+                  <h3 class="drawer-section-title">常用功能</h3>
+                  <nav class="drawer-list" aria-label="抽屜選單範例">
+                    <a class="drawer-link" href="#"><span class="drawer-icon"></span><span>已發起的球局</span></a>
+                    <a class="drawer-link" href="#"><span class="drawer-icon is-warm"></span><span>贊助胖貓貓</span></a>
+                    <a class="drawer-link pending" href="#" aria-disabled="true" tabindex="-1"><span class="drawer-icon"></span><span>季打報名</span></a>
+                    <a class="drawer-link pending" href="#" aria-disabled="true" tabindex="-1"><span class="drawer-icon"></span><span>參與紀錄</span></a>
+                  </nav>
+                </div>
+                <div class="drawer-footer">
+                  <a class="drawer-create-button" href="#">建立新球局</a>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </section>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

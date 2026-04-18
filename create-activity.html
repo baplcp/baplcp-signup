@@ -794,6 +794,66 @@
       color: var(--text);
     }
 
+    .success-dialog-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.24s ease;
+    }
+
+    .success-dialog-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .success-dialog {
+      width: min(100%, 318px);
+      border-radius: 16px;
+      background: #fff;
+      padding: 28px 22px 22px;
+      box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
+      text-align: center;
+      transform: translateY(10px) scale(0.98);
+      transition: transform 0.24s ease;
+    }
+
+    .success-dialog-overlay.is-open .success-dialog {
+      transform: translateY(0) scale(1);
+    }
+
+    .success-dialog-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .success-dialog-copy {
+      margin: 12px 0 24px;
+      color: #474d66;
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    .success-dialog-button {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
     @media (hover: hover) and (pointer: fine) {
       .time-wheel-arrow {
         display: grid;
@@ -848,6 +908,14 @@
         box-shadow: none;
       }
     }
+
+    input.is-error,
+    select.is-error,
+    .control-button.is-error,
+    .money-input.is-error {
+      border-color: #d14343;
+      box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+    }
   </style>
 </head>
 <body>
@@ -886,13 +954,13 @@
               <p class="field-label">時間</p>
               <div class="time-row">
                 <span class="select-wrap">
-                  <select id="activity-start-time" name="activityStartTime" data-time-select data-time-placeholder="開始時間">
+                  <select id="activity-start-time" name="activityStartTime" class="is-placeholder" data-time-select data-time-placeholder="開始時間">
                     <option value="">開始時間</option>
                   </select>
                 </span>
                 <span class="inline-text">至</span>
                 <span class="select-wrap">
-                  <select id="activity-end-time" name="activityEndTime" data-time-select data-time-placeholder="結束時間">
+                  <select id="activity-end-time" name="activityEndTime" class="is-placeholder" data-time-select data-time-placeholder="結束時間">
                     <option value="">結束時間</option>
                   </select>
                 </span>
@@ -968,7 +1036,7 @@
               <label class="field">
                 <span class="field-label">季打名額</span>
                 <span class="select-wrap">
-                  <select id="season-capacity" name="seasonCapacity">
+                  <select id="season-capacity" name="seasonCapacity" class="is-placeholder">
                     <option value="">請選擇人數</option>
                   </select>
                 </span>
@@ -981,7 +1049,7 @@
                   <input id="season-open-date" name="seasonOpenDate" type="hidden">
                   <span class="inline-text">的</span>
                   <span class="select-wrap">
-                    <select id="season-open-time" name="seasonOpenTime" data-time-select data-time-placeholder="幾點">
+                    <select id="season-open-time" name="seasonOpenTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
                       <option value="">幾點</option>
                     </select>
                   </span>
@@ -1007,7 +1075,7 @@
                         <input id="season-close-date" name="seasonCloseDate" type="hidden">
                         <span>的</span>
                         <span class="select-wrap">
-                          <select id="season-close-time" name="seasonCloseTime" data-time-select data-time-placeholder="幾點">
+                          <select id="season-close-time" name="seasonCloseTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
                             <option value="">幾點</option>
                           </select>
                         </span>
@@ -1029,20 +1097,20 @@
               <div class="time-row is-rule">
                 <span class="inline-text">每次活動</span>
                 <span class="select-wrap">
-                  <select id="pickup-open-date" name="pickupOpenDate">
+                  <select id="pickup-open-date" name="pickupOpenDate" class="is-placeholder">
                     <option value="">幾天前</option>
-                    <option>1 天前</option>
-                    <option>2 天前</option>
-                    <option>3 天前</option>
-                    <option>4 天前</option>
-                    <option>5 天前</option>
-                    <option>6 天前</option>
-                    <option>7 天前</option>
+                    <option>前 1 天</option>
+                    <option>前 2 天</option>
+                    <option>前 3 天</option>
+                    <option>前 4 天</option>
+                    <option>前 5 天</option>
+                    <option>前 6 天</option>
+                    <option>前 7 天</option>
                   </select>
                 </span>
                 <span class="inline-text">的</span>
                 <span class="select-wrap">
-                  <select id="pickup-open-time" name="pickupOpenTime" data-time-select data-time-placeholder="幾點">
+                  <select id="pickup-open-time" name="pickupOpenTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
                     <option value="">幾點</option>
                   </select>
                 </span>
@@ -1066,20 +1134,20 @@
                     <span class="choice-rule">
                       <span>每次活動</span>
                       <span class="select-wrap">
-                        <select id="pickup-close-date" name="pickupCloseDate">
+                        <select id="pickup-close-date" name="pickupCloseDate" class="is-placeholder">
                           <option value="">幾天前</option>
-                          <option>1 天前</option>
-                          <option>2 天前</option>
-                          <option>3 天前</option>
-                          <option>4 天前</option>
-                          <option>5 天前</option>
-                          <option>6 天前</option>
-                          <option>7 天前</option>
+                          <option>前 1 天</option>
+                          <option>前 2 天</option>
+                          <option>前 3 天</option>
+                          <option>前 4 天</option>
+                          <option>前 5 天</option>
+                          <option>前 6 天</option>
+                          <option>前 7 天</option>
                         </select>
                       </span>
                       <span>的</span>
                       <span class="select-wrap">
-                        <select id="pickup-close-time" name="pickupCloseTime" data-time-select data-time-placeholder="幾點">
+                        <select id="pickup-close-time" name="pickupCloseTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
                           <option value="">幾點</option>
                         </select>
                       </span>
@@ -1177,518 +1245,15 @@
         </div>
       </section>
     </div>
+
+    <div class="success-dialog-overlay" id="create-dialog-overlay" aria-hidden="true" inert>
+      <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
+        <h2 class="success-dialog-title" id="create-dialog-title">球局建立成功</h2>
+        <p class="success-dialog-copy" id="create-dialog-copy">新球局已建立完成。</p>
+        <button class="success-dialog-button" id="create-dialog-button" type="button">確認</button>
+      </section>
+    </div>
   </main>
 
-  <script>
-    var form = document.getElementById("create-activity-form");
-    var cancelButton = document.getElementById("cancel-button");
-    var seasonArea = document.getElementById("season-area");
-    var seasonSwitch = document.getElementById("season-switch");
-    var seasonFields = document.getElementById("season-fields");
-    var seasonDisabledNote = document.getElementById("season-disabled-note");
-    var dateButton = document.getElementById("date-picker-button");
-    var dateFieldLabel = document.getElementById("date-field-label");
-    var dateCountNote = document.getElementById("date-count-note");
-    var dateInput = document.getElementById("activity-dates");
-    var seasonOpenDateButton = document.getElementById("season-open-date-button");
-    var seasonOpenDateInput = document.getElementById("season-open-date");
-    var seasonCloseDateButton = document.getElementById("season-close-date-button");
-    var seasonCloseDateInput = document.getElementById("season-close-date");
-    var calendarOverlay = document.getElementById("calendar-overlay");
-    var calendarTitle = document.getElementById("calendar-title");
-    var calendarGrid = document.getElementById("calendar-grid");
-    var calendarPrev = document.getElementById("calendar-prev");
-    var calendarNext = document.getElementById("calendar-next");
-    var calendarCancel = document.getElementById("calendar-cancel");
-    var calendarDone = document.getElementById("calendar-done");
-    var deadlineInput = document.getElementById("deadline-type");
-    var deadlineButtons = document.querySelectorAll("[data-deadline-type]");
-    var customDeadlineCard = document.querySelector('[data-deadline-type="custom"]');
-    var seasonDeadlineInput = document.getElementById("season-deadline-type");
-    var seasonDeadlineButtons = document.querySelectorAll("[data-season-deadline-type]");
-    var customSeasonDeadlineCard = document.querySelector('[data-season-deadline-type="custom"]');
-    var seasonCapacity = document.getElementById("season-capacity");
-    var seasonSingleFee = document.getElementById("season-single-fee");
-    var acFee = document.getElementById("ac-fee");
-    var seasonFee = document.getElementById("season-fee");
-    var seasonIncludeAc = document.getElementById("season-include-ac");
-    var timeOverlay = document.getElementById("time-overlay");
-    var timeClose = document.getElementById("time-close");
-    var timeCancel = document.getElementById("time-cancel");
-    var timeDone = document.getElementById("time-done");
-    var timeHourWheel = document.getElementById("time-hour-wheel");
-    var timeMinuteWheel = document.getElementById("time-minute-wheel");
-    var timePeriodWheel = document.getElementById("time-period-wheel");
-    var activeTimeSelect = null;
-    var activeCalendarTarget = "activity";
-    var selectedDates = [];
-    var seasonOpenDate = "";
-    var seasonCloseDate = "";
-    var visibleMonth = new Date();
-    var timePickerValue = { hour: "06", minute: "00", period: "AM" };
-    var timeScrollTimers = new WeakMap();
-
-    visibleMonth.setDate(1);
-
-    function populateCapacityOptions() {
-      var unlimitedOption = document.createElement("option");
-      unlimitedOption.value = "unlimited";
-      unlimitedOption.textContent = "不限";
-      seasonCapacity.appendChild(unlimitedOption);
-
-      for (var number = 1; number <= 18; number += 1) {
-        var option = document.createElement("option");
-        option.value = String(number);
-        option.textContent = String(number);
-        seasonCapacity.appendChild(option);
-      }
-    }
-
-    function populateTimeSelects() {
-      document.querySelectorAll("[data-time-select]").forEach(function (select) {
-        var placeholder = select.dataset.timePlaceholder || "請選擇時間";
-        select.innerHTML = "";
-
-        var placeholderOption = document.createElement("option");
-        placeholderOption.value = "";
-        placeholderOption.textContent = placeholder;
-        select.appendChild(placeholderOption);
-
-        for (var minutes = 0; minutes < 24 * 60; minutes += 1) {
-          var hour = String(Math.floor(minutes / 60)).padStart(2, "0");
-          var minute = String(minutes % 60).padStart(2, "0");
-          var value = hour + ":" + minute;
-          var option = document.createElement("option");
-          option.value = value;
-          option.textContent = value;
-          select.appendChild(option);
-        }
-      });
-    }
-
-    function syncSelectPlaceholder(select) {
-      select.classList.toggle("is-placeholder", select.value === "");
-    }
-
-    function initSelectPlaceholders() {
-      document.querySelectorAll("select").forEach(function (select) {
-        syncSelectPlaceholder(select);
-        select.addEventListener("change", function () {
-          syncSelectPlaceholder(select);
-        });
-      });
-    }
-
-    function to24HourValue(hour, minute, period) {
-      var hourNumber = Number(hour);
-      if (period === "AM") {
-        hourNumber = hourNumber === 12 ? 0 : hourNumber;
-      } else {
-        hourNumber = hourNumber === 12 ? 12 : hourNumber + 12;
-      }
-      return String(hourNumber).padStart(2, "0") + ":" + minute;
-    }
-
-    function from24HourValue(value) {
-      if (!value) return { hour: "06", minute: "00", period: "AM" };
-
-      var parts = value.split(":");
-      var hourNumber = Number(parts[0]);
-      var period = hourNumber >= 12 ? "PM" : "AM";
-      var hour12 = hourNumber % 12 || 12;
-      return {
-        hour: String(hour12).padStart(2, "0"),
-        minute: parts[1] || "00",
-        period: period
-      };
-    }
-
-    function buildWheel(wheel, values, key) {
-      wheel.innerHTML = "";
-      values.forEach(function (value) {
-        var button = document.createElement("button");
-        button.className = "time-wheel-option";
-        button.type = "button";
-        button.dataset.value = value;
-        button.textContent = value;
-        button.addEventListener("click", function () {
-          timePickerValue[key] = value;
-          syncTimeWheelSelection();
-          scrollWheelToValue(wheel, value, "smooth");
-        });
-        wheel.appendChild(button);
-      });
-
-      wheel.addEventListener("scroll", function () {
-        window.clearTimeout(timeScrollTimers.get(wheel));
-        timeScrollTimers.set(wheel, window.setTimeout(function () {
-          var option = getCenteredWheelOption(wheel);
-          if (!option) return;
-          timePickerValue[key] = option.dataset.value;
-          syncTimeWheelSelection();
-        }, 90));
-      }, { passive: true });
-    }
-
-    function getCenteredWheelOption(wheel) {
-      var options = Array.from(wheel.querySelectorAll(".time-wheel-option"));
-      var wheelCenter = wheel.getBoundingClientRect().top + wheel.clientHeight / 2;
-
-      return options.reduce(function (closest, option) {
-        var optionCenter = option.getBoundingClientRect().top + option.offsetHeight / 2;
-        var distance = Math.abs(optionCenter - wheelCenter);
-        if (!closest || distance < closest.distance) {
-          return { option: option, distance: distance };
-        }
-        return closest;
-      }, null).option;
-    }
-
-    function scrollWheelToValue(wheel, value, behavior) {
-      var option = wheel.querySelector('[data-value="' + value + '"]');
-      if (!option) return;
-      wheel.scrollTo({
-        top: option.offsetTop - (wheel.clientHeight - option.offsetHeight) / 2,
-        behavior: behavior || "auto"
-      });
-    }
-
-    function syncTimeWheelSelection() {
-      [
-        { wheel: timeHourWheel, key: "hour" },
-        { wheel: timeMinuteWheel, key: "minute" },
-        { wheel: timePeriodWheel, key: "period" }
-      ].forEach(function (item) {
-        item.wheel.querySelectorAll(".time-wheel-option").forEach(function (option) {
-          option.classList.toggle("is-selected", option.dataset.value === timePickerValue[item.key]);
-        });
-      });
-    }
-
-    function stepTimeWheel(key, direction) {
-      var wheels = { hour: timeHourWheel, minute: timeMinuteWheel, period: timePeriodWheel };
-      var wheel = wheels[key];
-      if (!wheel) return;
-
-      var options = Array.from(wheel.querySelectorAll(".time-wheel-option"));
-      var currentIndex = options.findIndex(function (option) {
-        return option.dataset.value === timePickerValue[key];
-      });
-      var nextIndex = currentIndex + Number(direction);
-
-      if (nextIndex < 0) nextIndex = options.length - 1;
-      if (nextIndex >= options.length) nextIndex = 0;
-
-      timePickerValue[key] = options[nextIndex].dataset.value;
-      syncTimeWheelSelection();
-      scrollWheelToValue(wheel, timePickerValue[key], "smooth");
-    }
-
-    function setTimePickerOpen(isOpen, select) {
-      timeOverlay.classList.toggle("is-open", isOpen);
-      timeOverlay.setAttribute("aria-hidden", String(!isOpen));
-
-      if (!isOpen) {
-        activeTimeSelect = null;
-        return;
-      }
-
-      activeTimeSelect = select;
-      timePickerValue = from24HourValue(select.value);
-      syncTimeWheelSelection();
-
-      window.requestAnimationFrame(function () {
-        scrollWheelToValue(timeHourWheel, timePickerValue.hour);
-        scrollWheelToValue(timeMinuteWheel, timePickerValue.minute);
-        scrollWheelToValue(timePeriodWheel, timePickerValue.period);
-      });
-    }
-
-    function commitTimePickerValue() {
-      if (!activeTimeSelect) return;
-
-      var value = to24HourValue(timePickerValue.hour, timePickerValue.minute, timePickerValue.period);
-      activeTimeSelect.value = value;
-      syncSelectPlaceholder(activeTimeSelect);
-      activeTimeSelect.dispatchEvent(new Event("change", { bubbles: true }));
-      setTimePickerOpen(false);
-    }
-
-    function initTimePicker() {
-      var hours = Array.from({ length: 12 }, function (_, index) {
-        return String(index + 1).padStart(2, "0");
-      });
-      var minutes = Array.from({ length: 60 }, function (_, index) {
-        return String(index).padStart(2, "0");
-      });
-
-      buildWheel(timeHourWheel, hours, "hour");
-      buildWheel(timeMinuteWheel, minutes, "minute");
-      buildWheel(timePeriodWheel, ["AM", "PM"], "period");
-
-      document.querySelectorAll("[data-time-wheel-step]").forEach(function (button) {
-        button.addEventListener("click", function () {
-          stepTimeWheel(button.dataset.timeWheelStep, button.dataset.direction);
-        });
-      });
-
-      document.querySelectorAll("[data-time-select]").forEach(function (select) {
-        var wrapper = select.closest(".select-wrap");
-        if (!wrapper) return;
-        wrapper.addEventListener("click", function () {
-          setTimePickerOpen(true, select);
-        });
-      });
-
-      timeClose.addEventListener("click", commitTimePickerValue);
-      timeDone.addEventListener("click", commitTimePickerValue);
-      timeCancel.addEventListener("click", function () {
-        setTimePickerOpen(false);
-      });
-      timeOverlay.addEventListener("click", function (event) {
-        if (event.target === timeOverlay) setTimePickerOpen(false);
-      });
-    }
-
-    function formatDate(date) {
-      var month = String(date.getMonth() + 1).padStart(2, "0");
-      var day = String(date.getDate()).padStart(2, "0");
-      return date.getFullYear() + "-" + month + "-" + day;
-    }
-
-    function formatDateLabel(value) {
-      var parts = value.split("-");
-      return Number(parts[1]) + "/" + Number(parts[2]);
-    }
-
-    function getSelectedCalendarValues() {
-      if (activeCalendarTarget === "season-open") {
-        return seasonOpenDate ? [seasonOpenDate] : [];
-      }
-
-      if (activeCalendarTarget === "season-close") {
-        return seasonCloseDate ? [seasonCloseDate] : [];
-      }
-
-      return selectedDates;
-    }
-
-    function syncActivityDateText() {
-      dateInput.value = selectedDates.join(",");
-      dateButton.classList.toggle("has-value", selectedDates.length > 0);
-      dateButton.textContent = selectedDates.length
-        ? selectedDates.map(formatDateLabel).join("、")
-        : "請選擇日期";
-      dateCountNote.hidden = selectedDates.length === 0;
-      dateCountNote.textContent = "共 " + selectedDates.length + " 次";
-      updateSeasonFee();
-      syncSeasonSignupAvailability();
-    }
-
-    function syncSeasonOpenDateText() {
-      seasonOpenDateInput.value = seasonOpenDate;
-      seasonOpenDateButton.classList.toggle("has-value", Boolean(seasonOpenDate));
-      seasonOpenDateButton.textContent = seasonOpenDate ? formatDateLabel(seasonOpenDate) : "請選擇日期";
-    }
-
-    function syncSeasonCloseDateText() {
-      seasonCloseDateInput.value = seasonCloseDate;
-      seasonCloseDateButton.classList.toggle("has-value", Boolean(seasonCloseDate));
-      seasonCloseDateButton.textContent = seasonCloseDate ? formatDateLabel(seasonCloseDate) : "請選擇日期";
-    }
-
-    function renderCalendar() {
-      var year = visibleMonth.getFullYear();
-      var month = visibleMonth.getMonth();
-      var firstDay = new Date(year, month, 1);
-      var startOffset = firstDay.getDay();
-      var gridStart = new Date(year, month, 1 - startOffset);
-      var selectedValues = getSelectedCalendarValues();
-
-      calendarTitle.textContent = year + " 年 " + (month + 1) + " 月";
-      calendarGrid.innerHTML = "";
-
-      for (var index = 0; index < 42; index += 1) {
-        var date = new Date(gridStart);
-        date.setDate(gridStart.getDate() + index);
-
-        var value = formatDate(date);
-        var button = document.createElement("button");
-        button.className = "calendar-day";
-        button.type = "button";
-        button.textContent = String(date.getDate());
-        button.dataset.date = value;
-
-        if (date.getMonth() !== month) button.classList.add("is-muted");
-        if (selectedValues.indexOf(value) !== -1) button.classList.add("is-selected");
-
-        button.addEventListener("click", function () {
-          var selectedValue = this.dataset.date;
-
-          if (activeCalendarTarget === "season-open") {
-            seasonOpenDate = selectedValue;
-            syncSeasonOpenDateText();
-          } else if (activeCalendarTarget === "season-close") {
-            seasonCloseDate = selectedValue;
-            syncSeasonCloseDateText();
-          } else {
-            var existingIndex = selectedDates.indexOf(selectedValue);
-            if (existingIndex === -1) {
-              selectedDates.push(selectedValue);
-            } else {
-              selectedDates.splice(existingIndex, 1);
-            }
-            selectedDates.sort();
-            syncActivityDateText();
-          }
-
-          renderCalendar();
-        });
-
-        calendarGrid.appendChild(button);
-      }
-    }
-
-    function setCalendarOpen(isOpen, target) {
-      if (target) activeCalendarTarget = target;
-      calendarOverlay.classList.toggle("is-open", isOpen);
-      calendarOverlay.setAttribute("aria-hidden", String(!isOpen));
-      if (isOpen) renderCalendar();
-    }
-
-    function syncChoiceGroup(input, buttons, customCard, type, dataKey) {
-      input.value = type;
-      buttons.forEach(function (item) {
-        var isActive = item.dataset[dataKey] === type;
-        item.classList.toggle("is-active", isActive);
-        item.classList.toggle("is-condensed", type === "unlimited");
-        item.setAttribute("aria-pressed", String(isActive));
-      });
-
-      if (customCard) {
-        customCard.classList.toggle("is-condensed", type === "unlimited");
-      }
-    }
-
-    function bindChoiceGroup(input, buttons, customCard, dataKey) {
-      buttons.forEach(function (button) {
-        button.addEventListener("click", function (event) {
-          if (event.target.tagName === "SELECT") return;
-          syncChoiceGroup(input, buttons, customCard, button.dataset[dataKey], dataKey);
-        });
-
-        button.addEventListener("keydown", function (event) {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          syncChoiceGroup(input, buttons, customCard, button.dataset[dataKey], dataKey);
-        });
-      });
-    }
-
-    function updateSeasonFee() {
-      var baseFee = Number(seasonSingleFee.value || 0);
-      var coolingFee = seasonIncludeAc.checked ? Number(acFee.value || 0) : 0;
-      var count = selectedDates.length;
-      seasonFee.value = count > 0 ? String((baseFee + coolingFee) * count) : "";
-      seasonFee.style.setProperty("--season-fee-digits", String(Math.max(seasonFee.value.length, 1)));
-    }
-
-    function setSeasonSignupOpen(isOpen) {
-      seasonSwitch.classList.toggle("is-on", isOpen);
-      seasonSwitch.setAttribute("aria-checked", String(isOpen));
-      seasonFields.classList.toggle("is-collapsed", !isOpen);
-      seasonArea.classList.toggle("is-collapsed", !isOpen);
-    }
-
-    function syncSeasonSignupAvailability() {
-      var isBelowSeasonMinimum = selectedDates.length > 0 && selectedDates.length < 4;
-      seasonSwitch.setAttribute("aria-disabled", String(isBelowSeasonMinimum));
-      seasonSwitch.classList.toggle("is-disabled", isBelowSeasonMinimum);
-      seasonDisabledNote.hidden = !isBelowSeasonMinimum;
-      seasonDisabledNote.classList.remove("is-alert");
-
-      if (isBelowSeasonMinimum) {
-        setSeasonSignupOpen(false);
-      }
-    }
-
-    if (seasonSwitch) {
-      seasonSwitch.addEventListener("click", function () {
-        if (seasonSwitch.getAttribute("aria-disabled") === "true") {
-          seasonDisabledNote.classList.add("is-alert");
-          return;
-        }
-        var nextIsOn = seasonSwitch.getAttribute("aria-checked") !== "true";
-        setSeasonSignupOpen(nextIsOn);
-      });
-    }
-
-    dateButton.addEventListener("click", function () {
-      setCalendarOpen(true, "activity");
-    });
-
-    seasonOpenDateButton.addEventListener("click", function () {
-      setCalendarOpen(true, "season-open");
-    });
-
-    seasonCloseDateButton.addEventListener("click", function () {
-      setCalendarOpen(true, "season-close");
-    });
-
-    calendarPrev.addEventListener("click", function () {
-      visibleMonth.setMonth(visibleMonth.getMonth() - 1);
-      renderCalendar();
-    });
-
-    calendarNext.addEventListener("click", function () {
-      visibleMonth.setMonth(visibleMonth.getMonth() + 1);
-      renderCalendar();
-    });
-
-    calendarCancel.addEventListener("click", function () {
-      setCalendarOpen(false);
-    });
-
-    calendarDone.addEventListener("click", function () {
-      setCalendarOpen(false);
-    });
-
-    calendarOverlay.addEventListener("click", function (event) {
-      if (event.target === calendarOverlay) setCalendarOpen(false);
-    });
-
-    if (cancelButton) {
-      cancelButton.addEventListener("click", function () {
-        if (window.history.length > 1) {
-          window.history.back();
-          return;
-        }
-        window.location.href = "./group-list.html";
-      });
-    }
-
-    [seasonSingleFee, acFee, seasonIncludeAc].forEach(function (field) {
-      field.addEventListener("input", updateSeasonFee);
-      field.addEventListener("change", updateSeasonFee);
-    });
-
-    form.addEventListener("submit", function (event) {
-      handleCreateActivity(event);
-    });
-
-    populateCapacityOptions();
-    populateTimeSelects();
-    initSelectPlaceholders();
-    initTimePicker();
-    dateFieldLabel.textContent = "日期（多選）";
-    seasonArea.hidden = false;
-    bindChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "deadlineType");
-    bindChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "seasonDeadlineType");
-    syncChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "unlimited", "deadlineType");
-    syncChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "unlimited", "seasonDeadlineType");
-    syncActivityDateText();
-    syncSeasonOpenDateText();
-    syncSeasonCloseDateText();
-  </script>
 </body>
 </html>
