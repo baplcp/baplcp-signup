@@ -14,8 +14,8 @@
       --primary: #6574ff;
       --secondary: #1BC4BF;
       --text: #101840;
-      --muted: #696f8c;
-      --muted-soft: #8f95b2;
+      --muted: #8F95B2;
+      --muted-soft: #8F95B2;
       --line: #d8dae5;
       --line-soft: #e6e8f0;
       --section: #f6f6f6;
@@ -66,7 +66,7 @@
       background: #fff;
       padding: 10px;
       color: var(--text);
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.5;
       outline: none;
       appearance: none;
@@ -78,7 +78,7 @@
     }
 
     select.is-placeholder {
-      color: #696F8C;
+      color: var(--muted-soft);
     }
 
     input:focus,
@@ -172,6 +172,22 @@
       font-weight: 600;
     }
 
+    .section-note {
+      margin: 4px 0 0;
+      color: var(--muted-soft);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 400;
+    }
+
+    .section-note.is-alert {
+      color: #d14343;
+    }
+
+    .section-note[hidden] {
+      display: none;
+    }
+
     .section-divider {
       height: 8px;
       margin: 22px -16px 20px;
@@ -195,35 +211,6 @@
       font-weight: 600;
     }
 
-    .type-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 48px;
-      margin-top: -4px;
-      padding: 8px;
-      border-radius: 12px;
-      background: var(--selected);
-    }
-
-    .type-card {
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.25;
-      font-weight: 400;
-      transition: background-color 0.2s ease, color 0.2s ease;
-    }
-
-    .type-card.is-active {
-      background: var(--primary);
-      color: #fff;
-      font-weight: 500;
-    }
-
     .control-button {
       min-height: 41px;
       display: flex;
@@ -233,8 +220,8 @@
       border-radius: 8px;
       background: #fff;
       padding: 10px;
-      color: #696F8C;
-      font-size: 14px;
+      color: var(--muted-soft);
+      font-size: 15px;
       line-height: 1.5;
       text-align: left;
     }
@@ -325,7 +312,7 @@
       background: #fff;
       padding: 10px;
       color: var(--text);
-      font-size: 13px;
+      font-size: 15px;
       line-height: 1.25;
     }
 
@@ -335,7 +322,7 @@
       border-radius: 0;
       padding: 0;
       box-shadow: none;
-      font-size: 13px;
+      font-size: 15px;
     }
 
     .fee-card {
@@ -391,7 +378,7 @@
       gap: 8px;
       padding: 10px;
       color: var(--text);
-      font-size: 13px;
+      font-size: 15px;
       line-height: 1.25;
     }
 
@@ -401,7 +388,7 @@
       border-radius: 0;
       padding: 0;
       box-shadow: none;
-      font-size: 13px;
+      font-size: 15px;
     }
 
     .section-header {
@@ -439,6 +426,11 @@
       transform: translateX(16px);
     }
 
+    .switch.is-disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+
     .season-fields {
       overflow: hidden;
       transition: max-height 0.24s ease, opacity 0.2s ease, margin-top 0.2s ease;
@@ -449,8 +441,15 @@
     .season-fields.is-collapsed {
       max-height: 0;
       opacity: 0;
-      margin-top: -20px;
       pointer-events: none;
+    }
+
+    .season-area.is-collapsed {
+      gap: 0;
+    }
+
+    .season-area.is-collapsed + .section-divider {
+      margin-top: 20px;
     }
 
     .choice-stack {
@@ -529,6 +528,29 @@
       align-items: center;
       gap: 8px;
       margin-top: 4px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .time-row.is-rule select,
+    .choice-rule select {
+      font-size: 15px;
+    }
+
+    .choice-rule.is-date-time {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    #date-picker-button,
+    #season-capacity,
+    #season-open-date-button,
+    #season-open-time,
+    #season-close-date-button,
+    #season-close-time,
+    .money-input,
+    .money-input input {
+      font-size: 15px;
     }
 
     .choice-card.is-condensed .choice-rule {
@@ -781,7 +803,25 @@
       select,
       .money-input input,
       .fee-input-row input {
-        font-size: 16px;
+        font-size: 15px;
+      }
+
+      #season-single-fee,
+      #pickup-single-fee,
+      #ac-fee,
+      #season-capacity,
+      #season-open-date-button,
+      #season-open-time,
+      #season-close-date-button,
+      #season-close-time,
+      .money-input,
+      .money-input input {
+        font-size: 15px;
+      }
+
+      .time-row.is-rule select,
+      .choice-rule select {
+        font-size: 15px;
       }
 
       .app-shell {
@@ -806,11 +846,12 @@
         <form class="form-block" id="create-activity-form">
           <section class="section" aria-labelledby="details-title">
             <h2 class="section-title" id="details-title">詳細資訊</h2>
-            <div class="type-grid" role="radiogroup" aria-label="球局種類">
-              <button class="type-card is-active" type="button" data-game-type="season" aria-pressed="true">多次</button>
-              <button class="type-card" type="button" data-game-type="single" aria-pressed="false">單次</button>
-            </div>
             <input id="game-type" name="gameType" type="hidden" value="season">
+
+            <label class="field">
+              <span class="field-label">標題</span>
+              <input id="activity-title" name="activityTitle" type="text" autocomplete="off">
+            </label>
 
             <label class="field">
               <span class="field-label">地點</span>
@@ -878,7 +919,10 @@
 
           <section class="section season-area" id="season-area" aria-labelledby="season-title">
             <div class="section-header">
-              <h2 class="section-title" id="season-title">季打報名開放</h2>
+              <div>
+                <h2 class="section-title" id="season-title">季打報名開放</h2>
+                <p class="section-note" id="season-disabled-note" hidden>球局次數需 4 次以上</p>
+              </div>
               <button class="switch is-on" id="season-switch" type="button" role="switch" aria-checked="true" aria-label="季打報名開放"></button>
             </div>
 
@@ -940,15 +984,9 @@
                     <span class="radio-mark" aria-hidden="true"></span>
                     <span class="choice-content">
                       <span class="choice-title">設定截止時間</span>
-                      <span class="choice-rule">
-                        <span>每次活動</span>
-                        <span class="select-wrap">
-                          <select id="season-close-date" name="seasonCloseDate">
-                            <option value="">請選擇日期</option>
-                            <option>活動前 1 天</option>
-                            <option>活動前 2 天</option>
-                          </select>
-                        </span>
+                      <span class="choice-rule is-date-time">
+                        <button class="control-button" id="season-close-date-button" type="button">請選擇日期</button>
+                        <input id="season-close-date" name="seasonCloseDate" type="hidden">
                         <span>的</span>
                         <span class="select-wrap">
                           <select id="season-close-time" name="seasonCloseTime" data-time-select data-time-placeholder="幾點">
@@ -977,6 +1015,10 @@
                     <option value="">幾天前</option>
                     <option>1 天前</option>
                     <option>2 天前</option>
+                    <option>3 天前</option>
+                    <option>4 天前</option>
+                    <option>5 天前</option>
+                    <option>6 天前</option>
                     <option>7 天前</option>
                   </select>
                 </span>
@@ -1010,6 +1052,11 @@
                           <option value="">幾天前</option>
                           <option>1 天前</option>
                           <option>2 天前</option>
+                          <option>3 天前</option>
+                          <option>4 天前</option>
+                          <option>5 天前</option>
+                          <option>6 天前</option>
+                          <option>7 天前</option>
                         </select>
                       </span>
                       <span>的</span>
@@ -1117,17 +1164,18 @@
   <script>
     var form = document.getElementById("create-activity-form");
     var cancelButton = document.getElementById("cancel-button");
-    var typeInput = document.getElementById("game-type");
-    var typeButtons = document.querySelectorAll("[data-game-type]");
     var seasonArea = document.getElementById("season-area");
     var seasonSwitch = document.getElementById("season-switch");
     var seasonFields = document.getElementById("season-fields");
+    var seasonDisabledNote = document.getElementById("season-disabled-note");
     var dateButton = document.getElementById("date-picker-button");
     var dateFieldLabel = document.getElementById("date-field-label");
     var dateCountNote = document.getElementById("date-count-note");
     var dateInput = document.getElementById("activity-dates");
     var seasonOpenDateButton = document.getElementById("season-open-date-button");
     var seasonOpenDateInput = document.getElementById("season-open-date");
+    var seasonCloseDateButton = document.getElementById("season-close-date-button");
+    var seasonCloseDateInput = document.getElementById("season-close-date");
     var calendarOverlay = document.getElementById("calendar-overlay");
     var calendarTitle = document.getElementById("calendar-title");
     var calendarGrid = document.getElementById("calendar-grid");
@@ -1157,6 +1205,7 @@
     var activeCalendarTarget = "activity";
     var selectedDates = [];
     var seasonOpenDate = "";
+    var seasonCloseDate = "";
     var visibleMonth = new Date();
     var timePickerValue = { hour: "06", minute: "00", period: "AM" };
     var timeScrollTimers = new WeakMap();
@@ -1164,6 +1213,11 @@
     visibleMonth.setDate(1);
 
     function populateCapacityOptions() {
+      var unlimitedOption = document.createElement("option");
+      unlimitedOption.value = "unlimited";
+      unlimitedOption.textContent = "不限";
+      seasonCapacity.appendChild(unlimitedOption);
+
       for (var number = 1; number <= 18; number += 1) {
         var option = document.createElement("option");
         option.value = String(number);
@@ -1390,9 +1444,15 @@
     }
 
     function getSelectedCalendarValues() {
-      return activeCalendarTarget === "season-open"
-        ? (seasonOpenDate ? [seasonOpenDate] : [])
-        : selectedDates;
+      if (activeCalendarTarget === "season-open") {
+        return seasonOpenDate ? [seasonOpenDate] : [];
+      }
+
+      if (activeCalendarTarget === "season-close") {
+        return seasonCloseDate ? [seasonCloseDate] : [];
+      }
+
+      return selectedDates;
     }
 
     function syncActivityDateText() {
@@ -1404,12 +1464,19 @@
       dateCountNote.hidden = selectedDates.length === 0;
       dateCountNote.textContent = "共 " + selectedDates.length + " 次";
       updateSeasonFee();
+      syncSeasonSignupAvailability();
     }
 
     function syncSeasonOpenDateText() {
       seasonOpenDateInput.value = seasonOpenDate;
       seasonOpenDateButton.classList.toggle("has-value", Boolean(seasonOpenDate));
       seasonOpenDateButton.textContent = seasonOpenDate ? formatDateLabel(seasonOpenDate) : "請選擇日期";
+    }
+
+    function syncSeasonCloseDateText() {
+      seasonCloseDateInput.value = seasonCloseDate;
+      seasonCloseDateButton.classList.toggle("has-value", Boolean(seasonCloseDate));
+      seasonCloseDateButton.textContent = seasonCloseDate ? formatDateLabel(seasonCloseDate) : "請選擇日期";
     }
 
     function renderCalendar() {
@@ -1443,11 +1510,12 @@
           if (activeCalendarTarget === "season-open") {
             seasonOpenDate = selectedValue;
             syncSeasonOpenDateText();
+          } else if (activeCalendarTarget === "season-close") {
+            seasonCloseDate = selectedValue;
+            syncSeasonCloseDateText();
           } else {
             var existingIndex = selectedDates.indexOf(selectedValue);
-            if (typeInput.value === "single") {
-              selectedDates = existingIndex === -1 ? [selectedValue] : [];
-            } else if (existingIndex === -1) {
+            if (existingIndex === -1) {
               selectedDates.push(selectedValue);
             } else {
               selectedDates.splice(existingIndex, 1);
@@ -1468,24 +1536,6 @@
       calendarOverlay.classList.toggle("is-open", isOpen);
       calendarOverlay.setAttribute("aria-hidden", String(!isOpen));
       if (isOpen) renderCalendar();
-    }
-
-    function setGameType(type) {
-      typeInput.value = type;
-      typeButtons.forEach(function (button) {
-        var isActive = button.dataset.gameType === type;
-        button.classList.toggle("is-active", isActive);
-        button.setAttribute("aria-pressed", String(isActive));
-      });
-
-      seasonArea.hidden = type === "single";
-      dateFieldLabel.textContent = type === "single" ? "日期（單選）" : "日期（多選）";
-
-      if (type === "single" && selectedDates.length > 1) {
-        selectedDates = selectedDates.slice(0, 1);
-        syncActivityDateText();
-        renderCalendar();
-      }
     }
 
     function syncChoiceGroup(input, buttons, customCard, type, dataKey) {
@@ -1524,18 +1574,33 @@
       seasonFee.value = count > 0 ? String((baseFee + coolingFee) * count) : "";
     }
 
-    typeButtons.forEach(function (button) {
-      button.addEventListener("click", function () {
-        setGameType(button.dataset.gameType);
-      });
-    });
+    function setSeasonSignupOpen(isOpen) {
+      seasonSwitch.classList.toggle("is-on", isOpen);
+      seasonSwitch.setAttribute("aria-checked", String(isOpen));
+      seasonFields.classList.toggle("is-collapsed", !isOpen);
+      seasonArea.classList.toggle("is-collapsed", !isOpen);
+    }
+
+    function syncSeasonSignupAvailability() {
+      var isBelowSeasonMinimum = selectedDates.length > 0 && selectedDates.length < 4;
+      seasonSwitch.setAttribute("aria-disabled", String(isBelowSeasonMinimum));
+      seasonSwitch.classList.toggle("is-disabled", isBelowSeasonMinimum);
+      seasonDisabledNote.hidden = !isBelowSeasonMinimum;
+      seasonDisabledNote.classList.remove("is-alert");
+
+      if (isBelowSeasonMinimum) {
+        setSeasonSignupOpen(false);
+      }
+    }
 
     if (seasonSwitch) {
       seasonSwitch.addEventListener("click", function () {
+        if (seasonSwitch.getAttribute("aria-disabled") === "true") {
+          seasonDisabledNote.classList.add("is-alert");
+          return;
+        }
         var nextIsOn = seasonSwitch.getAttribute("aria-checked") !== "true";
-        seasonSwitch.classList.toggle("is-on", nextIsOn);
-        seasonSwitch.setAttribute("aria-checked", String(nextIsOn));
-        seasonFields.classList.toggle("is-collapsed", !nextIsOn);
+        setSeasonSignupOpen(nextIsOn);
       });
     }
 
@@ -1545,6 +1610,10 @@
 
     seasonOpenDateButton.addEventListener("click", function () {
       setCalendarOpen(true, "season-open");
+    });
+
+    seasonCloseDateButton.addEventListener("click", function () {
+      setCalendarOpen(true, "season-close");
     });
 
     calendarPrev.addEventListener("click", function () {
@@ -1592,13 +1661,15 @@
     populateTimeSelects();
     initSelectPlaceholders();
     initTimePicker();
-    setGameType("season");
+    dateFieldLabel.textContent = "日期（多選）";
+    seasonArea.hidden = false;
     bindChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "deadlineType");
     bindChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "seasonDeadlineType");
     syncChoiceGroup(deadlineInput, deadlineButtons, customDeadlineCard, "unlimited", "deadlineType");
     syncChoiceGroup(seasonDeadlineInput, seasonDeadlineButtons, customSeasonDeadlineCard, "unlimited", "seasonDeadlineType");
     syncActivityDateText();
     syncSeasonOpenDateText();
+    syncSeasonCloseDateText();
   </script>
 </body>
 </html>
