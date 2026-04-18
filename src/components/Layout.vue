@@ -1,10 +1,14 @@
 <script setup>
+  import { ref } from 'vue'
+
+  const isMenuOpen = ref(false)
+
   function toggleMenu() {
-    document.querySelector('#menu-overlay').classList.toggle('is-open')
+    isMenuOpen.value = !isMenuOpen.value
   }
 
   function closeMenu() {
-    document.querySelector('#menu-overlay').classList.remove('is-open')
+    isMenuOpen.value = false
   }
 </script>
 
@@ -17,8 +21,14 @@
         <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
       </button>
 
-      <div class="menu-overlay h-[calc(100vh-48px)]" id="menu-overlay" aria-hidden="true" inert>
-        <button class="menu-backdrop" type="button" aria-label="關閉選單"></button>
+      <div
+        class="menu-overlay h-[calc(100vh-48px)]"
+        :class="{ 'is-open': isMenuOpen }"
+        id="menu-overlay"
+        :aria-hidden="String(!isMenuOpen)"
+        :inert="isMenuOpen ? null : ''"
+      >
+        <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
             <img class="drawer-avatar" src="/images/cookie.png" alt="" />
