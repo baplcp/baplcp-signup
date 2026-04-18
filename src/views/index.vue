@@ -3,11 +3,9 @@ import { onMounted } from 'vue'
 
 onMounted(() => {
   var APP_VERSION = 'v2026.04.15-03'
-  var TARGET_PAGE = new URL('./active-activity.html', window.location.href).href
   var scrollContainer = document.querySelector('.phone-scroll')
   var nav = document.querySelector('.nav')
   var appVersion = document.getElementById('app-version')
-  var heroCta = document.getElementById('hero-cta')
 
   if (appVersion) {
     appVersion.textContent = APP_VERSION
@@ -67,12 +65,6 @@ onMounted(() => {
       item.classList.toggle('is-open', !expanded)
     })
   })
-
-  if (heroCta) {
-    heroCta.addEventListener('click', function () {
-      window.location.href = TARGET_PAGE
-    })
-  }
 })
 </script>
 
@@ -87,14 +79,14 @@ onMounted(() => {
         <div class="hero-copy">
           <h1>球局報名區</h1>
           <p>最新臨打報名及季打請假</p>
-          <button class="cta" id="hero-cta" type="button">立即前往</button>
+          <RouterLink to="/active-activity" class="cta">立即前往</RouterLink>
         </div>
       </div>
     </section>
 
     <section class="content">
       <div class="top-cards">
-        <RouterLink to="/active-activity" class="info-card">
+        <RouterLink to="/group-list" class="info-card">
           <p class="info-card-title">球局列表</p>
           <p class="info-card-subtitle">各週人員名單</p>
           <img src="/images/card-party.png" alt="" />

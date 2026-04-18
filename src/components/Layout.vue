@@ -62,7 +62,7 @@
             </section>
           </div>
           <div class="drawer-footer">
-            <a class="drawer-create-button" href="./create-activity.html">建立新球局</a>
+            <RouterLink class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
           </div>
         </aside>
       </div>
