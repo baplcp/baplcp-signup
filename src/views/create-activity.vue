@@ -1,801 +1,503 @@
 <script setup>
 import { createClient } from '@supabase/supabase-js'
-import { onMounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+
+const SUPABASE_URL = 'https://rkmxoqopptyuqhbeswqo.supabase.co'
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrbXhvcW9wcHR5dXFoYmVzd3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODU1NzMsImV4cCI6MjA5MjA2MTU3M30.r_Mows0iPF_FULtFJGCQctxERy8E5JCIndyD-llDbIA'
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+const api = {
+  async createActivity(payload) {
+    const { data, error } = await client.from('activities').insert(payload).select().single()
+    if (error) throw error
+    return data
+  },
+}
+
+const form = reactive({
+  gameType: 'season',
+  activityTitle: '',
+  location: '',
+  activityStartTime: '',
+  activityEndTime: '',
+  seasonSingleFee: '',
+  pickupSingleFee: '',
+  acFee: '',
+  singleCapacity: '18',
+  seasonIncludeAc: true,
+  seasonCapacity: 'unlimited',
+  seasonOpenDate: '',
+  seasonOpenTime: '00:00',
+  seasonDeadlineType: 'unlimited',
+  seasonCloseDate: '',
+  seasonCloseTime: '',
+  pickupOpenDate: '前 7 天',
+  pickupOpenTime: '20:00',
+  deadlineType: 'unlimited',
+  pickupCloseDate: '前 1 天',
+  pickupCloseTime: '20:00',
+})
+
+const submitButton = ref(null)
+const createDialogButton = ref(null)
+const calendarDays = ref([])
+const selectedDates = ref([])
+const visibleMonth = ref(getFirstDayOfMonth(new Date()))
+const isCalendarOpen = ref(false)
+const activeCalendarTarget = ref('activity')
+const seasonEnabled = ref(true)
+const isSeasonDisabledNoteAlert = ref(false)
+const isSubmitting = ref(false)
+const errorFields = ref(new Set())
+
+const dialog = reactive({
+  isOpen: false,
+  title: '球局建立成功',
+  copy: '新球局已建立完成。',
+  buttonText: '確認',
+  returnAfterClose: false,
+})
+
+const timePicker = reactive({
+  isOpen: false,
+  activeField: '',
+  value: { hour: '06', minute: '00', period: 'AM' },
+})
+
+const timeWheelRefs = {
+  hour: ref(null),
+  minute: ref(null),
+  period: ref(null),
+}
+const scrollTimers = new Map()
+
+const capacityOptions = ['unlimited', ...Array.from({ length: 18 }, (_, index) => String(index + 1))]
+const dayBeforeOptions = Array.from({ length: 7 }, (_, index) => `前 ${index + 1} 天`)
+const timeOptions = Array.from({ length: 24 * 60 }, (_, minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`)
+const hours = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'))
+const minutes = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'))
+const periods = ['AM', 'PM']
+
+const activityDatesValue = computed(() => selectedDates.value.join(','))
+const selectedDateText = computed(() => (selectedDates.value.length ? selectedDates.value.map(formatDateLabel).join('、') : '請選擇日期'))
+const selectedDateCountText = computed(() => `共 ${selectedDates.value.length} 次`)
+const calendarTitle = computed(() => `${visibleMonth.value.getFullYear()} 年 ${visibleMonth.value.getMonth() + 1} 月`)
+const isSeasonAvailabilityDisabled = computed(() => selectedDates.value.length > 0 && selectedDates.value.length < 4)
+const seasonFee = computed(() => {
+  const base = Number(form.seasonSingleFee || 0)
+  const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
+  const count = selectedDates.value.length
+  return count > 0 ? String((base + ac) * count) : ''
+})
+const seasonFeeDigits = computed(() => Math.max(seasonFee.value.length, 1))
+const currentCalendarSelectedValues = computed(() => {
+  if (activeCalendarTarget.value === 'season-open') return form.seasonOpenDate ? [form.seasonOpenDate] : []
+  if (activeCalendarTarget.value === 'season-close') return form.seasonCloseDate ? [form.seasonCloseDate] : []
+  return selectedDates.value
+})
+
+watch(
+  selectedDates,
+  dates => {
+    clearError('activityDates')
+    isSeasonDisabledNoteAlert.value = false
+
+    if (dates.length > 0) {
+      const earliest = new Date(dates[0])
+      earliest.setDate(earliest.getDate() - 30)
+      form.seasonOpenDate = formatDate(earliest)
+      clearError('seasonOpenDate')
+    }
+
+    if (isSeasonAvailabilityDisabled.value) {
+      seasonEnabled.value = false
+    }
+  },
+  { deep: true }
+)
+
+watch(visibleMonth, () => {
+  calendarDays.value = buildCalendarDays(visibleMonth.value)
+})
 
 onMounted(() => {
-  const SUPABASE_URL = 'https://rkmxoqopptyuqhbeswqo.supabase.co'
-  const SUPABASE_ANON_KEY =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrbXhvcW9wcHR5dXFoYmVzd3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODU1NzMsImV4cCI6MjA5MjA2MTU3M30.r_Mows0iPF_FULtFJGCQctxERy8E5JCIndyD-llDbIA'
-  const _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-  const api = {
-    /* ── 活動 ───────────────────────────────────────────── */
-
-    async getActivities() {
-      // const { data, error } = await supabase.from('activities').select('*').order('date', { ascending: false });
-      // if (error) throw error;
-      // return data;
-    },
-
-    async getActivity(id) {
-      // const { data, error } = await supabase.from('activities').select('*').eq('id', id).single();
-      // if (error) throw error;
-      // return data;
-    },
-
-    async createActivity(payload) {
-      const { data, error } = await _client.from('activities').insert(payload).select().single()
-      if (error) throw error
-      return data
-    },
-
-    /* ── 報名 ───────────────────────────────────────────── */
-
-    async getSignups(activityId) {
-      // const { data, error } = await supabase.from('signups').select('*').eq('activity_id', activityId);
-      // if (error) throw error;
-      // return data;
-    },
-
-    async createSignup(payload) {
-      // const { data, error } = await supabase.from('signups').insert(payload).select().single();
-      // if (error) throw error;
-      // return data;
-    },
-
-    async deleteSignup(id) {
-      // const { error } = await supabase.from('signups').delete().eq('id', id);
-      // if (error) throw error;
-    },
-
-    /* ── 使用者 ─────────────────────────────────────────── */
-
-    async getCurrentUser() {
-      // const { data: { user }, error } = await supabase.auth.getUser();
-      // if (error) throw error;
-      // return user;
-    },
-  }
-  // ─── DOM refs ──────────────────────────────────────────────────────────────
-
-  const els = {
-    form: document.getElementById('create-activity-form'),
-    cancelButton: document.getElementById('cancel-button'),
-    seasonArea: document.getElementById('season-area'),
-    seasonSwitch: document.getElementById('season-switch'),
-    seasonFields: document.getElementById('season-fields'),
-    seasonDisabledNote: document.getElementById('season-disabled-note'),
-    dateButton: document.getElementById('date-picker-button'),
-    dateFieldLabel: document.getElementById('date-field-label'),
-    dateCountNote: document.getElementById('date-count-note'),
-    dateInput: document.getElementById('activity-dates'),
-    seasonOpenDateButton: document.getElementById('season-open-date-button'),
-    seasonOpenDateInput: document.getElementById('season-open-date'),
-    seasonCloseDateButton: document.getElementById('season-close-date-button'),
-    seasonCloseDateInput: document.getElementById('season-close-date'),
-    calendarOverlay: document.getElementById('calendar-overlay'),
-    calendarTitle: document.getElementById('calendar-title'),
-    calendarGrid: document.getElementById('calendar-grid'),
-    calendarPrev: document.getElementById('calendar-prev'),
-    calendarNext: document.getElementById('calendar-next'),
-    calendarCancel: document.getElementById('calendar-cancel'),
-    calendarDone: document.getElementById('calendar-done'),
-    deadlineInput: document.getElementById('deadline-type'),
-    deadlineButtons: document.querySelectorAll('[data-deadline-type]'),
-    customDeadlineCard: document.querySelector('[data-deadline-type="custom"]'),
-    seasonDeadlineInput: document.getElementById('season-deadline-type'),
-    seasonDeadlineButtons: document.querySelectorAll('[data-season-deadline-type]'),
-    customSeasonDeadlineCard: document.querySelector('[data-season-deadline-type="custom"]'),
-    seasonCapacity: document.getElementById('season-capacity'),
-    seasonSingleFee: document.getElementById('season-single-fee'),
-    acFee: document.getElementById('ac-fee'),
-    seasonFee: document.getElementById('season-fee'),
-    seasonIncludeAc: document.getElementById('season-include-ac'),
-    timeOverlay: document.getElementById('time-overlay'),
-    timeClose: document.getElementById('time-close'),
-    timeCancel: document.getElementById('time-cancel'),
-    timeDone: document.getElementById('time-done'),
-    timeHourWheel: document.getElementById('time-hour-wheel'),
-    timeMinuteWheel: document.getElementById('time-minute-wheel'),
-    timePeriodWheel: document.getElementById('time-period-wheel'),
-    createDialogOverlay: document.getElementById('create-dialog-overlay'),
-    createDialogTitle: document.getElementById('create-dialog-title'),
-    createDialogCopy: document.getElementById('create-dialog-copy'),
-    createDialogButton: document.getElementById('create-dialog-button'),
-  }
-
-  let shouldReturnAfterDialog = false
-
-  // ─── Utilities ─────────────────────────────────────────────────────────────
-
-  function formatDate(date) {
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${date.getFullYear()}-${month}-${day}`
-  }
-
-  function formatDateLabel(value) {
-    const parts = value.split('-')
-    return `${Number(parts[1])}/${Number(parts[2])}`
-  }
-
-  function to24Hour(hour, minute, period) {
-    let h = Number(hour)
-    if (period === 'AM') h = h === 12 ? 0 : h
-    else h = h === 12 ? 12 : h + 12
-    return `${String(h).padStart(2, '0')}:${minute}`
-  }
-
-  function from24Hour(value) {
-    if (!value) return { hour: '06', minute: '00', period: 'AM' }
-    const parts = value.split(':')
-    const h = Number(parts[0])
-    return {
-      hour: String(h % 12 || 12).padStart(2, '0'),
-      minute: parts[1] || '00',
-      period: h >= 12 ? 'PM' : 'AM',
-    }
-  }
-
-  function syncSelectPlaceholder(select) {
-    select.classList.toggle('is-placeholder', select.value === '')
-  }
-
-  function returnToPreviousPage() {
-    if (window.history.length > 1) window.history.back()
-    else window.location.href = './group-list.html'
-  }
-
-  function goToCreatedActivityList() {
-    window.location.href = './group-list.html'
-  }
-
-  function setCreateDialogOpen(isOpen, options = {}) {
-    if (!els.createDialogOverlay) return
-
-    if (isOpen) {
-      if (options.title) els.createDialogTitle.textContent = options.title
-      if (options.copy) els.createDialogCopy.textContent = options.copy
-      if (options.buttonText) els.createDialogButton.textContent = options.buttonText
-      shouldReturnAfterDialog = Boolean(options.returnAfterClose)
-    }
-
-    els.createDialogOverlay.classList.toggle('is-open', isOpen)
-    els.createDialogOverlay.setAttribute('aria-hidden', String(!isOpen))
-    els.createDialogOverlay.inert = !isOpen
-
-    const focusTarget = isOpen ? els.createDialogButton : document.querySelector('.submit-button')
-    focusTarget?.focus({ preventScroll: true })
-  }
-
-  function closeCreateDialog() {
-    const shouldReturn = shouldReturnAfterDialog
-    shouldReturnAfterDialog = false
-    setCreateDialogOpen(false)
-    if (shouldReturn) goToCreatedActivityList()
-  }
-
-  // ─── TimePicker ────────────────────────────────────────────────────────────
-
-  const TimePicker = {
-    activeSelect: null,
-    value: { hour: '06', minute: '00', period: 'AM' },
-    scrollTimers: new WeakMap(),
-
-    buildWheel(wheel, values, key) {
-      wheel.innerHTML = ''
-      values.forEach(v => {
-        const btn = document.createElement('button')
-        btn.className = 'time-wheel-option'
-        btn.type = 'button'
-        btn.dataset.value = v
-        btn.textContent = v
-        btn.addEventListener('click', () => {
-          this.value[key] = v
-          this.syncSelection()
-          this.scrollToValue(wheel, v, 'smooth')
-        })
-        wheel.appendChild(btn)
-      })
-
-      wheel.addEventListener(
-        'scroll',
-        () => {
-          clearTimeout(this.scrollTimers.get(wheel))
-          this.scrollTimers.set(
-            wheel,
-            setTimeout(() => {
-              const opt = this.getCenteredOption(wheel)
-              if (!opt) return
-              this.value[key] = opt.dataset.value
-              this.syncSelection()
-            }, 90)
-          )
-        },
-        { passive: true }
-      )
-    },
-
-    getCenteredOption(wheel) {
-      const options = Array.from(wheel.querySelectorAll('.time-wheel-option'))
-      const center = wheel.getBoundingClientRect().top + wheel.clientHeight / 2
-      return options.reduce((closest, opt) => {
-        const dist = Math.abs(opt.getBoundingClientRect().top + opt.offsetHeight / 2 - center)
-        return !closest || dist < closest.dist ? { opt, dist } : closest
-      }, null).opt
-    },
-
-    scrollToValue(wheel, value, behavior = 'auto') {
-      const opt = wheel.querySelector(`[data-value="${value}"]`)
-      if (!opt) return
-      wheel.scrollTo({
-        top: opt.offsetTop - (wheel.clientHeight - opt.offsetHeight) / 2,
-        behavior,
-      })
-    },
-
-    syncSelection() {
-      ;[
-        { wheel: els.timeHourWheel, key: 'hour' },
-        { wheel: els.timeMinuteWheel, key: 'minute' },
-        { wheel: els.timePeriodWheel, key: 'period' },
-      ].forEach(({ wheel, key }) => {
-        wheel.querySelectorAll('.time-wheel-option').forEach(opt => {
-          opt.classList.toggle('is-selected', opt.dataset.value === this.value[key])
-        })
-      })
-    },
-
-    step(key, direction) {
-      const wheels = {
-        hour: els.timeHourWheel,
-        minute: els.timeMinuteWheel,
-        period: els.timePeriodWheel,
-      }
-      const wheel = wheels[key]
-      if (!wheel) return
-      const options = Array.from(wheel.querySelectorAll('.time-wheel-option'))
-      let idx = options.findIndex(o => o.dataset.value === this.value[key]) + Number(direction)
-      if (idx < 0) idx = options.length - 1
-      if (idx >= options.length) idx = 0
-      this.value[key] = options[idx].dataset.value
-      this.syncSelection()
-      this.scrollToValue(wheel, this.value[key], 'smooth')
-    },
-
-    setOpen(isOpen, select) {
-      els.timeOverlay.classList.toggle('is-open', isOpen)
-      els.timeOverlay.setAttribute('aria-hidden', String(!isOpen))
-      if (!isOpen) {
-        this.activeSelect = null
-        return
-      }
-
-      this.activeSelect = select
-      this.value = from24Hour(select.value)
-      this.syncSelection()
-      requestAnimationFrame(() => {
-        this.scrollToValue(els.timeHourWheel, this.value.hour)
-        this.scrollToValue(els.timeMinuteWheel, this.value.minute)
-        this.scrollToValue(els.timePeriodWheel, this.value.period)
-      })
-    },
-
-    commit() {
-      if (!this.activeSelect) return
-      const value = to24Hour(this.value.hour, this.value.minute, this.value.period)
-      this.activeSelect.value = value
-      syncSelectPlaceholder(this.activeSelect)
-      this.activeSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      this.setOpen(false)
-    },
-
-    init() {
-      const hours = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
-      const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
-      this.buildWheel(els.timeHourWheel, hours, 'hour')
-      this.buildWheel(els.timeMinuteWheel, minutes, 'minute')
-      this.buildWheel(els.timePeriodWheel, ['AM', 'PM'], 'period')
-
-      document.querySelectorAll('[data-time-wheel-step]').forEach(btn => {
-        btn.addEventListener('click', () => this.step(btn.dataset.timeWheelStep, btn.dataset.direction))
-      })
-
-      document.querySelectorAll('[data-time-select]').forEach(select => {
-        const wrapper = select.closest('.select-wrap')
-        if (wrapper) wrapper.addEventListener('click', () => this.setOpen(true, select))
-      })
-
-      els.timeClose.addEventListener('click', () => this.commit())
-      els.timeDone.addEventListener('click', () => this.commit())
-      els.timeCancel.addEventListener('click', () => this.setOpen(false))
-      els.timeOverlay.addEventListener('click', e => {
-        if (e.target === els.timeOverlay) this.setOpen(false)
-      })
-    },
-  }
-
-  // ─── CalendarPicker ────────────────────────────────────────────────────────
-
-  const CalendarPicker = {
-    activeTarget: 'activity',
-    selectedDates: [],
-    seasonOpenDate: '',
-    seasonCloseDate: '',
-    visibleMonth: (() => {
-      const d = new Date()
-      d.setDate(1)
-      return d
-    })(),
-
-    getSelectedValues() {
-      if (this.activeTarget === 'season-open') return this.seasonOpenDate ? [this.seasonOpenDate] : []
-      if (this.activeTarget === 'season-close') return this.seasonCloseDate ? [this.seasonCloseDate] : []
-      return this.selectedDates
-    },
-
-    syncDateText() {
-      els.dateInput.value = this.selectedDates.join(',')
-      els.dateButton.classList.toggle('has-value', this.selectedDates.length > 0)
-      if (this.selectedDates.length > 0) els.dateButton.classList.remove('is-error')
-      els.dateButton.textContent = this.selectedDates.length ? this.selectedDates.map(formatDateLabel).join('、') : '請選擇日期'
-      els.dateCountNote.hidden = this.selectedDates.length === 0
-      els.dateCountNote.textContent = `共 ${this.selectedDates.length} 次`
-      if (this.selectedDates.length > 0) {
-        const earliest = new Date(this.selectedDates[0])
-        earliest.setDate(earliest.getDate() - 30)
-        this.seasonOpenDate = formatDate(earliest)
-        this.syncSingleDateText('season-open')
-      }
-
-      Season.updateFee()
-      Season.syncAvailability()
-    },
-
-    syncSingleDateText(target) {
-      const isOpen = target === 'season-open'
-      const value = isOpen ? this.seasonOpenDate : this.seasonCloseDate
-      const button = isOpen ? els.seasonOpenDateButton : els.seasonCloseDateButton
-      const input = isOpen ? els.seasonOpenDateInput : els.seasonCloseDateInput
-      input.value = value
-      button.classList.toggle('has-value', Boolean(value))
-      if (value) button.classList.remove('is-error')
-      button.textContent = value ? formatDateLabel(value) : '請選擇日期'
-    },
-
-    render() {
-      const year = this.visibleMonth.getFullYear()
-      const month = this.visibleMonth.getMonth()
-      const startOffset = new Date(year, month, 1).getDay()
-      const gridStart = new Date(year, month, 1 - startOffset)
-      const selected = this.getSelectedValues()
-
-      els.calendarTitle.textContent = `${year} 年 ${month + 1} 月`
-      els.calendarGrid.innerHTML = ''
-
-      for (let i = 0; i < 42; i++) {
-        const date = new Date(gridStart)
-        date.setDate(gridStart.getDate() + i)
-        const value = formatDate(date)
-
-        const btn = document.createElement('button')
-        btn.className = 'calendar-day'
-        btn.type = 'button'
-        btn.textContent = String(date.getDate())
-        btn.dataset.date = value
-        if (date.getMonth() !== month) btn.classList.add('is-muted')
-        if (selected.indexOf(value) !== -1) btn.classList.add('is-selected')
-
-        btn.addEventListener('click', () => {
-          if (this.activeTarget === 'season-open') {
-            this.seasonOpenDate = value
-            this.syncSingleDateText('season-open')
-          } else if (this.activeTarget === 'season-close') {
-            this.seasonCloseDate = value
-            this.syncSingleDateText('season-close')
-          } else {
-            const idx = this.selectedDates.indexOf(value)
-            if (idx === -1) this.selectedDates.push(value)
-            else this.selectedDates.splice(idx, 1)
-            this.selectedDates.sort()
-            this.syncDateText()
-          }
-          this.render()
-        })
-
-        els.calendarGrid.appendChild(btn)
-      }
-    },
-
-    setOpen(isOpen, target) {
-      if (target) this.activeTarget = target
-      els.calendarOverlay.classList.toggle('is-open', isOpen)
-      els.calendarOverlay.setAttribute('aria-hidden', String(!isOpen))
-      if (isOpen) this.render()
-    },
-
-    init() {
-      els.dateButton.addEventListener('click', () => this.setOpen(true, 'activity'))
-      els.seasonOpenDateButton.addEventListener('click', () => this.setOpen(true, 'season-open'))
-      els.seasonCloseDateButton.addEventListener('click', () => this.setOpen(true, 'season-close'))
-      els.calendarPrev.addEventListener('click', () => {
-        this.visibleMonth.setMonth(this.visibleMonth.getMonth() - 1)
-        this.render()
-      })
-      els.calendarNext.addEventListener('click', () => {
-        this.visibleMonth.setMonth(this.visibleMonth.getMonth() + 1)
-        this.render()
-      })
-      els.calendarCancel.addEventListener('click', () => this.setOpen(false))
-      els.calendarDone.addEventListener('click', () => this.setOpen(false))
-      els.calendarOverlay.addEventListener('click', e => {
-        if (e.target === els.calendarOverlay) this.setOpen(false)
-      })
-    },
-  }
-
-  // ─── Choice Groups ─────────────────────────────────────────────────────────
-
-  function syncChoiceGroup(input, buttons, customCard, type, dataKey) {
-    input.value = type
-    buttons.forEach(btn => {
-      const isActive = btn.dataset[dataKey] === type
-      btn.classList.toggle('is-active', isActive)
-      btn.classList.toggle('is-condensed', type === 'unlimited')
-      btn.setAttribute('aria-pressed', String(isActive))
-    })
-    if (customCard) customCard.classList.toggle('is-condensed', type === 'unlimited')
-  }
-
-  function bindChoiceGroup(input, buttons, customCard, dataKey) {
-    buttons.forEach(btn => {
-      btn.addEventListener('click', e => {
-        if (e.target.tagName === 'SELECT') return
-        syncChoiceGroup(input, buttons, customCard, btn.dataset[dataKey], dataKey)
-      })
-      btn.addEventListener('keydown', e => {
-        if (e.key !== 'Enter' && e.key !== ' ') return
-        e.preventDefault()
-        syncChoiceGroup(input, buttons, customCard, btn.dataset[dataKey], dataKey)
-      })
-    })
-  }
-
-  // ─── Season ────────────────────────────────────────────────────────────────
-
-  const Season = {
-    updateFee() {
-      const base = Number(els.seasonSingleFee.value || 0)
-      const ac = els.seasonIncludeAc.checked ? Number(els.acFee.value || 0) : 0
-      const count = CalendarPicker.selectedDates.length
-      els.seasonFee.value = count > 0 ? String((base + ac) * count) : ''
-      els.seasonFee.style.setProperty('--season-fee-digits', String(Math.max(els.seasonFee.value.length, 1)))
-    },
-
-    setOpen(isOpen) {
-      els.seasonSwitch.classList.toggle('is-on', isOpen)
-      els.seasonSwitch.setAttribute('aria-checked', String(isOpen))
-      els.seasonFields.classList.toggle('is-collapsed', !isOpen)
-      els.seasonArea.classList.toggle('is-collapsed', !isOpen)
-    },
-
-    syncAvailability() {
-      const below = CalendarPicker.selectedDates.length > 0 && CalendarPicker.selectedDates.length < 4
-      els.seasonSwitch.setAttribute('aria-disabled', String(below))
-      els.seasonSwitch.classList.toggle('is-disabled', below)
-      els.seasonDisabledNote.hidden = !below
-      els.seasonDisabledNote.classList.remove('is-alert')
-      if (below) this.setOpen(false)
-    },
-
-    init() {
-      els.seasonSwitch.addEventListener('click', () => {
-        if (els.seasonSwitch.getAttribute('aria-disabled') === 'true') {
-          els.seasonDisabledNote.classList.add('is-alert')
-          return
-        }
-        this.setOpen(els.seasonSwitch.getAttribute('aria-checked') !== 'true')
-      })
-      ;[els.seasonSingleFee, els.acFee, els.seasonIncludeAc].forEach(field => {
-        field.addEventListener('input', () => this.updateFee())
-        field.addEventListener('change', () => this.updateFee())
-      })
-    },
-  }
-
-  // ─── Selects ───────────────────────────────────────────────────────────────
-
-  function populateCapacityOptions() {
-    const unlimited = document.createElement('option')
-    unlimited.value = 'unlimited'
-    unlimited.textContent = '不限'
-    els.seasonCapacity.appendChild(unlimited)
-
-    for (let n = 1; n <= 18; n++) {
-      const opt = document.createElement('option')
-      opt.value = opt.textContent = String(n)
-      els.seasonCapacity.appendChild(opt)
-    }
-  }
-
-  function populateTimeSelects() {
-    document.querySelectorAll('[data-time-select]').forEach(select => {
-      const placeholder = select.dataset.timePlaceholder || '請選擇時間'
-      select.innerHTML = ''
-
-      const ph = document.createElement('option')
-      ph.value = ''
-      ph.textContent = placeholder
-      select.appendChild(ph)
-
-      for (let m = 0; m < 24 * 60; m++) {
-        const opt = document.createElement('option')
-        opt.value = opt.textContent = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-        select.appendChild(opt)
-      }
-    })
-  }
-
-  function initSelectPlaceholders() {
-    document.querySelectorAll('select').forEach(select => {
-      syncSelectPlaceholder(select)
-      select.addEventListener('change', () => syncSelectPlaceholder(select))
-    })
-  }
-
-  // ─── Validation ────────────────────────────────────────────────────────────
-
-  function validate() {
-    const titleEl = document.getElementById('activity-title')
-    const locationEl = document.getElementById('location')
-    const startTimeEl = document.getElementById('activity-start-time')
-    const endTimeEl = document.getElementById('activity-end-time')
-    const seasonSingleFeeEl = document.getElementById('season-single-fee')
-    const pickupSingleFeeEl = document.getElementById('pickup-single-fee')
-    const singleCapacityEl = document.getElementById('single-capacity')
-    const seasonOpenTimeEl = document.getElementById('season-open-time')
-    const seasonCloseTimeEl = document.getElementById('season-close-time')
-    const pickupOpenDateEl = document.getElementById('pickup-open-date')
-    const pickupOpenTimeEl = document.getElementById('pickup-open-time')
-    const pickupCloseDateEl = document.getElementById('pickup-close-date')
-    const pickupCloseTimeEl = document.getElementById('pickup-close-time')
-
-    // 費用欄位的 border 在 .money-input 父層，需對父層套用 is-error
-    const errEl = el => el.closest('.money-input') || el
-
-    const fields = [
-      { target: titleEl, ok: titleEl.value.trim() !== '' },
-      { target: locationEl, ok: locationEl.value.trim() !== '' },
-      { target: els.dateButton, ok: CalendarPicker.selectedDates.length > 0 },
-      { target: startTimeEl, ok: startTimeEl.value !== '' },
-      { target: endTimeEl, ok: endTimeEl.value !== '' },
-      { target: errEl(seasonSingleFeeEl), ok: seasonSingleFeeEl.value.trim() !== '' },
-      { target: errEl(pickupSingleFeeEl), ok: pickupSingleFeeEl.value.trim() !== '' },
-      { target: errEl(els.acFee), ok: els.acFee.value.trim() !== '' },
-      { target: singleCapacityEl, ok: singleCapacityEl.value.trim() !== '' },
-      { target: pickupOpenDateEl, ok: pickupOpenDateEl.value !== '' },
-      { target: pickupOpenTimeEl, ok: pickupOpenTimeEl.value !== '' },
-    ]
-
-    if (els.seasonSwitch.getAttribute('aria-checked') === 'true') {
-      fields.push(
-        { target: els.seasonCapacity, ok: els.seasonCapacity.value !== '' },
-        { target: els.seasonOpenDateButton, ok: CalendarPicker.seasonOpenDate !== '' },
-        { target: seasonOpenTimeEl, ok: seasonOpenTimeEl.value !== '' }
-      )
-      if (els.seasonDeadlineInput.value === 'custom') {
-        fields.push({ target: els.seasonCloseDateButton, ok: CalendarPicker.seasonCloseDate !== '' }, { target: seasonCloseTimeEl, ok: seasonCloseTimeEl.value !== '' })
-      }
-    }
-
-    if (els.deadlineInput.value === 'custom') {
-      fields.push({ target: pickupCloseDateEl, ok: pickupCloseDateEl.value !== '' }, { target: pickupCloseTimeEl, ok: pickupCloseTimeEl.value !== '' })
-    }
-
-    let firstError = null
-    fields.forEach(({ target, ok }) => {
-      target.classList.toggle('is-error', !ok)
-      if (!ok && !firstError) firstError = target
-    })
-
-    if (firstError) {
-      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setCreateDialogOpen(true, {
-        title: '報名尚未完成',
-        copy: '有部分必填欄位尚未填寫，請確認標示的欄位後再送出。',
-        buttonText: '確認',
-        returnAfterClose: false,
-      })
-    }
-    return !firstError
-  }
-
-  // ─── Form Submit ───────────────────────────────────────────────────────────
-
-  function buildActivityPayload() {
-    const fd = new FormData(els.form)
-    const seasonEnabled = els.seasonSwitch.getAttribute('aria-checked') === 'true'
-    const datesRaw = fd.get('activityDates') || ''
-    const dates = datesRaw ? datesRaw.split(',') : []
-
-    function parseDaysBefore(raw) {
-      const m = (raw || '').match(/(\d+)/)
-      return m ? parseInt(m[1], 10) : null
-    }
-
-    return {
-      game_type: fd.get('gameType') || 'season',
-      title: fd.get('activityTitle') || '',
-      location: fd.get('location') || '',
-      dates,
-      start_time: fd.get('activityStartTime') || null,
-      end_time: fd.get('activityEndTime') || null,
-      season_fee_per_session: Number(fd.get('seasonSingleFee')) || 0,
-      pickup_fee_per_session: Number(fd.get('pickupSingleFee')) || 0,
-      ac_fee: Number(fd.get('acFee')) || 0,
-      single_capacity: Number(fd.get('singleCapacity')) || 18,
-      season_enabled: seasonEnabled,
-      season_include_ac: fd.get('seasonIncludeAc') === 'on',
-      season_total_fee: Number(fd.get('seasonFee')) || 0,
-      season_capacity: fd.get('seasonCapacity') || null,
-      season_open_date: fd.get('seasonOpenDate') || null,
-      season_open_time: fd.get('seasonOpenTime') || null,
-      season_deadline_type: fd.get('seasonDeadlineType') || 'unlimited',
-      season_close_date: fd.get('seasonCloseDate') || null,
-      season_close_time: fd.get('seasonCloseTime') || null,
-      pickup_open_days_before: parseDaysBefore(fd.get('pickupOpenDate')),
-      pickup_open_time: fd.get('pickupOpenTime') || null,
-      pickup_deadline_type: fd.get('deadlineType') || 'unlimited',
-      pickup_close_days_before: parseDaysBefore(fd.get('pickupCloseDate')),
-      pickup_close_time: fd.get('pickupCloseTime') || null,
-    }
-  }
-
-  async function handleCreateActivity(event) {
-    event.preventDefault()
-    if (!validate()) return
-
-    const submitButton = document.querySelector('.submit-button')
-    if (submitButton) {
-      submitButton.disabled = true
-      submitButton.textContent = '建立中…'
-    }
-
-    try {
-      await api.createActivity(buildActivityPayload())
-      setCreateDialogOpen(true, {
-        title: '球局建立成功',
-        copy: '新球局已建立完成。',
-        buttonText: '確認',
-        returnAfterClose: true,
-      })
-    } catch (err) {
-      setCreateDialogOpen(true, {
-        title: '建立失敗',
-        copy: err.message || '請稍後再試',
-        buttonText: '確認',
-        returnAfterClose: false,
-      })
-    } finally {
-      if (submitButton) {
-        submitButton.disabled = false
-        submitButton.textContent = '建立球局'
-      }
-    }
-  }
-
-  // ─── Init ──────────────────────────────────────────────────────────────────
-
-  function init() {
-    populateCapacityOptions()
-    populateTimeSelects()
-    initSelectPlaceholders()
-    TimePicker.init()
-    CalendarPicker.init()
-    Season.init()
-
-    bindChoiceGroup(els.deadlineInput, els.deadlineButtons, els.customDeadlineCard, 'deadlineType')
-    bindChoiceGroup(els.seasonDeadlineInput, els.seasonDeadlineButtons, els.customSeasonDeadlineCard, 'seasonDeadlineType')
-    syncChoiceGroup(els.deadlineInput, els.deadlineButtons, els.customDeadlineCard, 'unlimited', 'deadlineType')
-    syncChoiceGroup(els.seasonDeadlineInput, els.seasonDeadlineButtons, els.customSeasonDeadlineCard, 'unlimited', 'seasonDeadlineType')
-
-    els.dateFieldLabel.textContent = '日期（多選）'
-    els.seasonArea.hidden = false
-    els.seasonCapacity.value = 'unlimited'
-    syncSelectPlaceholder(els.seasonCapacity)
-
-    const pickupOpenDateEl = document.getElementById('pickup-open-date')
-    const pickupOpenTimeEl = document.getElementById('pickup-open-time')
-    const seasonOpenTimeEl = document.getElementById('season-open-time')
-    const pickupCloseDateEl = document.getElementById('pickup-close-date')
-    const pickupCloseTimeEl = document.getElementById('pickup-close-time')
-    pickupOpenDateEl.value = '前 7 天'
-    pickupOpenTimeEl.value = '20:00'
-    pickupCloseDateEl.value = '前 1 天'
-    pickupCloseTimeEl.value = '20:00'
-    seasonOpenTimeEl.value = '00:00'
-    syncSelectPlaceholder(pickupOpenDateEl)
-    syncSelectPlaceholder(pickupOpenTimeEl)
-    syncSelectPlaceholder(pickupCloseDateEl)
-    syncSelectPlaceholder(pickupCloseTimeEl)
-    syncSelectPlaceholder(seasonOpenTimeEl)
-
-    CalendarPicker.syncDateText()
-    CalendarPicker.syncSingleDateText('season-open')
-    CalendarPicker.syncSingleDateText('season-close')
-
-    els.form.querySelectorAll('input, select').forEach(el => {
-      const target = el.closest('.money-input') || el
-      el.addEventListener('input', () => target.classList.remove('is-error'))
-      el.addEventListener('change', () => target.classList.remove('is-error'))
-    })
-
-    els.cancelButton?.addEventListener('click', () => {
-      returnToPreviousPage()
-    })
-
-    els.createDialogButton?.addEventListener('click', closeCreateDialog)
-    els.createDialogOverlay?.addEventListener('click', event => {
-      if (event.target === els.createDialogOverlay) closeCreateDialog()
-    })
-
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && els.createDialogOverlay?.classList.contains('is-open')) {
-        closeCreateDialog()
-      }
-    })
-
-    els.form.addEventListener('submit', handleCreateActivity)
-  }
-
-  init()
+  calendarDays.value = buildCalendarDays(visibleMonth.value)
 })
+
+onBeforeUnmount(() => {
+  scrollTimers.forEach(timer => clearTimeout(timer))
+})
+
+function getFirstDayOfMonth(date) {
+  const month = new Date(date)
+  month.setDate(1)
+  return month
+}
+
+function formatDate(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
+function formatDateLabel(value) {
+  if (!value) return ''
+  const parts = value.split('-')
+  return `${Number(parts[1])}/${Number(parts[2])}`
+}
+
+function to24Hour(hour, minute, period) {
+  let h = Number(hour)
+  if (period === 'AM') h = h === 12 ? 0 : h
+  else h = h === 12 ? 12 : h + 12
+  return `${String(h).padStart(2, '0')}:${minute}`
+}
+
+function from24Hour(value) {
+  if (!value) return { hour: '06', minute: '00', period: 'AM' }
+  const parts = value.split(':')
+  const h = Number(parts[0])
+  return {
+    hour: String(h % 12 || 12).padStart(2, '0'),
+    minute: parts[1] || '00',
+    period: h >= 12 ? 'PM' : 'AM',
+  }
+}
+
+function parseDaysBefore(raw) {
+  const match = (raw || '').match(/(\d+)/)
+  return match ? parseInt(match[1], 10) : null
+}
+
+function returnToPreviousPage() {
+  if (window.history.length > 1) window.history.back()
+  else window.location.href = './group-list.html'
+}
+
+function goToCreatedActivityList() {
+  window.location.href = './group-list.html'
+}
+
+function openCreateDialog(options = {}) {
+  dialog.title = options.title || dialog.title
+  dialog.copy = options.copy || dialog.copy
+  dialog.buttonText = options.buttonText || dialog.buttonText
+  dialog.returnAfterClose = Boolean(options.returnAfterClose)
+  dialog.isOpen = true
+  nextTick(() => createDialogButton.value?.focus({ preventScroll: true }))
+}
+
+function closeCreateDialog() {
+  const shouldReturn = dialog.returnAfterClose
+  dialog.isOpen = false
+  dialog.returnAfterClose = false
+  nextTick(() => submitButton.value?.focus({ preventScroll: true }))
+  if (shouldReturn) goToCreatedActivityList()
+}
+
+function buildCalendarDays(monthDate) {
+  const year = monthDate.getFullYear()
+  const month = monthDate.getMonth()
+  const startOffset = new Date(year, month, 1).getDay()
+  const gridStart = new Date(year, month, 1 - startOffset)
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart)
+    date.setDate(gridStart.getDate() + index)
+    return {
+      value: formatDate(date),
+      label: String(date.getDate()),
+      isMuted: date.getMonth() !== month,
+    }
+  })
+}
+
+function openCalendar(target) {
+  activeCalendarTarget.value = target
+  isCalendarOpen.value = true
+}
+
+function closeCalendar() {
+  isCalendarOpen.value = false
+}
+
+function changeCalendarMonth(offset) {
+  const nextMonth = new Date(visibleMonth.value)
+  nextMonth.setMonth(nextMonth.getMonth() + offset)
+  visibleMonth.value = nextMonth
+}
+
+function selectCalendarDate(value) {
+  if (activeCalendarTarget.value === 'season-open') {
+    form.seasonOpenDate = value
+    clearError('seasonOpenDate')
+    return
+  }
+
+  if (activeCalendarTarget.value === 'season-close') {
+    form.seasonCloseDate = value
+    clearError('seasonCloseDate')
+    return
+  }
+
+  const nextDates = [...selectedDates.value]
+  const index = nextDates.indexOf(value)
+  if (index === -1) nextDates.push(value)
+  else nextDates.splice(index, 1)
+  selectedDates.value = nextDates.sort()
+}
+
+function toggleSeason() {
+  if (isSeasonAvailabilityDisabled.value) {
+    isSeasonDisabledNoteAlert.value = true
+    return
+  }
+  seasonEnabled.value = !seasonEnabled.value
+}
+
+function setChoice(field, value) {
+  form[field] = value
+  clearError(field)
+}
+
+function onChoiceKeydown(event, field, value) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  setChoice(field, value)
+}
+
+function isChoiceActive(field, value) {
+  return form[field] === value
+}
+
+function isChoiceCondensed(field) {
+  return form[field] === 'unlimited'
+}
+
+function openTimePicker(field) {
+  timePicker.activeField = field
+  timePicker.value = from24Hour(form[field])
+  timePicker.isOpen = true
+  nextTick(() => {
+    scrollToTimeValue('hour', timePicker.value.hour)
+    scrollToTimeValue('minute', timePicker.value.minute)
+    scrollToTimeValue('period', timePicker.value.period)
+  })
+}
+
+function closeTimePicker() {
+  timePicker.isOpen = false
+  timePicker.activeField = ''
+}
+
+function commitTimePicker() {
+  if (!timePicker.activeField) return
+  form[timePicker.activeField] = to24Hour(timePicker.value.hour, timePicker.value.minute, timePicker.value.period)
+  clearError(timePicker.activeField)
+  closeTimePicker()
+}
+
+function stepTime(key, direction, values) {
+  let index = values.indexOf(timePicker.value[key]) + Number(direction)
+  if (index < 0) index = values.length - 1
+  if (index >= values.length) index = 0
+  timePicker.value[key] = values[index]
+  scrollToTimeValue(key, timePicker.value[key], 'smooth')
+}
+
+function scrollToTimeValue(key, value, behavior = 'auto') {
+  const wheel = timeWheelRefs[key].value
+  if (!wheel) return
+
+  const options = Array.from(wheel.children)
+  const option = options.find(child => child.dataset.value === value)
+  if (!option) return
+
+  wheel.scrollTo({
+    top: option.offsetTop - (wheel.clientHeight - option.offsetHeight) / 2,
+    behavior,
+  })
+}
+
+function onTimeWheelScroll(event, key, values) {
+  const wheel = event.currentTarget
+  clearTimeout(scrollTimers.get(wheel))
+
+  const timer = setTimeout(() => {
+    const options = Array.from(wheel.children)
+    const center = wheel.getBoundingClientRect().top + wheel.clientHeight / 2
+    const closest = options.reduce((current, option, index) => {
+      const distance = Math.abs(option.getBoundingClientRect().top + option.offsetHeight / 2 - center)
+      return !current || distance < current.distance ? { index, distance } : current
+    }, null)
+
+    if (closest) timePicker.value[key] = values[closest.index]
+    scrollTimers.delete(wheel)
+  }, 90)
+
+  scrollTimers.set(wheel, timer)
+}
+
+function isError(field) {
+  return errorFields.value.has(field)
+}
+
+function clearError(field) {
+  if (!field || !errorFields.value.has(field)) return
+  const nextErrors = new Set(errorFields.value)
+  nextErrors.delete(field)
+  errorFields.value = nextErrors
+}
+
+function validate() {
+  const checks = [
+    { field: 'activityTitle', ok: form.activityTitle.trim() !== '' },
+    { field: 'location', ok: form.location.trim() !== '' },
+    { field: 'activityDates', ok: selectedDates.value.length > 0 },
+    { field: 'activityStartTime', ok: form.activityStartTime !== '' },
+    { field: 'activityEndTime', ok: form.activityEndTime !== '' },
+    { field: 'seasonSingleFee', ok: String(form.seasonSingleFee).trim() !== '' },
+    { field: 'pickupSingleFee', ok: String(form.pickupSingleFee).trim() !== '' },
+    { field: 'acFee', ok: String(form.acFee).trim() !== '' },
+    { field: 'singleCapacity', ok: String(form.singleCapacity).trim() !== '' },
+    { field: 'pickupOpenDate', ok: form.pickupOpenDate !== '' },
+    { field: 'pickupOpenTime', ok: form.pickupOpenTime !== '' },
+  ]
+
+  if (seasonEnabled.value) {
+    checks.push(
+      { field: 'seasonCapacity', ok: form.seasonCapacity !== '' },
+      { field: 'seasonOpenDate', ok: form.seasonOpenDate !== '' },
+      { field: 'seasonOpenTime', ok: form.seasonOpenTime !== '' }
+    )
+
+    if (form.seasonDeadlineType === 'custom') {
+      checks.push({ field: 'seasonCloseDate', ok: form.seasonCloseDate !== '' }, { field: 'seasonCloseTime', ok: form.seasonCloseTime !== '' })
+    }
+  }
+
+  if (form.deadlineType === 'custom') {
+    checks.push({ field: 'pickupCloseDate', ok: form.pickupCloseDate !== '' }, { field: 'pickupCloseTime', ok: form.pickupCloseTime !== '' })
+  }
+
+  errorFields.value = new Set(checks.filter(({ ok }) => !ok).map(({ field }) => field))
+
+  if (errorFields.value.size > 0) {
+    openCreateDialog({
+      title: '報名尚未完成',
+      copy: '有部分必填欄位尚未填寫，請確認標示的欄位後再送出。',
+      buttonText: '確認',
+      returnAfterClose: false,
+    })
+    return false
+  }
+
+  return true
+}
+
+function buildActivityPayload() {
+  return {
+    game_type: form.gameType || 'season',
+    title: form.activityTitle || '',
+    location: form.location || '',
+    dates: selectedDates.value,
+    start_time: form.activityStartTime || null,
+    end_time: form.activityEndTime || null,
+    season_fee_per_session: Number(form.seasonSingleFee) || 0,
+    pickup_fee_per_session: Number(form.pickupSingleFee) || 0,
+    ac_fee: Number(form.acFee) || 0,
+    single_capacity: Number(form.singleCapacity) || 18,
+    season_enabled: seasonEnabled.value,
+    season_include_ac: form.seasonIncludeAc,
+    season_total_fee: Number(seasonFee.value) || 0,
+    season_capacity: form.seasonCapacity || null,
+    season_open_date: form.seasonOpenDate || null,
+    season_open_time: form.seasonOpenTime || null,
+    season_deadline_type: form.seasonDeadlineType || 'unlimited',
+    season_close_date: form.seasonCloseDate || null,
+    season_close_time: form.seasonCloseTime || null,
+    pickup_open_days_before: parseDaysBefore(form.pickupOpenDate),
+    pickup_open_time: form.pickupOpenTime || null,
+    pickup_deadline_type: form.deadlineType || 'unlimited',
+    pickup_close_days_before: parseDaysBefore(form.pickupCloseDate),
+    pickup_close_time: form.pickupCloseTime || null,
+  }
+}
+
+async function handleCreateActivity() {
+  if (!validate()) return
+
+  isSubmitting.value = true
+  try {
+    await api.createActivity(buildActivityPayload())
+    openCreateDialog({
+      title: '球局建立成功',
+      copy: '新球局已建立完成。',
+      buttonText: '確認',
+      returnAfterClose: true,
+    })
+  } catch (err) {
+    openCreateDialog({
+      title: '建立失敗',
+      copy: err.message || '請稍後再試',
+      buttonText: '確認',
+      returnAfterClose: false,
+    })
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <main class="app-shell">
     <div class="app-scroll">
       <header class="sheet-topbar">
-        <button class="cancel-link" id="cancel-button" type="button">取消</button>
+        <button class="cancel-link" type="button" @click="returnToPreviousPage">取消</button>
       </header>
 
       <section class="page">
         <h1 class="page-title">建立新球局</h1>
 
-        <form class="form-block" id="create-activity-form">
+        <form id="create-activity-form" class="form-block" @submit.prevent="handleCreateActivity">
           <section class="section" aria-labelledby="details-title">
-            <h2 class="section-title" id="details-title">詳細資訊</h2>
-            <input id="game-type" name="gameType" type="hidden" value="season" />
+            <h2 id="details-title" class="section-title">詳細資訊</h2>
+            <input v-model="form.gameType" name="gameType" type="hidden" />
 
             <label class="field">
               <span class="field-label">標題</span>
-              <input id="activity-title" name="activityTitle" type="text" autocomplete="off" />
+              <input v-model="form.activityTitle" name="activityTitle" type="text" autocomplete="off" :class="{ 'is-error': isError('activityTitle') }" @input="clearError('activityTitle')" />
             </label>
 
             <label class="field">
               <span class="field-label">地點</span>
-              <input id="location" name="location" type="text" autocomplete="off" />
+              <input v-model="form.location" name="location" type="text" autocomplete="off" :class="{ 'is-error': isError('location') }" @input="clearError('location')" />
             </label>
 
             <div class="field">
-              <p class="field-label" id="date-field-label">日期（多選）</p>
-              <button class="control-button" id="date-picker-button" type="button">請選擇日期</button>
-              <input id="activity-dates" name="activityDates" type="hidden" />
-              <p class="date-count-note helper-note" id="date-count-note" hidden>共 0 次</p>
+              <p class="field-label">日期（多選）</p>
+              <button id="date-picker-button" class="control-button" :class="{ 'has-value': selectedDates.length > 0, 'is-error': isError('activityDates') }" type="button" @click="openCalendar('activity')">
+                {{ selectedDateText }}
+              </button>
+              <input :value="activityDatesValue" name="activityDates" type="hidden" />
+              <p v-if="selectedDates.length > 0" class="date-count-note helper-note">{{ selectedDateCountText }}</p>
             </div>
 
             <div class="field">
               <p class="field-label">時間</p>
               <div class="time-row">
-                <span class="select-wrap">
-                  <select id="activity-start-time" name="activityStartTime" class="is-placeholder" data-time-select data-time-placeholder="開始時間">
+                <span class="select-wrap" @click="openTimePicker('activityStartTime')">
+                  <select v-model="form.activityStartTime" name="activityStartTime" data-time-select :class="{ 'is-placeholder': form.activityStartTime === '', 'is-error': isError('activityStartTime') }" @change="clearError('activityStartTime')">
                     <option value="">開始時間</option>
+                    <option v-for="time in timeOptions" :key="`activity-start-${time}`" :value="time">{{ time }}</option>
                   </select>
                 </span>
                 <span class="inline-text">至</span>
-                <span class="select-wrap">
-                  <select id="activity-end-time" name="activityEndTime" class="is-placeholder" data-time-select data-time-placeholder="結束時間">
+                <span class="select-wrap" @click="openTimePicker('activityEndTime')">
+                  <select v-model="form.activityEndTime" name="activityEndTime" data-time-select :class="{ 'is-placeholder': form.activityEndTime === '', 'is-error': isError('activityEndTime') }" @change="clearError('activityEndTime')">
                     <option value="">結束時間</option>
+                    <option v-for="time in timeOptions" :key="`activity-end-${time}`" :value="time">{{ time }}</option>
                   </select>
                 </span>
               </div>
@@ -806,23 +508,23 @@ onMounted(() => {
               <div class="fee-grid">
                 <label class="fee-mini-field">
                   <span class="mini-label">季打</span>
-                  <span class="money-input">
+                  <span class="money-input" :class="{ 'is-error': isError('seasonSingleFee') }">
                     <span>$</span>
-                    <input id="season-single-fee" name="seasonSingleFee" type="number" min="0" inputmode="numeric" />
+                    <input id="season-single-fee" v-model="form.seasonSingleFee" name="seasonSingleFee" type="number" min="0" inputmode="numeric" @input="clearError('seasonSingleFee')" />
                   </span>
                 </label>
                 <label class="fee-mini-field">
                   <span class="mini-label">臨打</span>
-                  <span class="money-input">
+                  <span class="money-input" :class="{ 'is-error': isError('pickupSingleFee') }">
                     <span>$</span>
-                    <input id="pickup-single-fee" name="pickupSingleFee" type="number" min="0" inputmode="numeric" />
+                    <input id="pickup-single-fee" v-model="form.pickupSingleFee" name="pickupSingleFee" type="number" min="0" inputmode="numeric" @input="clearError('pickupSingleFee')" />
                   </span>
                 </label>
                 <label class="fee-mini-field">
                   <span class="mini-label">冷氣</span>
-                  <span class="money-input">
+                  <span class="money-input" :class="{ 'is-error': isError('acFee') }">
                     <span>$</span>
-                    <input id="ac-fee" name="acFee" type="number" min="0" inputmode="numeric" />
+                    <input id="ac-fee" v-model="form.acFee" name="acFee" type="number" min="0" inputmode="numeric" @input="clearError('acFee')" />
                   </span>
                 </label>
               </div>
@@ -830,27 +532,27 @@ onMounted(() => {
 
             <label class="field">
               <span class="field-label">單次人數</span>
-              <input id="single-capacity" name="singleCapacity" type="number" min="1" value="18" inputmode="numeric" />
+              <input v-model="form.singleCapacity" name="singleCapacity" type="number" min="1" inputmode="numeric" :class="{ 'is-error': isError('singleCapacity') }" @input="clearError('singleCapacity')" />
             </label>
           </section>
 
           <div class="section-divider" aria-hidden="true"></div>
 
-          <section class="section season-area" id="season-area" aria-labelledby="season-title">
+          <section class="section season-area" :class="{ 'is-collapsed': !seasonEnabled }" aria-labelledby="season-title">
             <div class="section-header">
               <div>
-                <h2 class="section-title" id="season-title">季打報名開放</h2>
-                <p class="section-note" id="season-disabled-note" hidden>球局次數需 4 次以上</p>
+                <h2 id="season-title" class="section-title">季打報名開放</h2>
+                <p v-if="isSeasonAvailabilityDisabled" class="section-note" :class="{ 'is-alert': isSeasonDisabledNoteAlert }">球局次數需 4 次以上</p>
               </div>
-              <button class="switch is-on" id="season-switch" type="button" role="switch" aria-checked="true" aria-label="季打報名開放"></button>
+              <button class="switch" :class="{ 'is-on': seasonEnabled, 'is-disabled': isSeasonAvailabilityDisabled }" type="button" role="switch" :aria-checked="String(seasonEnabled)" :aria-disabled="String(isSeasonAvailabilityDisabled)" aria-label="季打報名開放" @click="toggleSeason"></button>
             </div>
 
-            <div class="field-list season-fields" id="season-fields">
+            <div class="field-list season-fields" :class="{ 'is-collapsed': !seasonEnabled }">
               <div class="field">
                 <p class="field-label"><strong>季打費用</strong></p>
                 <div class="fee-card">
                   <label class="fee-check-row">
-                    <input id="season-include-ac" name="seasonIncludeAc" type="checkbox" checked hidden />
+                    <input id="season-include-ac" v-model="form.seasonIncludeAc" name="seasonIncludeAc" type="checkbox" hidden />
                     <span class="fee-check" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none">
                         <path d="M5 12.5L9.5 17L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
@@ -860,7 +562,7 @@ onMounted(() => {
                   </label>
                   <label class="fee-input-row">
                     <span>$</span>
-                    <input id="season-fee" name="seasonFee" type="text" inputmode="numeric" aria-label="季打費用" placeholder=" " readonly />
+                    <input id="season-fee" :value="seasonFee" name="seasonFee" type="text" inputmode="numeric" aria-label="季打費用" placeholder=" " readonly :style="{ '--season-fee-digits': seasonFeeDigits }" />
                     <span class="fee-unit">/人</span>
                   </label>
                 </div>
@@ -870,8 +572,9 @@ onMounted(() => {
               <label class="field">
                 <span class="field-label">季打名額</span>
                 <span class="select-wrap">
-                  <select id="season-capacity" name="seasonCapacity" class="is-placeholder">
+                  <select id="season-capacity" v-model="form.seasonCapacity" name="seasonCapacity" :class="{ 'is-placeholder': form.seasonCapacity === '', 'is-error': isError('seasonCapacity') }" @change="clearError('seasonCapacity')">
                     <option value="">請選擇人數</option>
+                    <option v-for="option in capacityOptions" :key="`season-capacity-${option}`" :value="option">{{ option === 'unlimited' ? '不限' : option }}</option>
                   </select>
                 </span>
               </label>
@@ -879,12 +582,15 @@ onMounted(() => {
               <div class="field">
                 <p class="field-label">季打開放報名時間</p>
                 <div class="time-row">
-                  <button class="control-button" id="season-open-date-button" type="button">請選擇日期</button>
-                  <input id="season-open-date" name="seasonOpenDate" type="hidden" />
+                  <button id="season-open-date-button" class="control-button" :class="{ 'has-value': form.seasonOpenDate, 'is-error': isError('seasonOpenDate') }" type="button" @click="openCalendar('season-open')">
+                    {{ form.seasonOpenDate ? formatDateLabel(form.seasonOpenDate) : '請選擇日期' }}
+                  </button>
+                  <input v-model="form.seasonOpenDate" name="seasonOpenDate" type="hidden" />
                   <span class="inline-text">的</span>
-                  <span class="select-wrap">
-                    <select id="season-open-time" name="seasonOpenTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
+                  <span class="select-wrap" @click="openTimePicker('seasonOpenTime')">
+                    <select id="season-open-time" v-model="form.seasonOpenTime" name="seasonOpenTime" data-time-select :class="{ 'is-placeholder': form.seasonOpenTime === '', 'is-error': isError('seasonOpenTime') }" @change="clearError('seasonOpenTime')">
                       <option value="">幾點</option>
+                      <option v-for="time in timeOptions" :key="`season-open-${time}`" :value="time">{{ time }}</option>
                     </select>
                   </span>
                 </div>
@@ -893,31 +599,34 @@ onMounted(() => {
               <div class="field">
                 <p class="field-label"><strong>季打截止時間</strong></p>
                 <div class="choice-stack">
-                  <div class="choice-card is-active is-condensed" role="button" tabindex="0" data-season-deadline-type="unlimited" aria-pressed="true">
+                  <div class="choice-card" :class="{ 'is-active': isChoiceActive('seasonDeadlineType', 'unlimited'), 'is-condensed': isChoiceCondensed('seasonDeadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('seasonDeadlineType', 'unlimited'))" @click="setChoice('seasonDeadlineType', 'unlimited')" @keydown="onChoiceKeydown($event, 'seasonDeadlineType', 'unlimited')">
                     <span class="radio-mark" aria-hidden="true"></span>
                     <span class="choice-summary">
                       <span class="choice-title">不限時間</span>
                       <span class="choice-copy">管理員可手動關閉</span>
                     </span>
                   </div>
-                  <div class="choice-card is-condensed" role="button" tabindex="0" data-season-deadline-type="custom" aria-pressed="false">
+                  <div class="choice-card" :class="{ 'is-active': isChoiceActive('seasonDeadlineType', 'custom'), 'is-condensed': isChoiceCondensed('seasonDeadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('seasonDeadlineType', 'custom'))" @click="setChoice('seasonDeadlineType', 'custom')" @keydown="onChoiceKeydown($event, 'seasonDeadlineType', 'custom')">
                     <span class="radio-mark" aria-hidden="true"></span>
                     <span class="choice-content">
                       <span class="choice-title">設定截止時間</span>
                       <span class="choice-rule is-date-time">
-                        <button class="control-button" id="season-close-date-button" type="button">請選擇日期</button>
-                        <input id="season-close-date" name="seasonCloseDate" type="hidden" />
+                        <button id="season-close-date-button" class="control-button" :class="{ 'has-value': form.seasonCloseDate, 'is-error': isError('seasonCloseDate') }" type="button" @click.stop="setChoice('seasonDeadlineType', 'custom'); openCalendar('season-close')">
+                          {{ form.seasonCloseDate ? formatDateLabel(form.seasonCloseDate) : '請選擇日期' }}
+                        </button>
+                        <input v-model="form.seasonCloseDate" name="seasonCloseDate" type="hidden" />
                         <span>的</span>
-                        <span class="select-wrap">
-                          <select id="season-close-time" name="seasonCloseTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
+                        <span class="select-wrap" @click.stop="setChoice('seasonDeadlineType', 'custom'); openTimePicker('seasonCloseTime')">
+                          <select id="season-close-time" v-model="form.seasonCloseTime" name="seasonCloseTime" data-time-select :class="{ 'is-placeholder': form.seasonCloseTime === '', 'is-error': isError('seasonCloseTime') }" @change="clearError('seasonCloseTime')">
                             <option value="">幾點</option>
+                            <option v-for="time in timeOptions" :key="`season-close-${time}`" :value="time">{{ time }}</option>
                           </select>
                         </span>
                       </span>
                     </span>
                   </div>
                 </div>
-                <input id="season-deadline-type" name="seasonDeadlineType" type="hidden" value="unlimited" />
+                <input v-model="form.seasonDeadlineType" name="seasonDeadlineType" type="hidden" />
               </div>
             </div>
           </section>
@@ -925,27 +634,22 @@ onMounted(() => {
           <div class="section-divider" aria-hidden="true"></div>
 
           <section class="section" aria-labelledby="pickup-title">
-            <h2 class="section-title" id="pickup-title">臨打報名</h2>
+            <h2 id="pickup-title" class="section-title">臨打報名</h2>
             <div class="field">
               <p class="field-label">開放時間</p>
               <div class="time-row is-rule">
                 <span class="inline-text">每次活動</span>
                 <span class="select-wrap">
-                  <select id="pickup-open-date" name="pickupOpenDate" class="is-placeholder">
+                  <select v-model="form.pickupOpenDate" name="pickupOpenDate" :class="{ 'is-placeholder': form.pickupOpenDate === '', 'is-error': isError('pickupOpenDate') }" @change="clearError('pickupOpenDate')">
                     <option value="">幾天前</option>
-                    <option>前 1 天</option>
-                    <option>前 2 天</option>
-                    <option>前 3 天</option>
-                    <option>前 4 天</option>
-                    <option>前 5 天</option>
-                    <option>前 6 天</option>
-                    <option>前 7 天</option>
+                    <option v-for="option in dayBeforeOptions" :key="`pickup-open-date-${option}`" :value="option">{{ option }}</option>
                   </select>
                 </span>
                 <span class="inline-text">的</span>
-                <span class="select-wrap">
-                  <select id="pickup-open-time" name="pickupOpenTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
+                <span class="select-wrap" @click="openTimePicker('pickupOpenTime')">
+                  <select v-model="form.pickupOpenTime" name="pickupOpenTime" data-time-select :class="{ 'is-placeholder': form.pickupOpenTime === '', 'is-error': isError('pickupOpenTime') }" @change="clearError('pickupOpenTime')">
                     <option value="">幾點</option>
+                    <option v-for="time in timeOptions" :key="`pickup-open-${time}`" :value="time">{{ time }}</option>
                   </select>
                 </span>
               </div>
@@ -954,42 +658,37 @@ onMounted(() => {
             <div class="field">
               <p class="field-label"><strong>截止時間</strong></p>
               <div class="choice-stack">
-                <div class="choice-card is-active is-condensed" role="button" tabindex="0" data-deadline-type="unlimited" aria-pressed="true">
+                <div class="choice-card" :class="{ 'is-active': isChoiceActive('deadlineType', 'unlimited'), 'is-condensed': isChoiceCondensed('deadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('deadlineType', 'unlimited'))" @click="setChoice('deadlineType', 'unlimited')" @keydown="onChoiceKeydown($event, 'deadlineType', 'unlimited')">
                   <span class="radio-mark" aria-hidden="true"></span>
                   <span class="choice-summary">
                     <span class="choice-title">不限時間</span>
                     <span class="choice-copy">活動開始前皆可報名</span>
                   </span>
                 </div>
-                <div class="choice-card is-condensed" role="button" tabindex="0" data-deadline-type="custom" aria-pressed="false">
+                <div class="choice-card" :class="{ 'is-active': isChoiceActive('deadlineType', 'custom'), 'is-condensed': isChoiceCondensed('deadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('deadlineType', 'custom'))" @click="setChoice('deadlineType', 'custom')" @keydown="onChoiceKeydown($event, 'deadlineType', 'custom')">
                   <span class="radio-mark" aria-hidden="true"></span>
                   <span class="choice-content">
                     <span class="choice-title">設定截止時間</span>
                     <span class="choice-rule">
                       <span>每次活動</span>
-                      <span class="select-wrap">
-                        <select id="pickup-close-date" name="pickupCloseDate" class="is-placeholder">
+                      <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom')">
+                        <select v-model="form.pickupCloseDate" name="pickupCloseDate" :class="{ 'is-placeholder': form.pickupCloseDate === '', 'is-error': isError('pickupCloseDate') }" @change="clearError('pickupCloseDate')">
                           <option value="">幾天前</option>
-                          <option>前 1 天</option>
-                          <option>前 2 天</option>
-                          <option>前 3 天</option>
-                          <option>前 4 天</option>
-                          <option>前 5 天</option>
-                          <option>前 6 天</option>
-                          <option>前 7 天</option>
+                          <option v-for="option in dayBeforeOptions" :key="`pickup-close-date-${option}`" :value="option">{{ option }}</option>
                         </select>
                       </span>
                       <span>的</span>
-                      <span class="select-wrap">
-                        <select id="pickup-close-time" name="pickupCloseTime" class="is-placeholder" data-time-select data-time-placeholder="幾點">
+                      <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom'); openTimePicker('pickupCloseTime')">
+                        <select v-model="form.pickupCloseTime" name="pickupCloseTime" data-time-select :class="{ 'is-placeholder': form.pickupCloseTime === '', 'is-error': isError('pickupCloseTime') }" @change="clearError('pickupCloseTime')">
                           <option value="">幾點</option>
+                          <option v-for="time in timeOptions" :key="`pickup-close-${time}`" :value="time">{{ time }}</option>
                         </select>
                       </span>
                     </span>
                   </span>
                 </div>
               </div>
-              <input id="deadline-type" name="deadlineType" type="hidden" value="unlimited" />
+              <input v-model="form.deadlineType" name="deadlineType" type="hidden" />
             </div>
           </section>
         </form>
@@ -997,74 +696,84 @@ onMounted(() => {
     </div>
 
     <div class="cta-fade">
-      <button class="submit-button" type="submit" form="create-activity-form">建立球局</button>
+      <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? '建立中...' : '建立球局' }}</button>
     </div>
 
-    <div class="calendar-overlay" id="calendar-overlay" aria-hidden="true">
+    <div class="calendar-overlay" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
       <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
         <div class="calendar-header">
-          <button class="calendar-nav" id="calendar-prev" type="button" aria-label="上一個月">
+          <button class="calendar-nav" type="button" aria-label="上一個月" @click="changeCalendarMonth(-1)">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
               <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <h2 class="calendar-title" id="calendar-title"></h2>
-          <button class="calendar-nav" id="calendar-next" type="button" aria-label="下一個月">
+          <h2 id="calendar-title" class="calendar-title">{{ calendarTitle }}</h2>
+          <button class="calendar-nav" type="button" aria-label="下一個月" @click="changeCalendarMonth(1)">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
               <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
         </div>
         <div class="calendar-weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
-        <div class="calendar-grid" id="calendar-grid"></div>
+        <div class="calendar-grid">
+          <button v-for="day in calendarDays" :key="day.value" class="calendar-day" :class="{ 'is-muted': day.isMuted, 'is-selected': currentCalendarSelectedValues.includes(day.value) }" type="button" @click="selectCalendarDate(day.value)">
+            {{ day.label }}
+          </button>
+        </div>
         <div class="calendar-actions">
-          <button class="calendar-action is-muted" id="calendar-cancel" type="button">取消</button>
-          <button class="calendar-action is-primary" id="calendar-done" type="button">完成</button>
+          <button class="calendar-action is-muted" type="button" @click="closeCalendar">取消</button>
+          <button class="calendar-action is-primary" type="button" @click="closeCalendar">完成</button>
         </div>
       </section>
     </div>
 
-    <div class="time-overlay" id="time-overlay" aria-hidden="true">
+    <div class="time-overlay" :class="{ 'is-open': timePicker.isOpen }" :aria-hidden="String(!timePicker.isOpen)" @click.self="closeTimePicker">
       <section class="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-title">
         <div class="time-header">
-          <h2 class="time-title" id="time-title">選擇時間</h2>
-          <button class="time-close" id="time-close" type="button">完成</button>
+          <h2 id="time-title" class="time-title">選擇時間</h2>
+          <button class="time-close" type="button" @click="commitTimePicker">完成</button>
         </div>
         <div class="time-wheels" aria-label="時間選擇器">
           <div class="time-wheel-column">
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="hour" data-direction="-1" aria-label="小時減少">
+            <button class="time-wheel-arrow" type="button" aria-label="小時減少" @click="stepTime('hour', -1, hours)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <div class="time-wheel" id="time-hour-wheel" aria-label="小時"></div>
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="hour" data-direction="1" aria-label="小時增加">
+            <div :ref="el => (timeWheelRefs.hour.value = el)" class="time-wheel" aria-label="小時" @scroll.passive="onTimeWheelScroll($event, 'hour', hours)">
+              <button v-for="hour in hours" :key="`hour-${hour}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.hour === hour }" type="button" :data-value="hour" @click="timePicker.value.hour = hour; scrollToTimeValue('hour', hour, 'smooth')">{{ hour }}</button>
+            </div>
+            <button class="time-wheel-arrow" type="button" aria-label="小時增加" @click="stepTime('hour', 1, hours)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </div>
           <div class="time-wheel-column">
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="minute" data-direction="-1" aria-label="分鐘減少">
+            <button class="time-wheel-arrow" type="button" aria-label="分鐘減少" @click="stepTime('minute', -1, minutes)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <div class="time-wheel" id="time-minute-wheel" aria-label="分鐘"></div>
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="minute" data-direction="1" aria-label="分鐘增加">
+            <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', minutes)">
+              <button v-for="minute in minutes" :key="`minute-${minute}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.minute === minute }" type="button" :data-value="minute" @click="timePicker.value.minute = minute; scrollToTimeValue('minute', minute, 'smooth')">{{ minute }}</button>
+            </div>
+            <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, minutes)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
           </div>
           <div class="time-wheel-column">
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="period" data-direction="-1" aria-label="上午下午切換">
+            <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', -1, periods)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <div class="time-wheel" id="time-period-wheel" aria-label="上午或下午"></div>
-            <button class="time-wheel-arrow" type="button" data-time-wheel-step="period" data-direction="1" aria-label="上午下午切換">
+            <div :ref="el => (timeWheelRefs.period.value = el)" class="time-wheel" aria-label="上午或下午" @scroll.passive="onTimeWheelScroll($event, 'period', periods)">
+              <button v-for="period in periods" :key="`period-${period}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.period === period }" type="button" :data-value="period" @click="timePicker.value.period = period; scrollToTimeValue('period', period, 'smooth')">{{ period }}</button>
+            </div>
+            <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', 1, periods)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
@@ -1072,17 +781,17 @@ onMounted(() => {
           </div>
         </div>
         <div class="time-actions">
-          <button class="time-action is-muted" id="time-cancel" type="button">取消</button>
-          <button class="time-action is-primary" id="time-done" type="button">完成</button>
+          <button class="time-action is-muted" type="button" @click="closeTimePicker">取消</button>
+          <button class="time-action is-primary" type="button" @click="commitTimePicker">完成</button>
         </div>
       </section>
     </div>
 
-    <div class="success-dialog-overlay" id="create-dialog-overlay" aria-hidden="true" inert>
+    <div class="success-dialog-overlay" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
       <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
-        <h2 class="success-dialog-title" id="create-dialog-title">球局建立成功</h2>
-        <p class="success-dialog-copy" id="create-dialog-copy">新球局已建立完成。</p>
-        <button class="success-dialog-button" id="create-dialog-button" type="button">確認</button>
+        <h2 id="create-dialog-title" class="success-dialog-title">{{ dialog.title }}</h2>
+        <p class="success-dialog-copy">{{ dialog.copy }}</p>
+        <button ref="createDialogButton" class="success-dialog-button" type="button" @click="closeCreateDialog">{{ dialog.buttonText }}</button>
       </section>
     </div>
   </main>
