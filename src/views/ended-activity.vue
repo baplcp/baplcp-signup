@@ -4,13 +4,13 @@ import { computed, ref } from 'vue'
 const APP_VERSION = 'v2026.04.15-ended-01'
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const MEMBERS = [
-  { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
-  { name: '施政維', badge: '施', image: '/images/profile02.png' },
-  { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
-  { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
-  { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
-  { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
-  { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
+  { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
+  { name: '施政維', badge: '施', image: import.meta.env.BASE_URL + '/images/profile02.png' },
+  { name: '莊宸豪', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile03.png' },
+  { name: '蔚', badge: '蔚', image: import.meta.env.BASE_URL + '/images/profile04.png' },
+  { name: '乃瑄', badge: '乃', image: import.meta.env.BASE_URL + '/images/profile05.png' },
+  { name: '莊辰豪', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile06.png' },
+  { name: '黃品諭', badge: '黃', image: import.meta.env.BASE_URL + '/images/profile07.png', status: '候補' },
   { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
 ]
 
