@@ -7,10 +7,10 @@
  * 2. 將下方 SUPABASE_URL 和 SUPABASE_ANON_KEY 換成專案的實際值
  */
 
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+const SUPABASE_URL = 'https://rkmxoqopptyuqhbeswqo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrbXhvcW9wcHR5dXFoYmVzd3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODU1NzMsImV4cCI6MjA5MjA2MTU3M30.r_Mows0iPF_FULtFJGCQctxERy8E5JCIndyD-llDbIA';
 
-// const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const api = {
 
@@ -29,9 +29,9 @@ const api = {
   },
 
   async createActivity(payload) {
-    // const { data, error } = await supabase.from('activities').insert(payload).select().single();
-    // if (error) throw error;
-    // return data;
+    const { data, error } = await _client.from('activities').insert(payload).select().single();
+    if (error) throw error;
+    return data;
   },
 
   /* ── 報名 ───────────────────────────────────────────── */
