@@ -17,6 +17,8 @@
   <meta name="twitter:title" content="BAPLCP 排球報名系統">
   <meta name="twitter:description" content="本週臨打報名、季打請假與活動資訊。">
   <meta name="twitter:image" content="https://baplcp.github.io/baplcp-signup/images/link%20preview.png">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#eef1ff">
   <link rel="icon" type="image/png" sizes="1024x1024" href="./images/favicon.png?v=20260415">
   <link rel="shortcut icon" href="./images/favicon.png?v=20260415">
   <link rel="apple-touch-icon" href="./images/favicon.png?v=20260415">
@@ -55,10 +57,17 @@
       touch-action: manipulation;
     }
 
+    html {
+      min-height: 100%;
+      background: #eef1ff;
+      color-scheme: light;
+    }
+
     body {
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: #eef1ff;
       background:
         radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%),
         linear-gradient(180deg, #f5f7ff 0%, #eef1ff 100%);
