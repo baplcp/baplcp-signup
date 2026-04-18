@@ -1,7 +1,13 @@
 <script setup>
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
+  import { useRoute } from 'vue-router'
+
+  const route = useRoute()
 
   const isMenuOpen = ref(false)
+
+  const hiddenHeaderPath = ['group-list', 'create-activity']
+  const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
 
   function toggleMenu() {
     isMenuOpen.value = !isMenuOpen.value
@@ -14,7 +20,7 @@
 
 <template>
   <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
-    <header class="nav z-999">
+    <header v-if="isShowHeader" class="nav">
       <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <div class="nav-title">華江高中臨打報名</div>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
@@ -72,7 +78,7 @@
             </section>
           </div>
           <div class="drawer-footer">
-            <RouterLink class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
+            <RouterLink @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
           </div>
         </aside>
       </div>
@@ -88,7 +94,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 10;
+  z-index: 999;
   display: flex;
   align-items: center;
   gap: 12px;
