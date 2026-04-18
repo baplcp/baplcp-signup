@@ -9,7 +9,7 @@
 </script>
 
 <template>
-  <div class="max-w-97.5 h-[calc(100vh-48px)] overflow-hidden rounded-3xl">
+  <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
     <header class="nav">
       <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
       <div class="nav-title">華江高中臨打報名</div>
