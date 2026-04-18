@@ -390,19 +390,6 @@ onMounted(() => {
   <main class="app-shell">
     <div class="app-scroll">
       <div class="scroll-content">
-        <header class="nav">
-          <button class="back-btn" id="back-button" type="button" aria-label="返回上一頁">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
-          <div class="nav-title">最新球局報名</div>
-          <button class="menu-btn" type="button" aria-label="開啟選單">
-            <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
-          </button>
-        </header>
-
         <section class="hero">
           <img class="hero-cat" src="./images/cat-hide.png" alt="" aria-hidden="true" />
           <div class="hero-layout">
