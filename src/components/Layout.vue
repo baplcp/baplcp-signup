@@ -11,7 +11,7 @@
 <template>
   <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
     <header class="nav">
-      <a class="brand" href="./index.html" aria-label="回到首頁 BAPLCP"></a>
+      <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <div class="nav-title">華江高中臨打報名</div>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
