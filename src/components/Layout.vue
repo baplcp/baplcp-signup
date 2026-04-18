@@ -83,14 +83,6 @@
 </template>
 
 <style>
-:root {
-  --page-bg: #eef1ff;
-  --surface: #ffffff;
-  --text: #101840;
-  --nav-height: 60px;
-  --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
-}
-
 .nav {
   position: sticky;
   top: 0;

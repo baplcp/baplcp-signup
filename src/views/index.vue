@@ -182,22 +182,6 @@ onMounted(() => {
 
 <style scoped>
 .phone-scroll {
-  --muted: #65708b;
-  --line: #f2f4fa;
-  --hero-start: #5768ff;
-  --hero-end: #8591f7;
-  --card-start: #5768ff;
-  --card-end: #8894ff;
-  --accent-start: #ffe3c3;
-  --accent-mid: #ffd2a0;
-  --accent-end: #f2b47a;
-  --accent-text: #774d38;
-  --shadow-hero: 2px 2px 28px rgba(90, 90, 226, 0.3);
-  --shadow-cat: -8px 9px 22.9px rgba(16, 24, 67, 0.45);
-  --shadow-card-icon: 3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45);
-  --shadow-utility: 3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6);
-  --shadow-utility-warm: 3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5);
-  --shadow-button: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;

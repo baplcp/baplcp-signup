@@ -65,7 +65,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="app-shell">
+  <main class="app-shell group-list-page">
     <div class="app-scroll">
       <header class="topbar">
         <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
@@ -200,19 +200,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-:root {
-  --primary: #5768ff;
-  --text: #101840;
-  --muted: #696f8c;
-  --muted-soft: #8f95b2;
-  --line: #f4f6fa;
-  --surface: #ffffff;
-  --soft: #eff1fe;
-  --success-bg: #eefafa;
-  --success: #1bc4be;
-  --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
-}
-
 * {
   box-sizing: border-box;
   touch-action: manipulation;

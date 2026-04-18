@@ -103,7 +103,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="app-shell">
+  <main class="app-shell ended-activity-page">
     <div class="app-scroll">
       <div class="scroll-content">
         <header class="nav">
@@ -164,20 +164,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-:root {
-  --bg: #eef1ff;
-  --surface: #ffffff;
-  --hero-start: #5768ff;
-  --hero-end: #7685ff;
-  --text: #18204f;
-  --muted: #8a91b0;
-  --accent: #ffd49d;
-  --accent-text: #7f5a3e;
-  --line: #edf0fb;
-  --shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
-  --card-shadow: 2px 2px 28px rgba(143, 149, 178, 0.24);
-}
-
 * {
   box-sizing: border-box;
   touch-action: manipulation;

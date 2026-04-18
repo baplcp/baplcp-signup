@@ -520,7 +520,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="app-shell">
+  <main class="app-shell create-activity-page">
     <div class="app-scroll">
       <header class="sheet-topbar">
         <button class="cancel-link" id="cancel-button" type="button">取消</button>
@@ -848,20 +848,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-    :root {
-      --primary: #6574ff;
-      --secondary: #1BC4BF;
-      --text: #101840;
-      --muted: #8F95B2;
-      --muted-soft: #8F95B2;
-      --line: #d8dae5;
-      --line-soft: #e6e8f0;
-      --section: #f6f6f6;
-      --surface: #ffffff;
-      --selected: #eef1ff;
-      --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
-    }
-
     * {
       box-sizing: border-box;
       touch-action: manipulation;
