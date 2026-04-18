@@ -1,393 +1,168 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 
-onMounted(() => {
-  var APP_VERSION = 'v2026.04.18-active-drawer-04'
-  var MEMBERS = [
-    { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
-    { name: '施政維', badge: '施', image: '/images/profile02.png' },
-    { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
-    { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
-    { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
-    { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
-    { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
-    { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
-  ]
+const APP_VERSION = 'v2026.04.18-active-drawer-04'
+const MEMBER_LIST = [
+  { name: '莊則元', badge: '莊', image: '/images/profile01.png' },
+  { name: '施政維', badge: '施', image: '/images/profile02.png' },
+  { name: '莊宸豪', badge: '莊', image: '/images/profile03.png' },
+  { name: '蔚', badge: '蔚', image: '/images/profile04.png' },
+  { name: '乃瑄', badge: '乃', image: '/images/profile05.png' },
+  { name: '莊辰豪', badge: '莊', image: '/images/profile06.png' },
+  { name: '黃品諭', badge: '黃', image: '/images/profile07.png', status: '候補' },
+  { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
+]
+const SEGMENT_TABS = ['全部', '臨打', '季打']
+const GENDER_OPTIONS = [
+  { value: '', label: '性別', disabled: true },
+  { value: 'female', label: '女' },
+  { value: 'male', label: '男' },
+  { value: 'other', label: '其他' },
+]
 
-  var appScroll = document.querySelector('.app-scroll')
-  var nav = document.querySelector('.nav')
-  var backButton = document.getElementById('back-button')
-  var appVersion = document.getElementById('app-version')
-  var signupList = document.getElementById('signup-list')
-  var heroCta = document.getElementById('hero-cta')
-  var summaryStatusValue = document.querySelector('.summary-status-value')
-  var summaryFee = document.querySelector('.summary-fee')
-  var summaryFeeAmount = document.querySelector('.summary-fee-amount')
-  var summaryFeeState = document.querySelector('.summary-fee-state')
-  var appShell = document.querySelector('.app-shell')
-  var signupOverlay = document.getElementById('signup-overlay')
-  var signupCloseTargets = document.querySelectorAll('[data-signup-close]')
-  var selfCountOutput = document.getElementById('self-count')
-  var guestCountOutput = document.getElementById('guest-count')
-  var guestFields = document.getElementById('guest-fields')
-  var signupTotal = document.getElementById('signup-total')
-  var confirmSignup = document.getElementById('confirm-signup')
-  var successDialogOverlay = document.getElementById('success-dialog-overlay')
-  var successDialogTitle = document.getElementById('success-dialog-title')
-  var successDialogCopy = document.getElementById('success-dialog-copy')
-  var successDialogButton = document.getElementById('success-dialog-button')
-  var signupState = {
-    self: 0,
-    guest: 0,
-    guests: [],
-  }
-  var submittedSignupState = cloneSignupState(signupState)
+const activeSegment = ref(SEGMENT_TABS[0])
+const signupOpen = ref(false)
+const heroCtaButton = ref(null)
+const signupCloseButton = ref(null)
+const confirmSignupButton = ref(null)
+const successDialogButton = ref(null)
+const signupState = reactive({
+  self: 0,
+  guest: 0,
+  guests: [],
+})
+const submittedSignupState = ref(cloneSignupState(signupState))
+const successDialog = reactive({
+  open: false,
+  title: '報名已送出',
+  copy: '已送出報名 0 位，請稍候確認名單是否成功加入',
+  buttonText: '確認',
+})
 
-  if (appVersion) {
-    appVersion.textContent = APP_VERSION
-  }
-
-  function updateSignupSummary(total) {
-    var hasSignup = total > 0
-    var fee = hasSignup ? total * 255 : 255
-
-    if (summaryStatusValue) {
-      summaryStatusValue.textContent = hasSignup ? '已成功報名 ' + String(total) + ' 位' : '無報名'
-      summaryStatusValue.classList.toggle('is-success', hasSignup)
-    }
-
-    if (summaryFeeAmount) {
-      summaryFeeAmount.textContent = '$' + String(fee)
-    }
-
-    if (summaryFeeState) {
-      summaryFeeState.hidden = !hasSignup
-    }
-
-    if (summaryFee) {
-      summaryFee.setAttribute('aria-label', hasSignup ? '費用 ' + String(fee) + ' 元，未付' : '費用 255 元')
-    }
-
-    if (heroCta) {
-      heroCta.textContent = hasSignup ? '管理報名' : '我要報名'
-    }
+const signupTotal = computed(() => signupState.self + signupState.guest)
+const submittedTotal = computed(() => submittedSignupState.value.self + submittedSignupState.value.guest)
+const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
+const summaryFee = computed(() => (hasSubmittedSignup.value ? submittedTotal.value * 255 : 255))
+const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `已成功報名 ${submittedTotal.value} 位` : '無報名'))
+const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : '費用 255 元'))
+const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
+const isSignupChanged = computed(() => {
+  if (signupState.self !== submittedSignupState.value.self || signupState.guest !== submittedSignupState.value.guest) {
+    return true
   }
 
-  function cloneSignupState(state) {
-    return {
-      self: state.self,
-      guest: state.guest,
-      guests: state.guests.map(function (guest) {
-        return {
-          name: guest && guest.name ? guest.name : '',
-          gender: guest && guest.gender ? guest.gender : '',
-        }
-      }),
-    }
-  }
+  for (let index = 0; index < signupState.guest; index += 1) {
+    const currentGuest = signupState.guests[index] || { name: '', gender: '' }
+    const submittedGuest = submittedSignupState.value.guests[index] || { name: '', gender: '' }
 
-  function isSignupChanged() {
-    if (signupState.self !== submittedSignupState.self || signupState.guest !== submittedSignupState.guest) {
+    if ((currentGuest.name || '') !== (submittedGuest.name || '') || (currentGuest.gender || '') !== (submittedGuest.gender || '')) {
       return true
     }
-
-    for (var index = 0; index < signupState.guest; index += 1) {
-      var currentGuest = signupState.guests[index] || { name: '', gender: '' }
-      var submittedGuest = submittedSignupState.guests[index] || { name: '', gender: '' }
-
-      if ((currentGuest.name || '') !== (submittedGuest.name || '') || (currentGuest.gender || '') !== (submittedGuest.gender || '')) {
-        return true
-      }
-    }
-
-    return false
   }
 
-  function updateConfirmSignupState() {
-    if (confirmSignup) {
-      confirmSignup.disabled = !isSignupChanged()
-    }
-  }
-
-  document.querySelectorAll('.segment-tab').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      document.querySelectorAll('.segment-tab').forEach(function (item) {
-        var isActive = item === tab
-        item.classList.toggle('is-active', isActive)
-        item.setAttribute('aria-selected', String(isActive))
-      })
-    })
-  })
-
-  if (signupList) {
-    MEMBERS.forEach(function (member, index) {
-      var row = document.createElement('div')
-      row.className = 'row'
-
-      var rank = document.createElement('div')
-      rank.className = 'rank'
-      rank.textContent = String(index + 1)
-
-      var avatar = document.createElement('div')
-      avatar.className = 'avatar'
-
-      if (member.image) {
-        var avatarImage = document.createElement('img')
-        avatarImage.src = member.image
-        avatarImage.alt = ''
-        avatar.appendChild(avatarImage)
-      } else {
-        avatar.textContent = member.badge
-        avatar.style.background = member.color
-      }
-
-      var name = document.createElement('div')
-      name.className = 'name'
-      name.textContent = member.name
-
-      row.appendChild(rank)
-      row.appendChild(avatar)
-      row.appendChild(name)
-
-      if (member.status) {
-        var status = document.createElement('div')
-        status.className = 'status-tag'
-        status.textContent = member.status
-        row.appendChild(status)
-      }
-
-      signupList.appendChild(row)
-    })
-  }
-
-  function syncHeaderState() {
-    if (!appScroll || !nav) return
-    var fadeDistance = 120
-    var progress = Math.max(0, Math.min(appScroll.scrollTop / fadeDistance, 1))
-    nav.style.setProperty('--nav-progress', String(progress))
-    nav.style.setProperty('--nav-bg-opacity', String(progress * 0.94))
-    nav.classList.toggle('is-scrolled', progress > 0.55)
-  }
-
-  if (appScroll) {
-    appScroll.addEventListener('scroll', syncHeaderState, { passive: true })
-    syncHeaderState()
-  }
-
-  updateSignupSummary(0)
-
-  if (backButton) {
-    backButton.addEventListener('click', function () {
-      if (window.history.length > 1) {
-        window.history.back()
-        return
-      }
-
-      window.location.href = './index.html'
-    })
-  }
-
-  function renderGuestFields() {
-    if (!guestFields) return
-
-    guestFields.innerHTML = ''
-
-    for (var index = 0; index < signupState.guest; index += 1) {
-      var guestData = signupState.guests[index] || { name: '', gender: '' }
-      var row = document.createElement('div')
-      row.className = 'guest-row'
-
-      var nameInput = document.createElement('input')
-      nameInput.className = 'guest-input'
-      nameInput.type = 'text'
-      nameInput.name = 'guest-name-' + String(index + 1)
-      nameInput.placeholder = '群外朋友姓名'
-      nameInput.value = guestData.name
-      nameInput.setAttribute('aria-label', '第 ' + String(index + 1) + ' 位群外朋友姓名')
-      nameInput.addEventListener('input', function (event) {
-        var guestIndex = Number(event.target.getAttribute('data-guest-index'))
-        signupState.guests[guestIndex] = signupState.guests[guestIndex] || { name: '', gender: '' }
-        signupState.guests[guestIndex].name = event.target.value
-        updateConfirmSignupState()
-      })
-      nameInput.setAttribute('data-guest-index', String(index))
-
-      var genderSelect = document.createElement('select')
-      genderSelect.className = 'guest-select'
-      genderSelect.name = 'guest-gender-' + String(index + 1)
-      genderSelect.required = true
-      genderSelect.setAttribute('aria-label', '第 ' + String(index + 1) + ' 位群外朋友性別')
-      genderSelect.setAttribute('data-guest-index', String(index))
-      genderSelect.addEventListener('change', function (event) {
-        var guestIndex = Number(event.target.getAttribute('data-guest-index'))
-        signupState.guests[guestIndex] = signupState.guests[guestIndex] || { name: '', gender: '' }
-        signupState.guests[guestIndex].gender = event.target.value
-        updateConfirmSignupState()
-      })
-
-      ;[
-        { value: '', label: '性別' },
-        { value: 'female', label: '女' },
-        { value: 'male', label: '男' },
-        { value: 'other', label: '其他' },
-      ].forEach(function (optionData) {
-        var option = document.createElement('option')
-        option.value = optionData.value
-        option.textContent = optionData.label
-        if (!optionData.value) {
-          option.disabled = true
-          option.selected = !guestData.gender
-        } else if (optionData.value === guestData.gender) {
-          option.selected = true
-        }
-        genderSelect.appendChild(option)
-      })
-
-      row.appendChild(nameInput)
-      row.appendChild(genderSelect)
-      guestFields.appendChild(row)
-    }
-  }
-
-  function renderSignupSheet() {
-    var total = signupState.self + signupState.guest
-
-    if (selfCountOutput) selfCountOutput.textContent = String(signupState.self)
-    if (guestCountOutput) guestCountOutput.textContent = String(signupState.guest)
-    if (signupTotal) signupTotal.textContent = '共報名 ' + String(total) + ' 位'
-
-    document.querySelectorAll('[data-stepper]').forEach(function (stepper) {
-      var type = stepper.getAttribute('data-stepper')
-      var value = signupState[type]
-      var max = type === 'self' ? 1 : 6
-      var down = stepper.querySelector('[data-step="down"]')
-      var up = stepper.querySelector('[data-step="up"]')
-
-      if (down) down.disabled = value <= 0
-      if (up) up.disabled = value >= max
-    })
-
-    renderGuestFields()
-    updateConfirmSignupState()
-  }
-
-  function setSignupOpen(isOpen) {
-    if (!signupOverlay) return
-
-    signupOverlay.classList.toggle('is-open', isOpen)
-    signupOverlay.setAttribute('aria-hidden', String(!isOpen))
-    signupOverlay.inert = !isOpen
-    if (appShell) appShell.classList.toggle('signup-open', isOpen)
-
-    var focusTarget = isOpen ? signupOverlay.querySelector('.signup-close') : heroCta
-    if (focusTarget) {
-      focusTarget.focus({ preventScroll: true })
-    }
-  }
-
-  function setSuccessDialogOpen(isOpen, options) {
-    if (!successDialogOverlay) return
-
-    if (options) {
-      if (successDialogTitle && options.title) {
-        successDialogTitle.textContent = options.title
-      }
-
-      if (successDialogCopy && options.copy) {
-        successDialogCopy.textContent = options.copy
-      }
-
-      if (successDialogButton && options.buttonText) {
-        successDialogButton.textContent = options.buttonText
-      }
-    }
-
-    successDialogOverlay.classList.toggle('is-open', isOpen)
-    successDialogOverlay.setAttribute('aria-hidden', String(!isOpen))
-    successDialogOverlay.inert = !isOpen
-
-    var focusTarget = isOpen ? successDialogButton : signupOverlay && signupOverlay.classList.contains('is-open') ? confirmSignup : heroCta
-    if (focusTarget) {
-      focusTarget.focus({ preventScroll: true })
-    }
-  }
-
-  document.querySelectorAll('[data-stepper] [data-step]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var stepper = button.closest('[data-stepper]')
-      var type = stepper ? stepper.getAttribute('data-stepper') : ''
-      var direction = button.getAttribute('data-step') === 'up' ? 1 : -1
-      var max = type === 'self' ? 1 : 6
-
-      if (!type) return
-
-      signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
-      signupState.guests = signupState.guests.slice(0, signupState.guest)
-      renderSignupSheet()
-    })
-  })
-
-  signupCloseTargets.forEach(function (target) {
-    target.addEventListener('click', function () {
-      setSignupOpen(false)
-    })
-  })
-
-  document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && signupOverlay && signupOverlay.classList.contains('is-open')) {
-      setSignupOpen(false)
-    } else if (event.key === 'Escape' && successDialogOverlay && successDialogOverlay.classList.contains('is-open')) {
-      setSuccessDialogOpen(false)
-    }
-  })
-
-  if (confirmSignup) {
-    confirmSignup.addEventListener('click', function () {
-      if (confirmSignup.disabled) return
-
-      var total = signupState.self + signupState.guest
-      var previousTotal = submittedSignupState.self + submittedSignupState.guest
-      var isUpdatingExistingSignup = previousTotal > 0
-
-      if (total <= 0 && previousTotal <= 0) {
-        setSuccessDialogOpen(true, {
-          title: '還沒有選擇人數',
-          copy: '目前沒有任何人被加入報名，請先選擇「我」或「群外」人數後再送出。',
-          buttonText: '回去選人',
-        })
-        return
-      }
-
-      updateSignupSummary(total)
-      submittedSignupState = cloneSignupState(signupState)
-      renderSignupSheet()
-      setSignupOpen(false)
-      setSuccessDialogOpen(true, {
-        title: isUpdatingExistingSignup || total <= 0 ? '報名已更新' : '報名已送出',
-        copy: total > 0 ? (isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 ') + String(total) + ' 位，請稍候確認名單是否成功加入' : '已更新為無報名，請稍候確認名單是否同步完成',
-        buttonText: '確認',
-      })
-    })
-  }
-
-  if (successDialogButton) {
-    successDialogButton.addEventListener('click', function () {
-      setSuccessDialogOpen(false)
-    })
-  }
-
-  if (heroCta) {
-    heroCta.addEventListener('click', function () {
-      setSignupOpen(true)
-    })
-  }
-
-  renderSignupSheet()
+  return false
 })
+
+function cloneSignupState(state) {
+  return {
+    self: state.self,
+    guest: state.guest,
+    guests: state.guests.map((guest) => ({
+      name: guest && guest.name ? guest.name : '',
+      gender: guest && guest.gender ? guest.gender : '',
+    })),
+  }
+}
+
+function focusElement(target) {
+  nextTick(() => {
+    target.value?.focus({ preventScroll: true })
+  })
+}
+
+function setSignupOpen(isOpen, options = {}) {
+  const { restoreFocus = true } = options
+  signupOpen.value = isOpen
+
+  if (isOpen) {
+    focusElement(signupCloseButton)
+  } else if (restoreFocus) {
+    focusElement(heroCtaButton)
+  }
+}
+
+function setSuccessDialogOpen(isOpen, options = {}) {
+  if (options.title) successDialog.title = options.title
+  if (options.copy) successDialog.copy = options.copy
+  if (options.buttonText) successDialog.buttonText = options.buttonText
+
+  successDialog.open = isOpen
+
+  if (isOpen) {
+    focusElement(successDialogButton)
+  } else if (signupOpen.value) {
+    focusElement(confirmSignupButton)
+  } else {
+    focusElement(heroCtaButton)
+  }
+}
+
+function setSegmentTab(tab) {
+  activeSegment.value = tab
+}
+
+function adjustSignupCount(type, direction) {
+  const max = type === 'self' ? 1 : 6
+  signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
+
+  if (type !== 'guest') return
+
+  while (signupState.guests.length < signupState.guest) {
+    signupState.guests.push({ name: '', gender: '' })
+  }
+
+  signupState.guests.splice(signupState.guest)
+}
+
+function submitSignup() {
+  if (!isSignupChanged.value) return
+
+  const total = signupTotal.value
+  const previousTotal = submittedTotal.value
+  const isUpdatingExistingSignup = previousTotal > 0
+
+  if (total <= 0 && previousTotal <= 0) {
+    setSuccessDialogOpen(true, {
+      title: '還沒有選擇人數',
+      copy: '目前沒有任何人被加入報名，請先選擇「我」或「群外」人數後再送出。',
+      buttonText: '回去選人',
+    })
+    return
+  }
+
+  submittedSignupState.value = cloneSignupState(signupState)
+  setSignupOpen(false, { restoreFocus: false })
+  setSuccessDialogOpen(true, {
+    title: isUpdatingExistingSignup || total <= 0 ? '報名已更新' : '報名已送出',
+    copy: total > 0 ? `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入` : '已更新為無報名，請稍候確認名單是否同步完成',
+    buttonText: '確認',
+  })
+}
+
+function handleEscape() {
+  if (successDialog.open) {
+    setSuccessDialogOpen(false)
+    return
+  }
+
+  if (signupOpen.value) {
+    setSignupOpen(false)
+  }
+}
 </script>
 
 <template>
-  <main class="app-shell active-activity-page">
+  <main class="app-shell active-activity-page" :class="{ 'signup-open': signupOpen }" @keydown.esc="handleEscape">
     <div class="app-scroll">
       <div class="scroll-content">
         <section class="hero">
@@ -415,40 +190,59 @@ onMounted(() => {
             </div>
           </div>
           <div class="summary-status">
-            <p class="summary-status-text">狀態：<span class="summary-status-value">無報名</span></p>
-            <div class="summary-fee" aria-label="費用 255 元">
+            <p class="summary-status-text">狀態：<span class="summary-status-value" :class="{ 'is-success': hasSubmittedSignup }">{{ summaryStatusText }}</span></p>
+            <div class="summary-fee" :aria-label="summaryFeeLabel">
               <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
               <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
-              <span class="summary-fee-amount">$255</span>
-              <span class="summary-fee-state" hidden>未付</span>
+              <span class="summary-fee-amount">${{ summaryFee }}</span>
+              <span v-if="hasSubmittedSignup" class="summary-fee-state">未付</span>
             </div>
           </div>
         </section>
 
         <section class="content">
           <div class="segment-tabs" role="tablist" aria-label="名單分類">
-            <button class="segment-tab is-active" type="button" role="tab" aria-selected="true">全部</button>
-            <button class="segment-tab" type="button" role="tab" aria-selected="false">臨打</button>
-            <button class="segment-tab" type="button" role="tab" aria-selected="false">季打</button>
+            <button
+              v-for="tab in SEGMENT_TABS"
+              :key="tab"
+              class="segment-tab"
+              :class="{ 'is-active': activeSegment === tab }"
+              type="button"
+              role="tab"
+              :aria-selected="String(activeSegment === tab)"
+              @click="setSegmentTab(tab)"
+            >
+              {{ tab }}
+            </button>
           </div>
-          <div class="list" id="signup-list"></div>
-          <div class="version" id="app-version">v--</div>
+          <div class="list">
+            <div v-for="(member, index) in MEMBER_LIST" :key="`${member.name}-${index}`" class="row">
+              <div class="rank">{{ index + 1 }}</div>
+              <div class="avatar" :style="member.image ? undefined : { background: member.color }">
+                <img v-if="member.image" :src="member.image" alt="" />
+                <template v-else>{{ member.badge }}</template>
+              </div>
+              <div class="name">{{ member.name }}</div>
+              <div v-if="member.status" class="status-tag">{{ member.status }}</div>
+            </div>
+          </div>
+          <div class="version">{{ APP_VERSION }}</div>
         </section>
       </div>
     </div>
 
     <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
-      <button class="cta" id="hero-cta" type="button">我要報名</button>
+      <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
 
-    <div class="signup-overlay" id="signup-overlay" aria-hidden="true" inert>
-      <button class="signup-backdrop" type="button" data-signup-close aria-label="關閉報名表"></button>
+    <div class="signup-overlay" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
+      <button class="signup-backdrop" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)"></button>
       <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
         <div class="signup-sheet-header">
           <h2 class="signup-sheet-title" id="signup-sheet-title">報名此球局</h2>
           <span class="prefill-tag">可預填</span>
-          <button class="signup-close" type="button" data-signup-close aria-label="關閉報名表">
+          <button ref="signupCloseButton" class="signup-close" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
@@ -459,14 +253,14 @@ onMounted(() => {
             <div class="signup-field-card">
               <div class="signup-field-row">
                 <div class="signup-field-label">我</div>
-                <div class="signup-stepper" data-stepper="self">
-                  <button class="stepper-btn" type="button" data-step="down" aria-label="減少我的報名人數">
+                <div class="signup-stepper">
+                  <button class="stepper-btn" type="button" :disabled="signupState.self <= 0" aria-label="減少我的報名人數" @click="adjustSignupCount('self', -1)">
                     <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
                   </button>
-                  <output class="stepper-value" id="self-count">0</output>
-                  <button class="stepper-btn" type="button" data-step="up" aria-label="增加我的報名人數">
+                  <output class="stepper-value">{{ signupState.self }}</output>
+                  <button class="stepper-btn" type="button" :disabled="signupState.self >= 1" aria-label="增加我的報名人數" @click="adjustSignupCount('self', 1)">
                     <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
@@ -477,37 +271,53 @@ onMounted(() => {
             <div class="signup-field-card is-stack">
               <div class="signup-field-row">
                 <div class="signup-field-label">群外</div>
-                <div class="signup-stepper" data-stepper="guest">
-                  <button class="stepper-btn" type="button" data-step="down" aria-label="減少群外報名人數">
+                <div class="signup-stepper">
+                  <button class="stepper-btn" type="button" :disabled="signupState.guest <= 0" aria-label="減少群外報名人數" @click="adjustSignupCount('guest', -1)">
                     <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
                   </button>
-                  <output class="stepper-value" id="guest-count">0</output>
-                  <button class="stepper-btn" type="button" data-step="up" aria-label="增加群外報名人數">
+                  <output class="stepper-value">{{ signupState.guest }}</output>
+                  <button class="stepper-btn" type="button" :disabled="signupState.guest >= 6" aria-label="增加群外報名人數" @click="adjustSignupCount('guest', 1)">
                     <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
                   </button>
                 </div>
               </div>
-              <div class="guest-fields" id="guest-fields" aria-live="polite"></div>
+              <div class="guest-fields" aria-live="polite">
+                <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
+                  <input
+                    v-model="guest.name"
+                    class="guest-input"
+                    type="text"
+                    :name="`guest-name-${index + 1}`"
+                    placeholder="群外朋友姓名"
+                    :aria-label="`第 ${index + 1} 位群外朋友姓名`"
+                  />
+                  <select v-model="guest.gender" class="guest-select" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
+                    <option v-for="option in GENDER_OPTIONS" :key="option.value" :value="option.value" :disabled="option.disabled">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div class="signup-sheet-footer">
-          <p class="signup-count" id="signup-total">共報名 0 位</p>
-          <button class="confirm-signup" id="confirm-signup" type="button">確認報名</button>
+          <p class="signup-count">共報名 {{ signupTotal }} 位</p>
+          <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isSignupChanged" @click="submitSignup">確認報名</button>
           <p class="signup-note">送出不代表報名成功，請以名單為準</p>
         </div>
       </section>
     </div>
 
-    <div class="success-dialog-overlay" id="success-dialog-overlay" aria-hidden="true" inert>
+    <div class="success-dialog-overlay" :class="{ 'is-open': successDialog.open }" :aria-hidden="String(!successDialog.open)" :inert="!successDialog.open">
       <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
-        <h2 class="success-dialog-title" id="success-dialog-title">報名已送出</h2>
-        <p class="success-dialog-copy" id="success-dialog-copy">已送出報名 0 位，請稍候確認名單是否成功加入</p>
-        <button class="success-dialog-button" id="success-dialog-button" type="button">確認</button>
+        <h2 class="success-dialog-title" id="success-dialog-title">{{ successDialog.title }}</h2>
+        <p class="success-dialog-copy">{{ successDialog.copy }}</p>
+        <button ref="successDialogButton" class="success-dialog-button" type="button" @click="setSuccessDialogOpen(false)">{{ successDialog.buttonText }}</button>
       </section>
     </div>
   </main>
