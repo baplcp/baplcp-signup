@@ -127,4 +127,8 @@
     cursor: pointer;
     outline: none;
   }
+
+  #app {
+    @apply w-full md:w-auto;
+  }
 }
