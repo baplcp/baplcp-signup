@@ -28,7 +28,7 @@
       </button>
 
       <div
-        class="menu-overlay h-[calc(100vh-48px)]"
+        class="menu-overlay h-screen md:h-[calc(100vh-48px)]"
         :class="{ 'is-open': isMenuOpen }"
         id="menu-overlay"
         :aria-hidden="String(!isMenuOpen)"
