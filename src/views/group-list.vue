@@ -209,7 +209,6 @@ onMounted(() => {
 
 .group-list-page {
   background: var(--surface);
-  box-shadow: var(--shadow-app);
   height: 100%;
 }
 

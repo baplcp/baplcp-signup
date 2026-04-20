@@ -139,6 +139,7 @@
 
 <style>
 .layout {
+  box-shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
   background: var(--surface);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;

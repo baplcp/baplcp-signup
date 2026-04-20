@@ -803,7 +803,6 @@ async function handleCreateActivity() {
   background: var(--surface);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: var(--shadow-app);
   position: relative;
 }
 

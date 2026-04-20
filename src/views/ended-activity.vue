@@ -85,7 +85,6 @@ const activeSegment = ref(SEGMENT_TABS[0])
 <style scoped>
 .ended-activity-page {
   height: 100%;
-  box-shadow: var(--shadow-page);
 }
 
 .scroll-content {
