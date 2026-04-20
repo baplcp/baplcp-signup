@@ -452,7 +452,7 @@ async function handleCreateActivity() {
 
 <template>
   <main class="create-activity-page">
-    <div class="app-scroll">
+    <div>
       <header class="sheet-topbar">
         <button class="cancel-link" type="button" @click="returnToPreviousPage">取消</button>
       </header>
@@ -699,7 +699,7 @@ async function handleCreateActivity() {
       <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? '建立中...' : '建立球局' }}</button>
     </div>
 
-    <div class="calendar-overlay" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
+    <div class="calendar-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
       <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
         <div class="calendar-header">
           <button class="calendar-nav" type="button" aria-label="上一個月" @click="changeCalendarMonth(-1)">
@@ -727,7 +727,7 @@ async function handleCreateActivity() {
       </section>
     </div>
 
-    <div class="time-overlay" :class="{ 'is-open': timePicker.isOpen }" :aria-hidden="String(!timePicker.isOpen)" @click.self="closeTimePicker">
+    <div class="time-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': timePicker.isOpen }" :aria-hidden="String(!timePicker.isOpen)" @click.self="closeTimePicker">
       <section class="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-title">
         <div class="time-header">
           <h2 id="time-title" class="time-title">選擇時間</h2>
@@ -787,7 +787,7 @@ async function handleCreateActivity() {
       </section>
     </div>
 
-    <div class="success-dialog-overlay" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
+    <div class="success-dialog-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
       <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
         <h2 id="create-dialog-title" class="success-dialog-title">{{ dialog.title }}</h2>
         <p class="success-dialog-copy">{{ dialog.copy }}</p>
@@ -802,21 +802,7 @@ async function handleCreateActivity() {
   height: 100%;
   background: var(--surface);
   border-radius: 24px;
-  overflow: hidden;
   position: relative;
-}
-
-.app-scroll {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 188px;
-}
-
-.app-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .sheet-topbar {
@@ -1274,7 +1260,7 @@ async function handleCreateActivity() {
 }
 
 .cta-fade {
-  position: absolute;
+  position: sticky;
   left: 0;
   right: 0;
   bottom: 0;
@@ -1298,9 +1284,10 @@ async function handleCreateActivity() {
 
 .calendar-overlay,
 .time-overlay {
-  position: absolute;
-  inset: 0;
+  position: fixed;
   z-index: 20;
+  overflow: hidden;
+  margin: auto;
   display: none;
   align-items: flex-end;
   background: rgba(0, 0, 0, 0.32);
@@ -1496,8 +1483,7 @@ async function handleCreateActivity() {
 }
 
 .success-dialog-overlay {
-  position: absolute;
-  inset: 0;
+  position: fixed;
   z-index: 60;
   display: grid;
   place-items: center;

@@ -66,139 +66,134 @@ onMounted(() => {
 
 <template>
   <main class="group-list-page">
-    <div class="app-scroll">
-      <header class="topbar">
-        <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-      </header>
+    <header class="topbar">
+      <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </header>
 
-      <section class="page">
-        <h1 class="page-title">已發起的球局</h1>
+    <section class="page">
+      <h1 class="page-title">已發起的球局</h1>
 
-        <nav class="segment-tabs" aria-label="球局分類">
-          <button class="segment-tab is-active" type="button" data-segment="all">全部</button>
-          <button class="segment-tab" type="button" data-segment="latest">最新球局</button>
-          <button class="segment-tab" type="button" data-segment="upcoming">即將到來</button>
-          <button class="segment-tab" type="button" data-segment="ended">已結束</button>
-        </nav>
+      <nav class="segment-tabs" aria-label="球局分類">
+        <button class="segment-tab is-active" type="button" data-segment="all">全部</button>
+        <button class="segment-tab" type="button" data-segment="latest">最新球局</button>
+        <button class="segment-tab" type="button" data-segment="upcoming">即將到來</button>
+        <button class="segment-tab" type="button" data-segment="ended">已結束</button>
+      </nav>
 
-        <h2 class="section-title" id="latest-section">最新球局</h2>
-        <article class="active-card">
-          <div class="active-count" aria-label="臨打缺 9 人">
-            <span class="active-count-label">臨打缺</span>
-            <span class="active-count-value">9</span>
-          </div>
+      <h2 class="section-title" id="latest-section">最新球局</h2>
+      <article class="active-card">
+        <div class="active-count" aria-label="臨打缺 9 人">
+          <span class="active-count-label">臨打缺</span>
+          <span class="active-count-value">9</span>
+        </div>
+        <div class="event-content">
+          <p class="event-date">4.09 (日)<span class="divider">｜</span>8:00-11:00</p>
+          <p class="event-location">板橋柏吉倫排球場</p>
+        </div>
+        <RouterLink to="/active-activity" class="go-button">前往</RouterLink>
+      </article>
+
+      <div class="section-heading" id="upcoming-section">
+        <h2 class="section-title">即將到來</h2>
+        <button class="more-button" type="button" data-target-segment="upcoming">更多</button>
+      </div>
+      <div class="upcoming-list" aria-label="即將到來">
+        <RouterLink class="history-row" to="/active-activity">
           <div class="event-content">
-            <p class="event-date">4.09 (日)<span class="divider">｜</span>8:00-11:00</p>
+            <p class="event-date">4.16 (日)<span class="divider">｜</span>12:20-15:20</p>
             <p class="event-location">板橋柏吉倫排球場</p>
           </div>
-          <RouterLink to="/active-activity" class="go-button">前往</RouterLink>
-        </article>
+          <span class="badge badge-muted">未開放報名</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
-        <div class="section-heading" id="upcoming-section">
-          <h2 class="section-title">即將到來</h2>
-          <button class="more-button" type="button" data-target-segment="upcoming">更多</button>
-        </div>
-        <div class="upcoming-list" aria-label="即將到來">
-          <RouterLink class="history-row" to="/active-activity">
-            <div class="event-content">
-              <p class="event-date">4.16 (日)<span class="divider">｜</span>12:20-15:20</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <span class="badge badge-muted">未開放報名</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
+        <RouterLink class="history-row" to="/active-activity">
+          <div class="event-content">
+            <p class="event-date">4.23 (日)<span class="divider">｜</span>12:20-15:20</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <span class="badge badge-muted">未開放報名</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
+        <RouterLink class="history-row" to="/active-activity">
+          <div class="event-content">
+            <p class="event-date">4.30 (日)<span class="divider">｜</span>12:20-15:20</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <span class="badge badge-muted">未開放報名</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
+      </div>
 
-          <RouterLink class="history-row" to="/active-activity">
-            <div class="event-content">
-              <p class="event-date">4.23 (日)<span class="divider">｜</span>12:20-15:20</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <span class="badge badge-muted">未開放報名</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
+      <div class="section-heading history-title" id="ended-section">
+        <h2 class="section-title">已結束</h2>
+        <button class="more-button" type="button" data-target-segment="ended">更多</button>
+      </div>
+      <div class="history-list" aria-label="已結束">
+        <RouterLink class="history-row" to="/ended-activity">
+          <div class="event-content">
+            <p class="event-date">4.02 (日)</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <span class="badge badge-success">已參加</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
-          <RouterLink class="history-row" to="/active-activity">
-            <div class="event-content">
-              <p class="event-date">4.30 (日)<span class="divider">｜</span>12:20-15:20</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <span class="badge badge-muted">未開放報名</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-        </div>
+        <RouterLink class="history-row" to="/ended-activity">
+          <div class="event-content">
+            <p class="event-date">3.28 (日)</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
-        <div class="section-heading history-title" id="ended-section">
-          <h2 class="section-title">已結束</h2>
-          <button class="more-button" type="button" data-target-segment="ended">更多</button>
-        </div>
-        <div class="history-list" aria-label="已結束">
+        <RouterLink class="history-row" to="/ended-activity">
+          <div class="event-content">
+            <p class="event-date">3.21 (日)</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <span class="badge badge-muted">已請假</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
-          <RouterLink class="history-row" to="/ended-activity">
-            <div class="event-content">
-              <p class="event-date">4.02 (日)</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <span class="badge badge-success">已參加</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
+        <RouterLink class="history-row" to="/ended-activity">
+          <div class="event-content">
+            <p class="event-date">3.14 (日)</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
 
-          <RouterLink class="history-row" to="/ended-activity">
-            <div class="event-content">
-              <p class="event-date">3.28 (日)</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-
-          <RouterLink class="history-row" to="/ended-activity">
-            <div class="event-content">
-              <p class="event-date">3.21 (日)</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <span class="badge badge-muted">已請假</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-
-          <RouterLink class="history-row" to="/ended-activity">
-            <div class="event-content">
-              <p class="event-date">3.14 (日)</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-
-          
-          <RouterLink class="history-row" to="/ended-activity">
-            <div class="event-content">
-              <p class="event-date">3.07(日)</p>
-              <p class="event-location">板橋柏吉倫排球場</p>
-            </div>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-        </div>
-      </section>
-    </div>
+        <RouterLink class="history-row" to="/ended-activity">
+          <div class="event-content">
+            <p class="event-date">3.07(日)</p>
+            <p class="event-location">板橋柏吉倫排球場</p>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </RouterLink>
+      </div>
+    </section>
   </main>
 </template>
 
@@ -210,19 +205,6 @@ onMounted(() => {
 .group-list-page {
   background: var(--surface);
   height: 100%;
-}
-
-.app-scroll {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 22px;
-}
-
-.app-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .topbar {
