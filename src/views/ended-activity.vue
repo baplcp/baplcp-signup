@@ -118,51 +118,13 @@ function goBack() {
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-  touch-action: manipulation;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  background: radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%), linear-gradient(180deg, #f5f7ff 0%, #eef1ff 100%);
-  color: var(--text);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 16px;
-  overflow: hidden;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-button {
-  font: inherit;
-  border: 0;
-  padding: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.app-shell {
-  width: min(100%, 390px);
-  height: min(844px, calc(100vh - 48px));
-  background: #fff;
-  border-radius: 24px;
-  overflow: hidden;
+.ended-activity-page {
+  height: 100%;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  position: relative;
 }
 
 .app-scroll {
-  flex: 1;
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -174,7 +136,6 @@ button {
 }
 
 .scroll-content {
-  min-height: 100%;
   background: linear-gradient(180deg, #8f95b2 0%, #9ba0ba 7%, #adb2c8 13%, #ccd0dc 20%, #eceef4 27%, #fff 35%, #fff 100%);
 }
 
@@ -431,7 +392,7 @@ button {
 }
 
 .content {
-  padding: 24px 16px 110px;
+  padding: 24px 16px 60px;
 }
 
 .segment-tabs {
