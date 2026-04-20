@@ -1,9 +1,10 @@
 <script setup>
-  import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch, useTemplateRef } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   const route = useRoute()
   const router = useRouter()
+  const scrollBox = useTemplateRef('scrollBox')
 
   const isIndexPage = computed(() => route.name === 'index')
   const isMenuOpen = ref(false)
@@ -54,12 +55,13 @@
     () => {
       closeMenu()
       resetNavScrollState()
+      scrollBox.value?.scrollTo(0, 0)
     },
   )
 </script>
 
 <template>
-  <div @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl" >
+  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl" >
     <header
       v-if="isShowHeader"
       class="nav"
