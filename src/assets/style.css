@@ -40,7 +40,6 @@
     --shadow-app: 0 24px 64px rgba(30, 42, 110, 0.16);
     --shadow-page: 0 24px 60px rgba(71, 82, 163, 0.18);
     --shadow-primary-card: 2px 2px 28px rgba(90, 90, 226, 0.3);
-    --page-bg: var(--primary-100);
     --bg: var(--primary-100);
     --surface: var(--neutral-0);
     --text: var(--neutral-900);
@@ -48,7 +47,6 @@
     --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
     --muted: var(--neutral-600);
     --muted-soft: var(--neutral-500);
-    background: var(--page-bg);
     --line: var(--neutral-100);
     --line-soft: var(--neutral-250);
     --section: var(--neutral-50);
@@ -117,5 +115,11 @@
 
   #app {
     @apply w-full md:w-auto;
+  }
+}
+
+@layer utilities {
+  .phone-container {
+    @apply w-full md:w-97.5
   }
 }

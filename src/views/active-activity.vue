@@ -4,7 +4,7 @@ import { computed, nextTick, reactive, ref } from 'vue'
 const APP_VERSION = 'v2026.04.18-active-drawer-04'
 const MEMBER_LIST = [
   { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
-  { name: '施政維', badge: '施', image: import.meta.env.BASE_URL +'/images/profile02.png' },
+  { name: '施政維', badge: '施', image: import.meta.env.BASE_URL + '/images/profile02.png' },
   { name: '莊宸豪', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile03.png' },
   { name: '蔚', badge: '蔚', image: import.meta.env.BASE_URL + '/images/profile04.png' },
   { name: '乃瑄', badge: '乃', image: import.meta.env.BASE_URL + '/images/profile05.png' },
@@ -67,7 +67,7 @@ function cloneSignupState(state) {
   return {
     self: state.self,
     guest: state.guest,
-    guests: state.guests.map((guest) => ({
+    guests: state.guests.map(guest => ({
       name: guest && guest.name ? guest.name : '',
       gender: guest && guest.gender ? guest.gender : '',
     })),
@@ -163,7 +163,7 @@ function handleEscape() {
 
 <template>
   <main class="active-activity-page" :class="{ 'signup-open': signupOpen }" @keydown.esc="handleEscape">
-    <div class="app-scroll">
+    <div>
       <div class="scroll-content">
         <section class="hero">
           <img class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
@@ -190,7 +190,9 @@ function handleEscape() {
             </div>
           </div>
           <div class="summary-status">
-            <p class="summary-status-text">狀態：<span class="summary-status-value" :class="{ 'is-success': hasSubmittedSignup }">{{ summaryStatusText }}</span></p>
+            <p class="summary-status-text">
+              狀態：<span class="summary-status-value" :class="{ 'is-success': hasSubmittedSignup }">{{ summaryStatusText }}</span>
+            </p>
             <div class="summary-fee" :aria-label="summaryFeeLabel">
               <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
               <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
@@ -231,12 +233,12 @@ function handleEscape() {
       </div>
     </div>
 
-    <div class="footer-fade" aria-hidden="true"></div>
     <div class="footer-bar">
+      <div class="footer-fade"></div>
       <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
 
-    <div class="signup-overlay" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
+    <div class="signup-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
       <button class="signup-backdrop" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)"></button>
       <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
         <div class="signup-sheet-header">
@@ -287,14 +289,7 @@ function handleEscape() {
               </div>
               <div class="guest-fields" aria-live="polite">
                 <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
-                  <input
-                    v-model="guest.name"
-                    class="guest-input"
-                    type="text"
-                    :name="`guest-name-${index + 1}`"
-                    placeholder="群外朋友姓名"
-                    :aria-label="`第 ${index + 1} 位群外朋友姓名`"
-                  />
+                  <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
                   <select v-model="guest.gender" class="guest-select" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
                     <option v-for="option in GENDER_OPTIONS" :key="option.value" :value="option.value" :disabled="option.disabled">
                       {{ option.label }}
@@ -327,19 +322,6 @@ function handleEscape() {
 .active-activity-page {
   height: 100%;
   position: relative;
-}
-
-.app-scroll {
-  height: 100%;
-  padding-bottom: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.app-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .scroll-content {
@@ -662,7 +644,7 @@ function handleEscape() {
 }
 
 .content {
-  padding: 24px 16px 110px;
+  padding: 24px 16px 42px;
 }
 
 .segment-tabs {
@@ -759,29 +741,27 @@ function handleEscape() {
 }
 
 .footer-bar {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
+  position: sticky;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 15;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 0 16px 16px;
+  background: #000;
 }
 
 .footer-fade {
   position: absolute;
-  left: 16px;
-  right: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 50%, #fff 100%);
   bottom: 0;
+  left: 0;
+  width: 100%;
   height: 154px;
-  border-radius: 0 0 12px 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 100%);
-  pointer-events: none;
-  z-index: 14;
 }
 
 .cta {
+  position: relative;
+  z-index: 10;
   width: 100%;
   min-height: 57px;
   border-radius: 12px;
@@ -793,9 +773,12 @@ function handleEscape() {
 }
 
 .signup-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 38;
+  position: fixed;
+  overflow: hidden;
+  left: 0;
+  right: 0;
+  margin: auto;
+  z-index: 9999;
   pointer-events: none;
 }
 

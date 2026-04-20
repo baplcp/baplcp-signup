@@ -1,10 +1,11 @@
 <script setup>
-  import { ref, computed, provide, watch } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   const route = useRoute()
   const router = useRouter()
 
+  const isIndexPage = computed(() => route.name === 'index')
   const isMenuOpen = ref(false)
   const navScrollProgress = ref(0)
 
@@ -19,6 +20,11 @@
 
   function setNavScrollProgress(progress) {
     navScrollProgress.value = Math.max(0, Math.min(Number(progress) || 0, 1))
+  }
+
+  const NAV_FADE_DISTANCE = 120
+  function handleScroll(event) {
+    setNavScrollProgress(event.currentTarget.scrollTop / NAV_FADE_DISTANCE)
   }
 
   function resetNavScrollState() {
@@ -43,9 +49,6 @@
     }
   }
 
-  provide('setNavScrollProgress', setNavScrollProgress)
-  provide('resetNavScrollState', resetNavScrollState)
-
   watch(
     () => route.fullPath,
     () => {
@@ -56,20 +59,19 @@
 </script>
 
 <template>
-  <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
+  <div @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl" >
     <header
       v-if="isShowHeader"
       class="nav"
       :class="{ 'is-scrolled': isNavScrolled }"
       :style="navStyle"
     >
-      <button class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
+      <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
-      <div class="nav-title">華江高中臨打報名</div>
+      <RouterLink to="/" class="brand mr-auto" aria-label="回到首頁 BAPLCP"></RouterLink>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
       </button>
@@ -136,6 +138,17 @@
 </template>
 
 <style>
+.layout {
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overflow-anchor: none;
+}
+
+.layout::-webkit-scrollbar {
+  display: none;
+}
+
 .nav {
   position: sticky;
   top: 0;
@@ -155,20 +168,16 @@
   transition: filter 0.25s ease;
 }
 
+.nav.is-scrolled .back-btn {
+  color: var(--primary-700);
+}
+
 .brand {
   width: 65px;
   height: 22px;
   background: url('/images/logo-white.svg') center/contain no-repeat;
   flex: 0 0 auto;
   transition: filter 0.25s ease;
-}
-
-.nav-title {
-  flex: 1;
-  text-align: center;
-  color: #fff;
-  font-size: 16px;
-  opacity: 0;
 }
 
 .menu-btn {
@@ -430,15 +439,6 @@
 
   .drawer-section {
     padding-right: 24px;
-  }
-}
-
-@media (max-width: 500px) {
-  .phone-shell {
-    width: 100%;
-    height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
   }
 }
 </style>

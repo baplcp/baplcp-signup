@@ -1,11 +1,8 @@
 <script setup>
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 
 const APP_VERSION = 'v2026.04.15-03'
-const NAV_FADE_DISTANCE = 120
 
-const setNavScrollProgress = inject('setNavScrollProgress', () => {})
-const resetNavScrollState = inject('resetNavScrollState', () => {})
 const openFaqIndexes = ref([])
 
 const faqs = [
@@ -35,10 +32,6 @@ const faqs = [
   },
 ]
 
-function handleScroll(event) {
-  setNavScrollProgress(event.currentTarget.scrollTop / NAV_FADE_DISTANCE)
-}
-
 function isFaqOpen(index) {
   return openFaqIndexes.value.includes(index)
 }
@@ -48,18 +41,10 @@ function toggleFaq(index) {
     ? openFaqIndexes.value.filter((openIndex) => openIndex !== index)
     : [...openFaqIndexes.value, index]
 }
-
-onMounted(() => {
-  resetNavScrollState()
-})
-
-onBeforeUnmount(() => {
-  resetNavScrollState()
-})
 </script>
 
 <template>
-  <div class="phone-scroll" @scroll.passive="handleScroll">
+  <div class="index-page">
     <section class="hero">
       <div class="hero-content">
         <div class="hero-cat" aria-hidden="true">
@@ -146,20 +131,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.phone-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  height: 100%;
-  overflow-anchor: none;
-}
-
-.phone-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 .hero {
   position: relative;
   min-height: 274px;

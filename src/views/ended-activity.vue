@@ -19,67 +19,65 @@ const activeSegment = ref(SEGMENT_TABS[0])
 
 <template>
   <main class="app-shell ended-activity-page">
-    <div class="app-scroll">
-      <div class="scroll-content">
-        <section class="hero">
-          <div class="hero-layout">
-            <div class="hero-copy">
-              <h1>已結束的球局</h1>
-            </div>
+    <div class="scroll-content">
+      <section class="hero">
+        <div class="hero-layout">
+          <div class="hero-copy">
+            <h1>已結束的球局</h1>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="summary-card" aria-label="活動摘要">
-          <div class="summary-main">
-            <div class="summary-info">
-              <p class="summary-time">
-                <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
-                <span class="summary-separator">|</span>
-                <span>12:20-15:20</span>
-              </p>
-              <p class="summary-location">板橋柏吉倫排球場</p>
-            </div>
+      <section class="summary-card" aria-label="活動摘要">
+        <div class="summary-main">
+          <div class="summary-info">
+            <p class="summary-time">
+              <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
+              <span class="summary-separator">|</span>
+              <span>12:20-15:20</span>
+            </p>
+            <p class="summary-location">板橋柏吉倫排球場</p>
           </div>
-          <div class="summary-status">
-            <p class="summary-status-text">狀態：<span class="summary-status-value">已參加</span></p>
-            <div class="summary-fee" aria-label="費用 255 元，已付">
-              <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-              <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
-              <span class="summary-fee-amount">$255</span>
-              <span class="summary-fee-state">已付</span>
-            </div>
+        </div>
+        <div class="summary-status">
+          <p class="summary-status-text">狀態：<span class="summary-status-value">已參加</span></p>
+          <div class="summary-fee" aria-label="費用 255 元，已付">
+            <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
+            <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+            <span class="summary-fee-amount">$255</span>
+            <span class="summary-fee-state">已付</span>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="content">
-          <div class="segment-tabs" role="tablist" aria-label="名單分類">
-            <button
-              v-for="tab in SEGMENT_TABS"
-              :key="tab"
-              class="segment-tab"
-              :class="{ 'is-active': activeSegment === tab }"
-              type="button"
-              role="tab"
-              :aria-selected="String(activeSegment === tab)"
-              @click="activeSegment = tab"
-            >
-              {{ tab }}
-            </button>
-          </div>
-          <div class="list">
-            <div v-for="(member, index) in MEMBERS" :key="`${member.name}-${index}`" class="row">
-              <div class="rank">{{ index + 1 }}</div>
-              <div class="avatar" :style="member.image ? undefined : { background: member.color }">
-                <img v-if="member.image" :src="member.image" alt="" />
-                <template v-else>{{ member.badge }}</template>
-              </div>
-              <div class="name">{{ member.name }}</div>
-              <div v-if="member.status" class="status-tag">{{ member.status }}</div>
+      <section class="content">
+        <div class="segment-tabs" role="tablist" aria-label="名單分類">
+          <button
+            v-for="tab in SEGMENT_TABS"
+            :key="tab"
+            class="segment-tab"
+            :class="{ 'is-active': activeSegment === tab }"
+            type="button"
+            role="tab"
+            :aria-selected="String(activeSegment === tab)"
+            @click="activeSegment = tab"
+          >
+            {{ tab }}
+          </button>
+        </div>
+        <div class="list">
+          <div v-for="(member, index) in MEMBERS" :key="`${member.name}-${index}`" class="row">
+            <div class="rank">{{ index + 1 }}</div>
+            <div class="avatar" :style="member.image ? undefined : { background: member.color }">
+              <img v-if="member.image" :src="member.image" alt="" />
+              <template v-else>{{ member.badge }}</template>
             </div>
+            <div class="name">{{ member.name }}</div>
+            <div v-if="member.status" class="status-tag">{{ member.status }}</div>
           </div>
-          <div class="version">{{ APP_VERSION }}</div>
-        </section>
-      </div>
+        </div>
+        <div class="version">{{ APP_VERSION }}</div>
+      </section>
     </div>
   </main>
 </template>
@@ -88,18 +86,6 @@ const activeSegment = ref(SEGMENT_TABS[0])
 .ended-activity-page {
   height: 100%;
   box-shadow: var(--shadow-page);
-}
-
-.app-scroll {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.app-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .scroll-content {
