@@ -46,7 +46,6 @@
     const state = window.history.state
     const from = state?.__inAppFrom
     const fallbackFrom = state?.__inAppFallbackFrom
-    console.log(from)
 
     if (typeof from === 'string' && from.startsWith('/')) {
       router.replace({
