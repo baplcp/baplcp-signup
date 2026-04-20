@@ -12,6 +12,8 @@
 
   const hiddenHeaderPath = ['group-list', 'create-activity']
   const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
+  const simpleHeaderPath = ['group-list']
+  const isShowSinpleHeader = computed(() => simpleHeaderPath.includes(route.name))
   const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
   const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
   const navStyle = computed(() => ({
@@ -62,8 +64,15 @@
 
 <template>
   <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl" >
+    <header v-if="isShowSinpleHeader" class="simple-header">
+      <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </header>
     <header
-      v-if="isShowHeader"
+      v-else-if="isShowHeader"
       class="nav"
       :class="{ 'is-scrolled': isNavScrolled }"
       :style="navStyle"
@@ -173,6 +182,30 @@
 
 .nav.is-scrolled .back-btn {
   color: var(--primary-700);
+}
+
+.simple-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 60px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(16, 24, 64, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.simple-header .icon-button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #667095;
+  flex: 0 0 auto;
 }
 
 .brand {

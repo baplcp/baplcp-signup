@@ -2,19 +2,6 @@
 import { onMounted } from 'vue'
 
 onMounted(() => {
-  var backButton = document.getElementById('back-button')
-
-  if (backButton) {
-    backButton.addEventListener('click', function () {
-      if (window.history.length > 1) {
-        window.history.back()
-        return
-      }
-
-      window.location.href = './index.html'
-    })
-  }
-
   var segmentTabs = document.querySelectorAll('[data-segment]')
   var moreButtons = document.querySelectorAll('[data-target-segment]')
   var historyRows = document.querySelectorAll('.history-list .history-row')
@@ -66,14 +53,6 @@ onMounted(() => {
 
 <template>
   <main class="group-list-page">
-    <header class="topbar">
-      <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-    </header>
-
     <section class="page">
       <h1 class="page-title">已發起的球局</h1>
 
@@ -205,30 +184,6 @@ onMounted(() => {
 .group-list-page {
   background: var(--surface);
   height: 100%;
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 60px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid rgba(16, 24, 64, 0.06);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.icon-button {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  color: #667095;
-  flex: 0 0 auto;
 }
 
 .page {
