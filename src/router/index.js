@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, START_LOCATION } from 'vue-router'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -29,6 +29,16 @@ const router = createRouter({
       component: () => import('~/views/ended-activity.vue'),
     },
   ],
+})
+
+router.afterEach((to, from, failure) => {
+  if (failure) return
+  if (from === START_LOCATION) return
+
+  history.replaceState({
+    ...history.state, 
+    __inAppFrom: from.fullPath
+  }, '')
 })
 
 export default router

@@ -1,12 +1,13 @@
 <script setup>
   import { ref, computed } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
 
   const route = useRoute()
+  const router = useRouter()
 
   const isMenuOpen = ref(false)
 
-  const hiddenHeaderPath = ['group-list', 'create-activity', 'ended-activity']
+  const hiddenHeaderPath = ['group-list', 'create-activity']
   const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
 
   function toggleMenu() {
@@ -16,11 +17,26 @@
   function closeMenu() {
     isMenuOpen.value = false
   }
+
+  function goBack() {
+    const from = window.history.state?.__inAppFrom
+
+    if (typeof from === 'string' && from.startsWith('/')) {
+      router.replace(from)
+    } else {
+      router.replace({ name: 'index' })
+    }
+  }
 </script>
 
 <template>
   <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
     <header v-if="isShowHeader" class="nav">
+      <button class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
       <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <div class="nav-title">華江高中臨打報名</div>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
@@ -364,6 +380,16 @@
   font-size: 17px;
   line-height: 1.25;
   font-weight: 500;
+}
+
+.back-btn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: 0 0 auto;
+  transition: color 0.25s ease;
 }
 
 @media (max-width: 380px) {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 const APP_VERSION = 'v2026.04.15-ended-01'
 const SEGMENT_TABS = ['全部', '臨打', '季打']
@@ -15,45 +15,12 @@ const MEMBERS = [
 ]
 
 const activeSegment = ref(SEGMENT_TABS[0])
-const navProgress = ref(0)
-const isNavScrolled = computed(() => navProgress.value > 0.55)
-const navStyle = computed(() => ({
-  '--nav-progress': String(navProgress.value),
-  '--nav-bg-opacity': String(navProgress.value * 0.94),
-}))
-
-function handleScroll(event) {
-  const fadeDistance = 120
-  navProgress.value = Math.max(0, Math.min(event.currentTarget.scrollTop / fadeDistance, 1))
-}
-
-function goBack() {
-  if (window.history.length > 1) {
-    window.history.back()
-    return
-  }
-
-  window.location.href = './index.html'
-}
 </script>
 
 <template>
   <main class="app-shell ended-activity-page">
-    <div class="app-scroll" @scroll.passive="handleScroll">
+    <div class="app-scroll">
       <div class="scroll-content">
-        <header class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
-          <button class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
-          <div class="nav-title">已結束的球局</div>
-          <button class="menu-btn" type="button" aria-label="開啟選單">
-            <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
-          </button>
-        </header>
-
         <section class="hero">
           <div class="hero-layout">
             <div class="hero-copy">
