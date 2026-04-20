@@ -1,14 +1,29 @@
 <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, provide, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
 
   const route = useRoute()
   const router = useRouter()
 
   const isMenuOpen = ref(false)
+  const navScrollProgress = ref(0)
 
   const hiddenHeaderPath = ['group-list', 'create-activity']
   const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
+  const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
+  const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
+  const navStyle = computed(() => ({
+    '--nav-progress': String(navScrollProgress.value),
+    '--nav-bg-opacity': String(navBackgroundOpacity.value),
+  }))
+
+  function setNavScrollProgress(progress) {
+    navScrollProgress.value = Math.max(0, Math.min(Number(progress) || 0, 1))
+  }
+
+  function resetNavScrollState() {
+    navScrollProgress.value = 0
+  }
 
   function toggleMenu() {
     isMenuOpen.value = !isMenuOpen.value
@@ -27,11 +42,27 @@
       router.replace({ name: 'index' })
     }
   }
+
+  provide('setNavScrollProgress', setNavScrollProgress)
+  provide('resetNavScrollState', resetNavScrollState)
+
+  watch(
+    () => route.fullPath,
+    () => {
+      closeMenu()
+      resetNavScrollState()
+    },
+  )
 </script>
 
 <template>
   <div class="h-screen md:h-[calc(100vh-48px)] overflow-hidden md:rounded-3xl w-full md:w-97.5 " >
-    <header v-if="isShowHeader" class="nav">
+    <header
+      v-if="isShowHeader"
+      class="nav"
+      :class="{ 'is-scrolled': isNavScrolled }"
+      :style="navStyle"
+    >
       <button class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />

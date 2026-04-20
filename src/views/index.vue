@@ -1,75 +1,65 @@
 <script setup>
-import { onMounted } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
+
+const APP_VERSION = 'v2026.04.15-03'
+const NAV_FADE_DISTANCE = 120
+
+const setNavScrollProgress = inject('setNavScrollProgress', () => {})
+const resetNavScrollState = inject('resetNavScrollState', () => {})
+const openFaqIndexes = ref([])
+
+const faqs = [
+  {
+    question: '每週臨打的報名時間是什麼時候？',
+    answer: '一般可在每週公告貼文發布後開始報名。正式上線後可把這段替換成實際規則或表單開放時間。',
+  },
+  {
+    question: '這個群組的分級強度為何？',
+    answer: '這裡先放示意文字。之後可以改成你的實際球隊分級、強度描述與參加建議。',
+  },
+  {
+    question: '我可以幫非群內的朋友報名嗎？',
+    answer: '可以把這裡改成報名政策，例如是否允許代報、是否需要先加入群組、是否要補填聯絡資訊。',
+  },
+  {
+    question: '如果加入群組後都沒出現會被踢出嗎？',
+    answer: '這一段目前是佔位內容。你之後可以直接把實際管理規則補進來，不用重寫整頁。',
+  },
+  {
+    question: '這個群組的分級強度為何？',
+    answer: '如果這題與上方重複，後續可以改成其他常見提問，或保留作為不同情境的補充說明。',
+  },
+  {
+    question: '我可以幫非群內的朋友報名嗎？',
+    answer: '這裡也先保留與設計稿一致的視覺結構，方便你之後換成正式問答內容。',
+  },
+]
+
+function handleScroll(event) {
+  setNavScrollProgress(event.currentTarget.scrollTop / NAV_FADE_DISTANCE)
+}
+
+function isFaqOpen(index) {
+  return openFaqIndexes.value.includes(index)
+}
+
+function toggleFaq(index) {
+  openFaqIndexes.value = isFaqOpen(index)
+    ? openFaqIndexes.value.filter((openIndex) => openIndex !== index)
+    : [...openFaqIndexes.value, index]
+}
 
 onMounted(() => {
-  var APP_VERSION = 'v2026.04.15-03'
-  var scrollContainer = document.querySelector('.phone-scroll')
-  var nav = document.querySelector('.nav')
-  var appVersion = document.getElementById('app-version')
+  resetNavScrollState()
+})
 
-  if (appVersion) {
-    appVersion.textContent = APP_VERSION
-  }
-
-  function syncHeaderState() {
-    if (!scrollContainer || !nav) return
-    var fadeDistance = 120
-    var progress = Math.max(0, Math.min(scrollContainer.scrollTop / fadeDistance, 1))
-    nav.style.setProperty('--nav-progress', String(progress))
-    nav.style.setProperty('--nav-bg-opacity', String(progress * 0.94))
-    nav.classList.toggle('is-scrolled', progress > 0.55)
-  }
-
-  if (scrollContainer) {
-    scrollContainer.addEventListener('scroll', syncHeaderState, { passive: true })
-    syncHeaderState()
-  }
-
-  function initSideMenu() {
-    var shell = document.querySelector('.phone-shell')
-    var overlay = document.getElementById('menu-overlay')
-    var openButton = document.querySelector('.menu-btn')
-
-    if (!shell || !overlay || !openButton) return
-
-    function setMenuOpen(isOpen) {
-      shell.classList.toggle('menu-open', isOpen)
-      overlay.classList.toggle('is-open', isOpen)
-      overlay.setAttribute('aria-hidden', String(!isOpen))
-      overlay.inert = !isOpen
-
-      var focusTarget = isOpen ? overlay.querySelector('.drawer-close') : openButton
-      if (focusTarget) {
-        focusTarget.focus({ preventScroll: true })
-      }
-    }
-
-    openButton.addEventListener('click', function () {
-      setMenuOpen(true)
-    })
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
-        setMenuOpen(false)
-      }
-    })
-  }
-
-  initSideMenu()
-
-  document.querySelectorAll('.faq-question').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var item = button.closest('.faq-item')
-      var expanded = button.getAttribute('aria-expanded') === 'true'
-      button.setAttribute('aria-expanded', String(!expanded))
-      item.classList.toggle('is-open', !expanded)
-    })
-  })
+onBeforeUnmount(() => {
+  resetNavScrollState()
 })
 </script>
 
 <template>
-  <div class="phone-scroll">
+  <div class="phone-scroll" @scroll.passive="handleScroll">
     <section class="hero">
       <div class="hero-content">
         <div class="hero-cat" aria-hidden="true">
@@ -131,51 +121,26 @@ onMounted(() => {
       <section class="section" aria-labelledby="faq-title">
         <h2 id="faq-title">常見問題</h2>
         <div class="faq-list">
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>每週臨打的報名時間是什麼時候？</span>
+          <article
+            v-for="(faq, index) in faqs"
+            :key="`${faq.question}-${index}`"
+            class="faq-item"
+            :class="{ 'is-open': isFaqOpen(index) }"
+          >
+            <button
+              class="faq-question"
+              type="button"
+              :aria-expanded="String(isFaqOpen(index))"
+              @click="toggleFaq(index)"
+            >
+              <span>{{ faq.question }}</span>
               <i class="faq-arrow" aria-hidden="true"></i>
             </button>
-            <div class="faq-answer">一般可在每週公告貼文發布後開始報名。正式上線後可把這段替換成實際規則或表單開放時間。</div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>這個群組的分級強度為何？</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">這裡先放示意文字。之後可以改成你的實際球隊分級、強度描述與參加建議。</div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>我可以幫非群內的朋友報名嗎？</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">可以把這裡改成報名政策，例如是否允許代報、是否需要先加入群組、是否要補填聯絡資訊。</div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>如果加入群組後都沒出現會被踢出嗎？</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">這一段目前是佔位內容。你之後可以直接把實際管理規則補進來，不用重寫整頁。</div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>這個群組的分級強度為何？</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">如果這題與上方重複，後續可以改成其他常見提問，或保留作為不同情境的補充說明。</div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>我可以幫非群內的朋友報名嗎？</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">這裡也先保留與設計稿一致的視覺結構，方便你之後換成正式問答內容。</div>
+            <div class="faq-answer">{{ faq.answer }}</div>
           </article>
         </div>
       </section>
-      <div class="app-version" id="app-version">v--</div>
+      <div class="app-version">{{ APP_VERSION }}</div>
     </section>
   </div>
 </template>
