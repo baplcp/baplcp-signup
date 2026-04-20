@@ -898,7 +898,7 @@ async function handleCreateActivity() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid var(--line);
+  border: 1px solid var(--neutral-300);
   border-radius: 8px;
   background: #fff;
   padding: 10px;
@@ -989,7 +989,7 @@ async function handleCreateActivity() {
   align-items: center;
   gap: 8px;
   min-height: 41px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--neutral-300);
   border-radius: 8px;
   background: #fff;
   padding: 10px;
@@ -1010,7 +1010,7 @@ async function handleCreateActivity() {
 .fee-card {
   display: grid;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--neutral-300);
   border-radius: 12px;
   background: #fff;
 }
@@ -1557,12 +1557,6 @@ async function handleCreateActivity() {
 }
 
 @media (max-width: 500px) {
-  body {
-    padding: 0;
-    display: block;
-    background: #fff;
-  }
-
   input,
   select,
   .money-input input,
