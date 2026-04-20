@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 
 @layer base {
+  * {
+    touch-action: manipulation;
+  }
+
   :root {
     --primary-100: #eef1ff;
     --primary-200: #eff1fe;
@@ -32,6 +36,8 @@
     --neutral-650: #65708b;
     --neutral-850: #18204f;
     --neutral-900: #101840;
+
+
     --shadow-app: 0 24px 64px rgba(30, 42, 110, 0.16);
     --shadow-page: 0 24px 60px rgba(71, 82, 163, 0.18);
     --shadow-primary-card: 2px 2px 28px rgba(90, 90, 226, 0.3);
@@ -41,7 +47,12 @@
     --text: var(--neutral-900);
     --nav-height: 60px;
     --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
+    --muted: var(--neutral-500);
     background: var(--page-bg);
+    --line: var(--neutral-300);
+    --line-soft: var(--neutral-250);
+    --section: var(--neutral-50);
+    --selected: var(--primary-100);
   }
 
   .phone-scroll {
@@ -95,22 +106,8 @@
     --shadow: var(--shadow-app);
   }
 
-  .create-activity-page {
-    --primary: var(--primary-600);
-    --secondary: var(--secondary-500);
-    --text: var(--neutral-900);
-    --muted: var(--neutral-500);
-    --muted-soft: var(--neutral-500);
-    --line: var(--neutral-300);
-    --line-soft: var(--neutral-250);
-    --section: var(--neutral-50);
-    --surface: var(--neutral-0);
-    --selected: var(--primary-100);
-    --shadow: var(--shadow-app);
-  }
-
   body {
-    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     @apply flex justify-center items-center h-screen;
   }
 
@@ -126,6 +123,47 @@
     padding: 0;
     cursor: pointer;
     outline: none;
+  }
+
+  input,
+  select {
+    width: 100%;
+    min-height: 41px;
+    border: 1px solid var(--neutral-300);
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    outline: none;
+    appearance: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  input::placeholder {
+    color: var(--muted-soft);
+  }
+
+  input:focus,
+  select:focus,
+  .control-button:focus {
+    border-color: rgba(87, 104, 255, 0.72);
+    box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
+  }
+
+  select {
+    background-image: linear-gradient(45deg, transparent 50%, #646a80 50%), linear-gradient(135deg, #646a80 50%, transparent 50%);
+    background-position:
+      calc(100% - 18px) 50%,
+      calc(100% - 12px) 50%;
+    background-size:
+      6px 6px,
+      6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
   }
 
   #app {

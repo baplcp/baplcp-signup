@@ -451,7 +451,7 @@ async function handleCreateActivity() {
 </script>
 
 <template>
-  <main class="app-shell">
+  <main class="create-activity-page">
     <div class="app-scroll">
       <header class="sheet-topbar">
         <button class="cancel-link" type="button" @click="returnToPreviousPage">取消</button>
@@ -797,104 +797,13 @@ async function handleCreateActivity() {
   </main>
 </template>
 
-<style>
-:root {
-  --primary: #6574ff;
-  --secondary: #1bc4bf;
-  --text: #101840;
-  --muted: #8f95b2;
-  --muted-soft: #8f95b2;
-  --line: #d8dae5;
-  --line-soft: #e6e8f0;
-  --section: #f6f6f6;
-  --surface: #ffffff;
-  --selected: #eef1ff;
-  --shadow: 0 24px 64px rgba(30, 42, 110, 0.16);
-}
-
-* {
-  box-sizing: border-box;
-  touch-action: manipulation;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  color: var(--text);
-  background: radial-gradient(circle at top, rgba(87, 104, 255, 0.14), transparent 32%), linear-gradient(180deg, #f5f6fb 0%, #edf0f8 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 16px;
-}
-
-button,
-input,
-select {
-  font: inherit;
-}
-
-button {
-  border: 0;
-  padding: 0;
-  background: none;
-  color: inherit;
-  cursor: pointer;
-}
-
-input,
-select {
-  width: 100%;
-  min-height: 41px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-  outline: none;
-  appearance: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-input::placeholder {
-  color: var(--muted-soft);
-}
-
-select.is-placeholder {
-  color: var(--muted-soft);
-}
-
-input:focus,
-select:focus,
-.control-button:focus {
-  border-color: rgba(87, 104, 255, 0.72);
-  box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
-}
-
-select {
-  background-image: linear-gradient(45deg, transparent 50%, #646a80 50%), linear-gradient(135deg, #646a80 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) 50%,
-    calc(100% - 12px) 50%;
-  background-size:
-    6px 6px,
-    6px 6px;
-  background-repeat: no-repeat;
-  padding-right: 36px;
-}
-
-.app-shell {
-  width: min(100%, 390px);
-  height: min(844px, calc(100vh - 48px));
+<style scoped>
+.create-activity-page {
+  height: 100%;
   background: var(--surface);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-app);
   position: relative;
 }
 
@@ -923,7 +832,7 @@ select {
 }
 
 .cancel-link {
-  color: var(--muted-soft);
+  color: var(--muted);
   font-size: 15px;
   line-height: 1.4;
 }
@@ -962,7 +871,7 @@ select {
 
 .section-note {
   margin: 4px 0 0;
-  color: var(--muted-soft);
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.35;
   font-weight: 400;
@@ -1008,7 +917,7 @@ select {
   border-radius: 8px;
   background: #fff;
   padding: 10px;
-  color: var(--muted-soft);
+  color: var(--muted);
   font-size: 15px;
   line-height: 1.5;
   text-align: left;
@@ -1033,7 +942,7 @@ select {
 .helper-note,
 .auto-note {
   margin: 0;
-  color: var(--secondary);
+  color: var(--secondary-500);
   font-size: 13px;
   line-height: 1.35;
   font-weight: 400;
@@ -1224,7 +1133,7 @@ select {
 }
 
 .switch.is-on {
-  background: var(--secondary);
+  background: var(--secondary-500);
 }
 
 .switch.is-on::after {
@@ -1282,7 +1191,7 @@ select {
 }
 
 .choice-card.is-active {
-  border-color: var(--primary);
+  border-color: var(--primary-600);
 }
 
 .radio-mark {
@@ -1297,7 +1206,7 @@ select {
 }
 
 .choice-card.is-active .radio-mark {
-  border-color: var(--primary);
+  border-color: var(--primary-600);
 }
 
 .choice-card.is-active .radio-mark::after {
@@ -1305,7 +1214,7 @@ select {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--primary-600);
 }
 
 .choice-summary,
@@ -1324,7 +1233,7 @@ select {
 }
 
 .choice-copy {
-  color: var(--muted-soft);
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.3;
   font-weight: 400;
@@ -1380,7 +1289,7 @@ select {
   width: 100%;
   min-height: 54px;
   border-radius: 10px;
-  background: var(--secondary);
+  background: var(--secondary-500);
   color: #fff;
   font-size: 16px;
   line-height: 1.4;
@@ -1434,7 +1343,7 @@ select {
   min-height: 36px;
   display: grid;
   place-items: center;
-  color: var(--primary);
+  color: var(--primary-600);
 }
 
 .time-close {
@@ -1451,7 +1360,7 @@ select {
 
 .calendar-weekdays {
   margin-bottom: 6px;
-  color: var(--muted-soft);
+  color: var(--muted);
   font-size: 12px;
   text-align: center;
 }
@@ -1468,7 +1377,7 @@ select {
 }
 
 .calendar-day.is-selected {
-  background: var(--primary);
+  background: var(--primary-600);
   color: #fff;
 }
 
@@ -1496,7 +1405,7 @@ select {
 
 .calendar-action.is-primary,
 .time-action.is-primary {
-  background: var(--primary);
+  background: var(--primary-600);
   color: #fff;
 }
 
@@ -1640,7 +1549,7 @@ select {
   width: 100%;
   min-height: 48px;
   border-radius: 10px;
-  background: var(--primary);
+  background: var(--primary-600);
   color: #fff;
   font-size: 16px;
   line-height: 1.4;
