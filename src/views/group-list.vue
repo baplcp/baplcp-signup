@@ -65,7 +65,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="app-shell group-list-page">
+  <main class="group-list-page">
     <div class="app-scroll">
       <header class="topbar">
         <button class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
@@ -203,49 +203,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-  touch-action: manipulation;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  color: var(--text);
-  background: radial-gradient(circle at top, rgba(87, 104, 255, 0.14), transparent 32%), linear-gradient(180deg, #f5f6fb 0%, #edf0f8 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 16px;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  border: 0;
-  padding: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
 [hidden] {
   display: none !important;
 }
 
-.app-shell {
-  width: min(100%, 390px);
-  height: min(844px, calc(100vh - 48px));
+.group-list-page {
   background: var(--surface);
-  border-radius: 24px;
-  overflow: hidden;
   box-shadow: var(--shadow);
-  position: relative;
+  height: 100%;
 }
 
 .app-scroll {
