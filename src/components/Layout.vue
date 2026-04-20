@@ -43,10 +43,20 @@
   }
 
   function goBack() {
-    const from = window.history.state?.__inAppFrom
+    const state = window.history.state
+    const from = state?.__inAppFrom
+    const fallbackFrom = state?.__inAppFallbackFrom
+    console.log(from)
 
     if (typeof from === 'string' && from.startsWith('/')) {
-      router.replace(from)
+      router.replace({
+        path: from,
+        state: {
+          __inAppFrom: typeof fallbackFrom === 'string' && fallbackFrom.startsWith('/') ? fallbackFrom : '/',
+          __inAppFallbackFrom: '/',
+          __skipInAppFromUpdate: true,
+        },
+      })
     } else {
       router.replace({ name: 'index' })
     }

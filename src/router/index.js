@@ -31,14 +31,42 @@ const router = createRouter({
   ],
 })
 
+let pendingInAppFrom = null
+
+function getRouteFallback(path) {
+  return typeof path === 'string' && path.startsWith('/') ? path : '/'
+}
+
+router.beforeEach((to, from) => {
+  if (from === START_LOCATION) {
+    pendingInAppFrom = null
+    return
+  }
+
+  pendingInAppFrom = {
+    path: from.fullPath,
+    fallback: getRouteFallback(history.state?.__inAppFrom),
+  }
+})
+
 router.afterEach((to, from, failure) => {
   if (failure) return
   if (from === START_LOCATION) return
 
+  if (history.state?.__skipInAppFromUpdate) {
+    const { __skipInAppFromUpdate, ...state } = history.state
+    history.replaceState(state, '')
+    pendingInAppFrom = null
+    return
+  }
+
   history.replaceState({
-    ...history.state, 
-    __inAppFrom: from.fullPath
+    ...history.state,
+    __inAppFrom: pendingInAppFrom?.path ?? from.fullPath,
+    __inAppFallbackFrom: pendingInAppFrom?.fallback ?? '/',
   }, '')
+
+  pendingInAppFrom = null
 })
 
 export default router
