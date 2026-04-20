@@ -1,54 +1,20 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, ref } from 'vue'
 
-onMounted(() => {
-  var segmentTabs = document.querySelectorAll('[data-segment]')
-  var moreButtons = document.querySelectorAll('[data-target-segment]')
-  var historyRows = document.querySelectorAll('.history-list .history-row')
-  var segmentSections = {
-    latest: [document.getElementById('latest-section'), document.querySelector('.active-card')],
-    upcoming: [document.getElementById('upcoming-section'), document.querySelector('.upcoming-list')],
-    ended: [document.getElementById('ended-section'), document.querySelector('.history-list')],
-  }
+const activeSegment = ref('all')
+const showAllEndedRows = computed(() => activeSegment.value !== 'all')
 
-  function setSegment(segment) {
-    segmentTabs.forEach(function (tab) {
-      tab.classList.toggle('is-active', tab.dataset.segment === segment)
-    })
+function setSegment(segment) {
+  activeSegment.value = segment
+}
 
-    Object.keys(segmentSections).forEach(function (key) {
-      var shouldShow = segment === 'all' || segment === key
+function isSegmentActive(segment) {
+  return activeSegment.value === segment
+}
 
-      segmentSections[key].forEach(function (node) {
-        if (node) {
-          node.hidden = !shouldShow
-        }
-      })
-    })
-
-    moreButtons.forEach(function (button) {
-      button.hidden = segment !== 'all'
-    })
-
-    historyRows.forEach(function (row, index) {
-      row.hidden = segment === 'all' && index > 2
-    })
-  }
-
-  segmentTabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      setSegment(tab.dataset.segment)
-    })
-  })
-
-  moreButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      setSegment(button.dataset.targetSegment)
-    })
-  })
-
-  setSegment('all')
-})
+function isSegmentVisible(segment) {
+  return activeSegment.value === 'all' || activeSegment.value === segment
+}
 </script>
 
 <template>
@@ -57,14 +23,14 @@ onMounted(() => {
       <h1 class="page-title">已發起的球局</h1>
 
       <nav class="segment-tabs" aria-label="球局分類">
-        <button class="segment-tab is-active" type="button" data-segment="all">全部</button>
-        <button class="segment-tab" type="button" data-segment="latest">最新球局</button>
-        <button class="segment-tab" type="button" data-segment="upcoming">即將到來</button>
-        <button class="segment-tab" type="button" data-segment="ended">已結束</button>
+        <button class="segment-tab" :class="{ 'is-active': isSegmentActive('all') }" type="button" @click="setSegment('all')">全部</button>
+        <button class="segment-tab" :class="{ 'is-active': isSegmentActive('latest') }" type="button" @click="setSegment('latest')">最新球局</button>
+        <button class="segment-tab" :class="{ 'is-active': isSegmentActive('upcoming') }" type="button" @click="setSegment('upcoming')">即將到來</button>
+        <button class="segment-tab" :class="{ 'is-active': isSegmentActive('ended') }" type="button" @click="setSegment('ended')">已結束</button>
       </nav>
 
-      <h2 class="section-title" id="latest-section">最新球局</h2>
-      <article class="active-card">
+      <h2 v-show="isSegmentVisible('latest')" class="section-title" id="latest-section">最新球局</h2>
+      <article v-show="isSegmentVisible('latest')" class="active-card">
         <div class="active-count" aria-label="臨打缺 9 人">
           <span class="active-count-label">臨打缺</span>
           <span class="active-count-value">9</span>
@@ -76,11 +42,11 @@ onMounted(() => {
         <RouterLink to="/active-activity" class="go-button">前往</RouterLink>
       </article>
 
-      <div class="section-heading" id="upcoming-section">
+      <div v-show="isSegmentVisible('upcoming')" class="section-heading" id="upcoming-section">
         <h2 class="section-title">即將到來</h2>
-        <button class="more-button" type="button" data-target-segment="upcoming">更多</button>
+        <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('upcoming')">更多</button>
       </div>
-      <div class="upcoming-list" aria-label="即將到來">
+      <div v-show="isSegmentVisible('upcoming')" class="upcoming-list" aria-label="即將到來">
         <RouterLink class="history-row" to="/active-activity">
           <div class="event-content">
             <p class="event-date">4.16 (日)<span class="divider">｜</span>12:20-15:20</p>
@@ -115,11 +81,11 @@ onMounted(() => {
         </RouterLink>
       </div>
 
-      <div class="section-heading history-title" id="ended-section">
+      <div v-show="isSegmentVisible('ended')" class="section-heading history-title" id="ended-section">
         <h2 class="section-title">已結束</h2>
-        <button class="more-button" type="button" data-target-segment="ended">更多</button>
+        <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('ended')">更多</button>
       </div>
-      <div class="history-list" aria-label="已結束">
+      <div v-show="isSegmentVisible('ended')" class="history-list" aria-label="已結束">
         <RouterLink class="history-row" to="/ended-activity">
           <div class="event-content">
             <p class="event-date">4.02 (日)</p>
@@ -152,7 +118,7 @@ onMounted(() => {
           </svg>
         </RouterLink>
 
-        <RouterLink class="history-row" to="/ended-activity">
+        <RouterLink v-show="showAllEndedRows" class="history-row" to="/ended-activity">
           <div class="event-content">
             <p class="event-date">3.14 (日)</p>
             <p class="event-location">板橋柏吉倫排球場</p>
@@ -162,7 +128,7 @@ onMounted(() => {
           </svg>
         </RouterLink>
 
-        <RouterLink class="history-row" to="/ended-activity">
+        <RouterLink v-show="showAllEndedRows" class="history-row" to="/ended-activity">
           <div class="event-content">
             <p class="event-date">3.07(日)</p>
             <p class="event-location">板橋柏吉倫排球場</p>
@@ -177,10 +143,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-[hidden] {
-  display: none !important;
-}
-
 .group-list-page {
   background: var(--surface);
   height: 100%;
