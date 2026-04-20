@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-
-const APP_VERSION = 'v2026.04.15-03'
+import { APP_VERSION } from '~/assets/appVersion'
 
 const openFaqIndexes = ref([])
 

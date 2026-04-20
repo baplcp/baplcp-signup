@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, reactive, ref } from 'vue'
+import { APP_VERSION } from '~/assets/appVersion'
 
-const APP_VERSION = 'v2026.04.18-active-drawer-04'
 const MEMBER_LIST = [
   { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
   { name: '施政維', badge: '施', image: import.meta.env.BASE_URL + '/images/profile02.png' },

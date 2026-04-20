@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import { APP_VERSION } from '~/assets/appVersion'
 
-const APP_VERSION = 'v2026.04.15-ended-01'
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const MEMBERS = [
   { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
