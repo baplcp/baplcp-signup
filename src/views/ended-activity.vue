@@ -120,7 +120,7 @@ function goBack() {
 <style scoped>
 .ended-activity-page {
   height: 100%;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-page);
 }
 
 .app-scroll {
@@ -261,7 +261,7 @@ function goBack() {
   padding: 16px 16px 0;
   background: var(--surface);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
+  box-shadow: 2px 2px 28px rgba(143, 149, 178, 0.24);
   overflow: hidden;
 }
 
@@ -419,7 +419,7 @@ function goBack() {
 }
 
 .segment-tab.is-active {
-  background: var(--hero-start);
+  background: var(--primary-700);
   color: #fff;
   font-weight: 600;
   box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
@@ -444,7 +444,7 @@ function goBack() {
   text-align: center;
   font-size: 13px;
   font-weight: 700;
-  color: var(--hero-start);
+  color: var(--primary-700);
 }
 
 .avatar {

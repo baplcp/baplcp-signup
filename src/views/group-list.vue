@@ -209,7 +209,7 @@ onMounted(() => {
 
 .group-list-page {
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-app);
   height: 100%;
 }
 
@@ -298,7 +298,7 @@ onMounted(() => {
   bottom: -1px;
   height: 2px;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-700);
 }
 
 .section-title {
@@ -323,7 +323,7 @@ onMounted(() => {
 }
 
 .more-button {
-  color: var(--primary);
+  color: var(--primary-700);
   font-size: 14px;
   line-height: 1.4;
   font-weight: 400;
@@ -364,7 +364,7 @@ onMounted(() => {
   font-size: 32px;
   line-height: 1.25;
   font-weight: 500;
-  color: var(--primary);
+  color: var(--primary-700);
 }
 
 .event-content {
@@ -379,7 +379,7 @@ onMounted(() => {
   font-size: 16px;
   line-height: 1.25;
   font-weight: 500;
-  color: var(--primary);
+  color: var(--primary-700);
   white-space: nowrap;
 }
 
@@ -410,7 +410,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 10px 17px;
-  background: var(--primary);
+  background: var(--primary-700);
   color: #fff;
   font-size: 16px;
   line-height: 1.25;
@@ -476,8 +476,8 @@ onMounted(() => {
 }
 
 .badge-success {
-  background: var(--success-bg);
-  color: var(--success);
+  background: var(--secondary-100);
+  color: var(--secondary-600);
 }
 
 .badge-muted {

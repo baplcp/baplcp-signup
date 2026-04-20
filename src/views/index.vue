@@ -199,8 +199,8 @@ onMounted(() => {
   position: relative;
   min-height: 274px;
   padding: 44px 0 106px;
-  background: linear-gradient(180deg, var(--hero-start) 0%, var(--hero-end) 100%);
-  box-shadow: var(--shadow-hero);
+  background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-400) 100%);
+  box-shadow: var(--shadow-primary-card);
   overflow: hidden;
 }
 
@@ -227,7 +227,7 @@ onMounted(() => {
   width: 210px;
   height: 224px;
   object-fit: contain;
-  filter: drop-shadow(var(--shadow-cat));
+  filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
 }
 
 .hero-copy {
@@ -260,11 +260,11 @@ onMounted(() => {
   max-width: 182px;
   padding: 12px 24px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent-start) 6.25%, var(--accent-mid) 47.596%, var(--accent-end) 100%);
-  color: var(--accent-text);
+  background: linear-gradient(180deg, var(--accent-100) 6.25%, var(--accent-300) 47.596%, var(--accent-500) 100%);
+  color: var(--accent-700);
   font-size: 16px;
   font-weight: 500;
-  box-shadow: var(--shadow-button);
+  box-shadow: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
 }
 
 .content {
@@ -289,7 +289,7 @@ onMounted(() => {
   overflow: hidden;
   border-radius: 16px;
   padding: 17px 12px;
-  background: linear-gradient(180deg, var(--card-start) 0%, var(--card-end) 100%);
+  background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-300) 100%);
   color: #fff;
   text-decoration: none;
 }
@@ -318,7 +318,7 @@ onMounted(() => {
   width: 72px;
   height: 72px;
   object-fit: contain;
-  filter: drop-shadow(var(--shadow-card-icon));
+  filter: drop-shadow(3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45));
 }
 
 .info-card.is-pending,
@@ -381,13 +381,13 @@ onMounted(() => {
   width: 58px;
   height: 58px;
   object-fit: contain;
-  filter: drop-shadow(var(--shadow-utility));
+  filter: drop-shadow(3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6));
 }
 
 .utility-item.warm .utility-icon img {
   width: 58px;
   height: 58px;
-  filter: drop-shadow(var(--shadow-utility-warm));
+  filter: drop-shadow(3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5));
 }
 
 .utility-item span {

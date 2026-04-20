@@ -481,7 +481,7 @@ function handleEscape() {
   padding: 16px 16px 0;
   background: var(--surface);
   border-radius: 12px;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-primary-card);
   overflow: hidden;
 }
 
@@ -689,7 +689,7 @@ function handleEscape() {
 }
 
 .segment-tab.is-active {
-  background: var(--hero-start);
+  background: var(--primary-700);
   color: #fff;
   font-weight: 600;
   box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
@@ -714,7 +714,7 @@ function handleEscape() {
   text-align: center;
   font-size: 13px;
   font-weight: 700;
-  color: var(--hero-start);
+  color: var(--primary-700);
 }
 
 .avatar {
