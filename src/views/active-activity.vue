@@ -162,7 +162,7 @@ function handleEscape() {
 </script>
 
 <template>
-  <main class="app-shell active-activity-page" :class="{ 'signup-open': signupOpen }" @keydown.esc="handleEscape">
+  <main class="active-activity-page" :class="{ 'signup-open': signupOpen }" @keydown.esc="handleEscape">
     <div class="app-scroll">
       <div class="scroll-content">
         <section class="hero">
@@ -324,51 +324,14 @@ function handleEscape() {
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-  touch-action: manipulation;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  background: radial-gradient(circle at top, rgba(87, 104, 255, 0.16), transparent 28%), linear-gradient(180deg, #f5f7ff 0%, #eef1ff 100%);
-  color: var(--text);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 16px;
-  overflow: hidden;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-button {
-  font: inherit;
-  border: 0;
-  padding: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.app-shell {
-  width: min(100%, 390px);
-  height: min(844px, calc(100vh - 48px));
-  background: #fff;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
+.active-activity-page {
+  height: 100%;
   position: relative;
 }
 
 .app-scroll {
-  flex: 1;
+  height: 100%;
+  padding-bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
