@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
-
-const openFaqIndexes = ref([])
+import HomeFaqList from '~/components/HomeFaqList.vue'
+import HomeHero from '~/components/HomeHero.vue'
+import HomeInfoCard from '~/components/HomeInfoCard.vue'
+import HomeUtilityItem from '~/components/HomeUtilityItem.vue'
 
 const faqs = [
   {
@@ -31,98 +32,79 @@ const faqs = [
   },
 ]
 
-function isFaqOpen(index) {
-  return openFaqIndexes.value.includes(index)
-}
+const infoCards = [
+  {
+    title: '球局列表',
+    subtitle: '各週人員名單',
+    imageSrc: import.meta.env.BASE_URL + '/images/card-party.png',
+    to: '/group-list',
+  },
+  {
+    title: '我的紀錄',
+    subtitle: '報名與請假',
+    imageSrc: import.meta.env.BASE_URL + '/images/card-calendar.png',
+    pending: true,
+  },
+]
 
-function toggleFaq(index) {
-  openFaqIndexes.value = isFaqOpen(index)
-    ? openFaqIndexes.value.filter((openIndex) => openIndex !== index)
-    : [...openFaqIndexes.value, index]
-}
+const utilityItems = [
+  {
+    label: '贊助胖貓貓',
+    imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
+    href: 'https://store.line.me/stickershop/product/30532466/',
+    external: true,
+    warm: true,
+  },
+  {
+    label: '臨打名單',
+    imageSrc: import.meta.env.BASE_URL + '/images/Registration list.png',
+    to: '/group-list',
+    pending: true,
+  },
+  {
+    label: '球隊公約',
+    imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
+    href: '#',
+    pending: true,
+  },
+  {
+    label: '活動相簿',
+    imageSrc: import.meta.env.BASE_URL + '/images/icon-album.png',
+    href: '#',
+    pending: true,
+  },
+]
 </script>
 
 <template>
   <div class="index-page">
-    <section class="hero">
-      <div class="hero-content">
-        <div class="hero-cat" aria-hidden="true">
-          <img class="cat-main" src="/images/hero-cat.png" alt="" />
-        </div>
-
-        <div class="hero-copy">
-          <h1>球局報名區</h1>
-          <p>最新臨打報名及季打請假</p>
-          <RouterLink to="/active-activity" class="cta">立即前往</RouterLink>
-        </div>
-      </div>
-    </section>
+    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" cta-to="/active-activity" />
 
     <section class="content">
       <div class="top-cards">
-        <RouterLink to="/group-list" class="info-card">
-          <p class="info-card-title">球局列表</p>
-          <p class="info-card-subtitle">各週人員名單</p>
-          <img src="/images/card-party.png" alt="" />
-        </RouterLink>
-        <article class="info-card is-pending">
-          <p class="info-card-title">我的紀錄</p>
-          <p class="info-card-subtitle">報名與請假</p>
-          <img src="/images/card-calendar.png" alt="" />
-        </article>
+        <HomeInfoCard v-for="card in infoCards" :key="card.title" :title="card.title" :subtitle="card.subtitle" :image-src="card.imageSrc" :to="card.to" :href="card.href" :pending="card.pending" />
       </div>
 
       <section class="section" aria-labelledby="utility-title">
         <h2 id="utility-title">常用功能</h2>
         <div class="utility-grid">
-          <a class="utility-item warm" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
-            <div class="utility-icon">
-              <img src="/images/icon-donate.png" alt="" />
-            </div>
-            <span>贊助胖貓貓</span>
-          </a>
-          <RouterLink to="/group-list" class="utility-item is-pending" aria-disabled="true" tabindex="-1">
-            <div class="utility-icon">
-              <img src="/images/Registration list.png" alt="" />
-            </div>
-            <span>臨打名單</span>
-          </RouterLink>
-          <a class="utility-item is-pending" href="#" aria-disabled="true" tabindex="-1">
-            <div class="utility-icon">
-              <img src="/images/ball.png" alt="" />
-            </div>
-            <span>球隊公約</span>
-          </a>
-          <a class="utility-item is-pending" href="#" aria-disabled="true" tabindex="-1">
-            <div class="utility-icon">
-              <img src="/images/icon-album.png" alt="" />
-            </div>
-            <span>活動相簿</span>
-          </a>
+          <HomeUtilityItem
+            v-for="item in utilityItems"
+            :key="item.label"
+            :label="item.label"
+            :image-src="item.imageSrc"
+            :to="item.to"
+            :href="item.href"
+            :warm="item.warm"
+            :pending="item.pending"
+            :external="item.external"
+          />
         </div>
       </section>
 
       <section class="section" aria-labelledby="faq-title">
         <h2 id="faq-title">常見問題</h2>
-        <div class="faq-list">
-          <article
-            v-for="(faq, index) in faqs"
-            :key="`${faq.question}-${index}`"
-            class="faq-item"
-            :class="{ 'is-open': isFaqOpen(index) }"
-          >
-            <button
-              class="faq-question"
-              type="button"
-              :aria-expanded="String(isFaqOpen(index))"
-              @click="toggleFaq(index)"
-            >
-              <span>{{ faq.question }}</span>
-              <i class="faq-arrow" aria-hidden="true"></i>
-            </button>
-            <div class="faq-answer">{{ faq.answer }}</div>
-          </article>
-        </div>
+        <HomeFaqList :faqs="faqs" />
       </section>
       <div class="app-version app-version-note">{{ APP_VERSION }}</div>
     </section>
@@ -130,78 +112,6 @@ function toggleFaq(index) {
 </template>
 
 <style scoped>
-.hero {
-  position: relative;
-  min-height: 274px;
-  padding: 44px 0 106px;
-  background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-400) 100%);
-  box-shadow: var(--shadow-primary-card);
-  overflow: hidden;
-}
-
-.hero-content {
-  display: grid;
-  grid-template-columns: 170px 1fr;
-  gap: 8px;
-  padding: 22px 14px 0 0;
-  align-items: center;
-  margin-top: -36px;
-}
-
-.hero-cat {
-  position: relative;
-  height: 188px;
-  margin-top: 26px;
-  overflow: visible;
-}
-
-.hero-cat img.cat-main {
-  position: absolute;
-  left: -2px;
-  top: -18px;
-  width: 210px;
-  height: 224px;
-  object-fit: contain;
-  filter: drop-shadow(-8px 9px 22.9px rgba(16, 24, 67, 0.45));
-}
-
-.hero-copy {
-  padding-right: 14px;
-  color: #fff;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.hero-copy h1 {
-  margin: 0 0 6px;
-  font-size: 28px;
-  line-height: 1.36;
-  font-weight: 700;
-  letter-spacing: 0.56px;
-}
-
-.hero-copy p {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.4;
-  text-align: center;
-}
-
-.cta {
-  margin-top: 10px;
-  width: 100%;
-  max-width: 182px;
-  padding: 12px 24px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent-100) 6.25%, var(--accent-300) 47.596%, var(--accent-500) 100%);
-  color: var(--accent-700);
-  font-size: 16px;
-  font-weight: 500;
-  box-shadow: 1px 7px 21.3px rgba(27, 17, 75, 0.45);
-}
-
 .content {
   position: relative;
   margin-top: -124px;
@@ -216,51 +126,6 @@ function toggleFaq(index) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-}
-
-.info-card {
-  position: relative;
-  min-height: 78px;
-  overflow: hidden;
-  border-radius: 16px;
-  padding: 17px 12px;
-  background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-300) 100%);
-  color: #fff;
-  text-decoration: none;
-}
-
-.info-card-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.34px;
-  line-height: 1.4;
-}
-
-.info-card-subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.24px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.4;
-}
-
-.info-card img {
-  position: absolute;
-  right: 4px;
-  top: 3px;
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  filter: drop-shadow(3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45));
-}
-
-.info-card.is-pending,
-.utility-item.is-pending {
-  opacity: 0.4;
-  pointer-events: none;
-  cursor: default;
 }
 
 .section {
@@ -280,139 +145,7 @@ function toggleFaq(index) {
   gap: 16px;
 }
 
-.utility-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-  text-decoration: none;
-  color: var(--text);
-}
-
-.utility-icon {
-  width: 76px;
-  height: 76px;
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.utility-icon::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border-radius: 999px;
-  background: #bac5ff;
-}
-
-.utility-item.warm .utility-icon::before {
-  background: #f2ba78;
-}
-
-.utility-icon img {
-  position: relative;
-  z-index: 1;
-  width: 58px;
-  height: 58px;
-  object-fit: contain;
-  filter: drop-shadow(3.995px 3.995px 15.279px rgba(87, 104, 255, 0.6));
-}
-
-.utility-item.warm .utility-icon img {
-  width: 58px;
-  height: 58px;
-  filter: drop-shadow(3.995px 3.995px 15.279px rgba(148, 77, 27, 0.5));
-}
-
-.utility-item span {
-  font-size: 13px;
-  line-height: 1.4;
-  font-weight: 500;
-}
-
-.faq-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.faq-item {
-  border-bottom: 1px solid var(--line);
-  overflow-anchor: none;
-}
-
-.faq-question {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 12px;
-  text-align: left;
-}
-
-.faq-question span {
-  flex: 1;
-  font-size: 15px;
-  line-height: 1.4;
-  color: var(--text);
-}
-
-.faq-arrow {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: #f3f5ff;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  transition: transform 0.2s ease;
-}
-
-.faq-arrow::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-top: 2px solid #8e99ff;
-  border-right: 2px solid #8e99ff;
-  transform: rotate(45deg);
-  margin-left: -2px;
-}
-
-.faq-answer {
-  max-height: 0;
-  overflow: hidden;
-  padding: 0 12px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--muted);
-  opacity: 0;
-  transition:
-    max-height 0.24s ease,
-    opacity 0.18s ease,
-    padding 0.24s ease;
-}
-
-.faq-item.is-open .faq-answer {
-  max-height: 180px;
-  padding: 0 12px 14px;
-  opacity: 1;
-}
-
-.faq-item.is-open .faq-arrow {
-  transform: rotate(90deg);
-}
-
 .app-version {
   margin-top: 28px;
-}
-
-@media (max-width: 500px) {
-  .phone-scroll {
-    overflow-y: auto;
-  }
-
-  .app-version {
-    margin: 20px 0 12px;
-  }
 }
 </style>
