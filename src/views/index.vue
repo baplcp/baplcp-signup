@@ -1,9 +1,9 @@
 <script setup>
 import { APP_VERSION } from '~/assets/appVersion'
-import HomeFaqList from '~/components/HomeFaqList.vue'
-import HomeHero from '~/components/HomeHero.vue'
-import HomeInfoCard from '~/components/HomeInfoCard.vue'
-import HomeUtilityItem from '~/components/HomeUtilityItem.vue'
+import HomeFaqList from '~/components/home/HomeFaqList.vue'
+import HomeHero from '~/components/home/HomeHero.vue'
+import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
+import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 
 const faqs = [
   {
