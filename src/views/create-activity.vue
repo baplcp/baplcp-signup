@@ -1,6 +1,9 @@
 <script setup>
 import { createClient } from '@supabase/supabase-js'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import CreateActivityChoiceCard from '../components/create-activity/CreateActivityChoiceCard.vue'
+import CreateActivityMoneyField from '../components/create-activity/CreateActivityMoneyField.vue'
+import CreateActivityTimeSelect from '../components/create-activity/CreateActivityTimeSelect.vue'
 
 const SUPABASE_URL = 'https://rkmxoqopptyuqhbeswqo.supabase.co'
 const SUPABASE_ANON_KEY =
@@ -261,12 +264,6 @@ function setChoice(field, value) {
   clearError(field)
 }
 
-function onChoiceKeydown(event, field, value) {
-  if (event.key !== 'Enter' && event.key !== ' ') return
-  event.preventDefault()
-  setChoice(field, value)
-}
-
 function isChoiceActive(field, value) {
   return form[field] === value
 }
@@ -284,6 +281,21 @@ function openTimePicker(field) {
     scrollToTimeValue('minute', timePicker.value.minute)
     scrollToTimeValue('period', timePicker.value.period)
   })
+}
+
+function openSeasonCloseCalendar() {
+  setChoice('seasonDeadlineType', 'custom')
+  openCalendar('season-close')
+}
+
+function openSeasonCloseTimePicker() {
+  setChoice('seasonDeadlineType', 'custom')
+  openTimePicker('seasonCloseTime')
+}
+
+function openPickupCloseTimePicker() {
+  setChoice('deadlineType', 'custom')
+  openTimePicker('pickupCloseTime')
 }
 
 function closeTimePicker() {
@@ -304,6 +316,11 @@ function stepTime(key, direction, values) {
   if (index >= values.length) index = 0
   timePicker.value[key] = values[index]
   scrollToTimeValue(key, timePicker.value[key], 'smooth')
+}
+
+function selectTimeValue(key, value) {
+  timePicker.value[key] = value
+  scrollToTimeValue(key, value, 'smooth')
 }
 
 function scrollToTimeValue(key, value, behavior = 'auto') {
@@ -366,11 +383,7 @@ function validate() {
   ]
 
   if (seasonEnabled.value) {
-    checks.push(
-      { field: 'seasonCapacity', ok: form.seasonCapacity !== '' },
-      { field: 'seasonOpenDate', ok: form.seasonOpenDate !== '' },
-      { field: 'seasonOpenTime', ok: form.seasonOpenTime !== '' }
-    )
+    checks.push({ field: 'seasonCapacity', ok: form.seasonCapacity !== '' }, { field: 'seasonOpenDate', ok: form.seasonOpenDate !== '' }, { field: 'seasonOpenTime', ok: form.seasonOpenTime !== '' })
 
     if (form.seasonDeadlineType === 'custom') {
       checks.push({ field: 'seasonCloseDate', ok: form.seasonCloseDate !== '' }, { field: 'seasonCloseTime', ok: form.seasonCloseTime !== '' })
@@ -477,7 +490,13 @@ async function handleCreateActivity() {
 
             <div class="field">
               <p class="field-label">日期（多選）</p>
-              <button id="date-picker-button" class="control-button" :class="{ 'has-value': selectedDates.length > 0, 'is-error': isError('activityDates') }" type="button" @click="openCalendar('activity')">
+              <button
+                id="date-picker-button"
+                class="control-button"
+                :class="{ 'has-value': selectedDates.length > 0, 'is-error': isError('activityDates') }"
+                type="button"
+                @click="openCalendar('activity')"
+              >
                 {{ selectedDateText }}
               </button>
               <input :value="activityDatesValue" name="activityDates" type="hidden" />
@@ -487,52 +506,69 @@ async function handleCreateActivity() {
             <div class="field">
               <p class="field-label">時間</p>
               <div class="time-row">
-                <span class="select-wrap" @click="openTimePicker('activityStartTime')">
-                  <select v-model="form.activityStartTime" name="activityStartTime" data-time-select :class="{ 'is-placeholder': form.activityStartTime === '', 'is-error': isError('activityStartTime') }" @change="clearError('activityStartTime')">
-                    <option value="">開始時間</option>
-                    <option v-for="time in timeOptions" :key="`activity-start-${time}`" :value="time">{{ time }}</option>
-                  </select>
-                </span>
+                <CreateActivityTimeSelect
+                  v-model="form.activityStartTime"
+                  name="activityStartTime"
+                  placeholder="開始時間"
+                  :options="timeOptions"
+                  :has-error="isError('activityStartTime')"
+                  @open="openTimePicker('activityStartTime')"
+                  @clear-error="clearError('activityStartTime')"
+                />
                 <span class="inline-text">至</span>
-                <span class="select-wrap" @click="openTimePicker('activityEndTime')">
-                  <select v-model="form.activityEndTime" name="activityEndTime" data-time-select :class="{ 'is-placeholder': form.activityEndTime === '', 'is-error': isError('activityEndTime') }" @change="clearError('activityEndTime')">
-                    <option value="">結束時間</option>
-                    <option v-for="time in timeOptions" :key="`activity-end-${time}`" :value="time">{{ time }}</option>
-                  </select>
-                </span>
+                <CreateActivityTimeSelect
+                  v-model="form.activityEndTime"
+                  name="activityEndTime"
+                  placeholder="結束時間"
+                  :options="timeOptions"
+                  :has-error="isError('activityEndTime')"
+                  @open="openTimePicker('activityEndTime')"
+                  @clear-error="clearError('activityEndTime')"
+                />
               </div>
             </div>
 
             <div class="field">
               <p class="field-label">單次收費</p>
               <div class="fee-grid">
-                <label class="fee-mini-field">
-                  <span class="mini-label">季打</span>
-                  <span class="money-input" :class="{ 'is-error': isError('seasonSingleFee') }">
-                    <span>$</span>
-                    <input id="season-single-fee" v-model="form.seasonSingleFee" name="seasonSingleFee" type="number" min="0" inputmode="numeric" @input="clearError('seasonSingleFee')" />
-                  </span>
-                </label>
-                <label class="fee-mini-field">
-                  <span class="mini-label">臨打</span>
-                  <span class="money-input" :class="{ 'is-error': isError('pickupSingleFee') }">
-                    <span>$</span>
-                    <input id="pickup-single-fee" v-model="form.pickupSingleFee" name="pickupSingleFee" type="number" min="0" inputmode="numeric" @input="clearError('pickupSingleFee')" />
-                  </span>
-                </label>
-                <label class="fee-mini-field">
-                  <span class="mini-label">冷氣</span>
-                  <span class="money-input" :class="{ 'is-error': isError('acFee') }">
-                    <span>$</span>
-                    <input id="ac-fee" v-model="form.acFee" name="acFee" type="number" min="0" inputmode="numeric" @input="clearError('acFee')" />
-                  </span>
-                </label>
+                <CreateActivityMoneyField
+                  v-model="form.seasonSingleFee"
+                  id="season-single-fee"
+                  name="seasonSingleFee"
+                  label="季打"
+                  :has-error="isError('seasonSingleFee')"
+                  @clear-error="clearError('seasonSingleFee')"
+                />
+                <CreateActivityMoneyField
+                  v-model="form.pickupSingleFee"
+                  id="pickup-single-fee"
+                  name="pickupSingleFee"
+                  label="臨打"
+                  :has-error="isError('pickupSingleFee')"
+                  @clear-error="clearError('pickupSingleFee')"
+                />
+                <CreateActivityMoneyField
+                  v-model="form.acFee"
+                  id="ac-fee"
+                  name="acFee"
+                  label="冷氣"
+                  :has-error="isError('acFee')"
+                  @clear-error="clearError('acFee')"
+                />
               </div>
             </div>
 
             <label class="field">
               <span class="field-label">單次人數</span>
-              <input v-model="form.singleCapacity" name="singleCapacity" type="number" min="1" inputmode="numeric" :class="{ 'is-error': isError('singleCapacity') }" @input="clearError('singleCapacity')" />
+              <input
+                v-model="form.singleCapacity"
+                name="singleCapacity"
+                type="number"
+                min="1"
+                inputmode="numeric"
+                :class="{ 'is-error': isError('singleCapacity') }"
+                @input="clearError('singleCapacity')"
+              />
             </label>
           </section>
 
@@ -544,7 +580,16 @@ async function handleCreateActivity() {
                 <h2 id="season-title" class="section-title">季打報名開放</h2>
                 <p v-if="isSeasonAvailabilityDisabled" class="section-note" :class="{ 'is-alert': isSeasonDisabledNoteAlert }">球局次數需 4 次以上</p>
               </div>
-              <button class="switch" :class="{ 'is-on': seasonEnabled, 'is-disabled': isSeasonAvailabilityDisabled }" type="button" role="switch" :aria-checked="String(seasonEnabled)" :aria-disabled="String(isSeasonAvailabilityDisabled)" aria-label="季打報名開放" @click="toggleSeason"></button>
+              <button
+                class="switch"
+                :class="{ 'is-on': seasonEnabled, 'is-disabled': isSeasonAvailabilityDisabled }"
+                type="button"
+                role="switch"
+                :aria-checked="String(seasonEnabled)"
+                :aria-disabled="String(isSeasonAvailabilityDisabled)"
+                aria-label="季打報名開放"
+                @click="toggleSeason"
+              ></button>
             </div>
 
             <div class="field-list season-fields" :class="{ 'is-collapsed': !seasonEnabled }">
@@ -562,7 +607,17 @@ async function handleCreateActivity() {
                   </label>
                   <label class="fee-input-row">
                     <span>$</span>
-                    <input id="season-fee" :value="seasonFee" name="seasonFee" type="text" inputmode="numeric" aria-label="季打費用" placeholder=" " readonly :style="{ '--season-fee-digits': seasonFeeDigits }" />
+                    <input
+                      id="season-fee"
+                      :value="seasonFee"
+                      name="seasonFee"
+                      type="text"
+                      inputmode="numeric"
+                      aria-label="季打費用"
+                      placeholder=" "
+                      readonly
+                      :style="{ '--season-fee-digits': seasonFeeDigits }"
+                    />
                     <span class="fee-unit">/人</span>
                   </label>
                 </div>
@@ -572,7 +627,13 @@ async function handleCreateActivity() {
               <label class="field">
                 <span class="field-label">季打名額</span>
                 <span class="select-wrap">
-                  <select id="season-capacity" v-model="form.seasonCapacity" name="seasonCapacity" :class="{ 'is-placeholder': form.seasonCapacity === '', 'is-error': isError('seasonCapacity') }" @change="clearError('seasonCapacity')">
+                  <select
+                    id="season-capacity"
+                    v-model="form.seasonCapacity"
+                    name="seasonCapacity"
+                    :class="{ 'is-placeholder': form.seasonCapacity === '', 'is-error': isError('seasonCapacity') }"
+                    @change="clearError('seasonCapacity')"
+                  >
                     <option value="">請選擇人數</option>
                     <option v-for="option in capacityOptions" :key="`season-capacity-${option}`" :value="option">{{ option === 'unlimited' ? '不限' : option }}</option>
                   </select>
@@ -582,49 +643,70 @@ async function handleCreateActivity() {
               <div class="field">
                 <p class="field-label">季打開放報名時間</p>
                 <div class="time-row">
-                  <button id="season-open-date-button" class="control-button" :class="{ 'has-value': form.seasonOpenDate, 'is-error': isError('seasonOpenDate') }" type="button" @click="openCalendar('season-open')">
+                  <button
+                    id="season-open-date-button"
+                    class="control-button"
+                    :class="{ 'has-value': form.seasonOpenDate, 'is-error': isError('seasonOpenDate') }"
+                    type="button"
+                    @click="openCalendar('season-open')"
+                  >
                     {{ form.seasonOpenDate ? formatDateLabel(form.seasonOpenDate) : '請選擇日期' }}
                   </button>
                   <input v-model="form.seasonOpenDate" name="seasonOpenDate" type="hidden" />
                   <span class="inline-text">的</span>
-                  <span class="select-wrap" @click="openTimePicker('seasonOpenTime')">
-                    <select id="season-open-time" v-model="form.seasonOpenTime" name="seasonOpenTime" data-time-select :class="{ 'is-placeholder': form.seasonOpenTime === '', 'is-error': isError('seasonOpenTime') }" @change="clearError('seasonOpenTime')">
-                      <option value="">幾點</option>
-                      <option v-for="time in timeOptions" :key="`season-open-${time}`" :value="time">{{ time }}</option>
-                    </select>
-                  </span>
+                  <CreateActivityTimeSelect
+                    id="season-open-time"
+                    v-model="form.seasonOpenTime"
+                    name="seasonOpenTime"
+                    placeholder="幾點"
+                    :options="timeOptions"
+                    :has-error="isError('seasonOpenTime')"
+                    @open="openTimePicker('seasonOpenTime')"
+                    @clear-error="clearError('seasonOpenTime')"
+                  />
                 </div>
               </div>
 
               <div class="field">
                 <p class="field-label"><strong>季打截止時間</strong></p>
                 <div class="choice-stack">
-                  <div class="choice-card" :class="{ 'is-active': isChoiceActive('seasonDeadlineType', 'unlimited'), 'is-condensed': isChoiceCondensed('seasonDeadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('seasonDeadlineType', 'unlimited'))" @click="setChoice('seasonDeadlineType', 'unlimited')" @keydown="onChoiceKeydown($event, 'seasonDeadlineType', 'unlimited')">
-                    <span class="radio-mark" aria-hidden="true"></span>
-                    <span class="choice-summary">
-                      <span class="choice-title">不限時間</span>
-                      <span class="choice-copy">管理員可手動關閉</span>
-                    </span>
-                  </div>
-                  <div class="choice-card" :class="{ 'is-active': isChoiceActive('seasonDeadlineType', 'custom'), 'is-condensed': isChoiceCondensed('seasonDeadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('seasonDeadlineType', 'custom'))" @click="setChoice('seasonDeadlineType', 'custom')" @keydown="onChoiceKeydown($event, 'seasonDeadlineType', 'custom')">
-                    <span class="radio-mark" aria-hidden="true"></span>
-                    <span class="choice-content">
-                      <span class="choice-title">設定截止時間</span>
-                      <span class="choice-rule is-date-time">
-                        <button id="season-close-date-button" class="control-button" :class="{ 'has-value': form.seasonCloseDate, 'is-error': isError('seasonCloseDate') }" type="button" @click.stop="setChoice('seasonDeadlineType', 'custom'); openCalendar('season-close')">
+                  <CreateActivityChoiceCard
+                    :active="isChoiceActive('seasonDeadlineType', 'unlimited')"
+                    :condensed="isChoiceCondensed('seasonDeadlineType')"
+                    title="不限時間"
+                    copy="管理員可手動關閉"
+                    @select="setChoice('seasonDeadlineType', 'unlimited')"
+                  />
+                  <CreateActivityChoiceCard
+                    :active="isChoiceActive('seasonDeadlineType', 'custom')"
+                    :condensed="isChoiceCondensed('seasonDeadlineType')"
+                    title="設定截止時間"
+                    @select="setChoice('seasonDeadlineType', 'custom')"
+                  >
+                    <span class="choice-rule is-date-time">
+                        <button
+                          id="season-close-date-button"
+                          class="control-button"
+                          :class="{ 'has-value': form.seasonCloseDate, 'is-error': isError('seasonCloseDate') }"
+                          type="button"
+                          @click.stop="openSeasonCloseCalendar"
+                        >
                           {{ form.seasonCloseDate ? formatDateLabel(form.seasonCloseDate) : '請選擇日期' }}
                         </button>
                         <input v-model="form.seasonCloseDate" name="seasonCloseDate" type="hidden" />
                         <span>的</span>
-                        <span class="select-wrap" @click.stop="setChoice('seasonDeadlineType', 'custom'); openTimePicker('seasonCloseTime')">
-                          <select id="season-close-time" v-model="form.seasonCloseTime" name="seasonCloseTime" data-time-select :class="{ 'is-placeholder': form.seasonCloseTime === '', 'is-error': isError('seasonCloseTime') }" @change="clearError('seasonCloseTime')">
-                            <option value="">幾點</option>
-                            <option v-for="time in timeOptions" :key="`season-close-${time}`" :value="time">{{ time }}</option>
-                          </select>
-                        </span>
+                        <CreateActivityTimeSelect
+                          id="season-close-time"
+                          v-model="form.seasonCloseTime"
+                          name="seasonCloseTime"
+                          placeholder="幾點"
+                          :options="timeOptions"
+                          :has-error="isError('seasonCloseTime')"
+                          @open="openSeasonCloseTimePicker"
+                          @clear-error="clearError('seasonCloseTime')"
+                        />
                       </span>
-                    </span>
-                  </div>
+                  </CreateActivityChoiceCard>
                 </div>
                 <input v-model="form.seasonDeadlineType" name="seasonDeadlineType" type="hidden" />
               </div>
@@ -640,53 +722,70 @@ async function handleCreateActivity() {
               <div class="time-row is-rule">
                 <span class="inline-text">每次活動</span>
                 <span class="select-wrap">
-                  <select v-model="form.pickupOpenDate" name="pickupOpenDate" :class="{ 'is-placeholder': form.pickupOpenDate === '', 'is-error': isError('pickupOpenDate') }" @change="clearError('pickupOpenDate')">
+                  <select
+                    v-model="form.pickupOpenDate"
+                    name="pickupOpenDate"
+                    :class="{ 'is-placeholder': form.pickupOpenDate === '', 'is-error': isError('pickupOpenDate') }"
+                    @change="clearError('pickupOpenDate')"
+                  >
                     <option value="">幾天前</option>
                     <option v-for="option in dayBeforeOptions" :key="`pickup-open-date-${option}`" :value="option">{{ option }}</option>
                   </select>
                 </span>
                 <span class="inline-text">的</span>
-                <span class="select-wrap" @click="openTimePicker('pickupOpenTime')">
-                  <select v-model="form.pickupOpenTime" name="pickupOpenTime" data-time-select :class="{ 'is-placeholder': form.pickupOpenTime === '', 'is-error': isError('pickupOpenTime') }" @change="clearError('pickupOpenTime')">
-                    <option value="">幾點</option>
-                    <option v-for="time in timeOptions" :key="`pickup-open-${time}`" :value="time">{{ time }}</option>
-                  </select>
-                </span>
+                <CreateActivityTimeSelect
+                  v-model="form.pickupOpenTime"
+                  name="pickupOpenTime"
+                  placeholder="幾點"
+                  :options="timeOptions"
+                  :has-error="isError('pickupOpenTime')"
+                  @open="openTimePicker('pickupOpenTime')"
+                  @clear-error="clearError('pickupOpenTime')"
+                />
               </div>
             </div>
 
             <div class="field">
               <p class="field-label"><strong>截止時間</strong></p>
               <div class="choice-stack">
-                <div class="choice-card" :class="{ 'is-active': isChoiceActive('deadlineType', 'unlimited'), 'is-condensed': isChoiceCondensed('deadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('deadlineType', 'unlimited'))" @click="setChoice('deadlineType', 'unlimited')" @keydown="onChoiceKeydown($event, 'deadlineType', 'unlimited')">
-                  <span class="radio-mark" aria-hidden="true"></span>
-                  <span class="choice-summary">
-                    <span class="choice-title">不限時間</span>
-                    <span class="choice-copy">活動開始前皆可報名</span>
-                  </span>
-                </div>
-                <div class="choice-card" :class="{ 'is-active': isChoiceActive('deadlineType', 'custom'), 'is-condensed': isChoiceCondensed('deadlineType') }" role="button" tabindex="0" :aria-pressed="String(isChoiceActive('deadlineType', 'custom'))" @click="setChoice('deadlineType', 'custom')" @keydown="onChoiceKeydown($event, 'deadlineType', 'custom')">
-                  <span class="radio-mark" aria-hidden="true"></span>
-                  <span class="choice-content">
-                    <span class="choice-title">設定截止時間</span>
+                  <CreateActivityChoiceCard
+                    :active="isChoiceActive('deadlineType', 'unlimited')"
+                    :condensed="isChoiceCondensed('deadlineType')"
+                    title="不限時間"
+                    copy="活動開始前皆可報名"
+                    @select="setChoice('deadlineType', 'unlimited')"
+                  />
+                  <CreateActivityChoiceCard
+                    :active="isChoiceActive('deadlineType', 'custom')"
+                    :condensed="isChoiceCondensed('deadlineType')"
+                    title="設定截止時間"
+                    @select="setChoice('deadlineType', 'custom')"
+                  >
                     <span class="choice-rule">
                       <span>每次活動</span>
                       <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom')">
-                        <select v-model="form.pickupCloseDate" name="pickupCloseDate" :class="{ 'is-placeholder': form.pickupCloseDate === '', 'is-error': isError('pickupCloseDate') }" @change="clearError('pickupCloseDate')">
+                        <select
+                          v-model="form.pickupCloseDate"
+                          name="pickupCloseDate"
+                          :class="{ 'is-placeholder': form.pickupCloseDate === '', 'is-error': isError('pickupCloseDate') }"
+                          @change="clearError('pickupCloseDate')"
+                        >
                           <option value="">幾天前</option>
                           <option v-for="option in dayBeforeOptions" :key="`pickup-close-date-${option}`" :value="option">{{ option }}</option>
                         </select>
                       </span>
                       <span>的</span>
-                      <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom'); openTimePicker('pickupCloseTime')">
-                        <select v-model="form.pickupCloseTime" name="pickupCloseTime" data-time-select :class="{ 'is-placeholder': form.pickupCloseTime === '', 'is-error': isError('pickupCloseTime') }" @change="clearError('pickupCloseTime')">
-                          <option value="">幾點</option>
-                          <option v-for="time in timeOptions" :key="`pickup-close-${time}`" :value="time">{{ time }}</option>
-                        </select>
-                      </span>
+                      <CreateActivityTimeSelect
+                        v-model="form.pickupCloseTime"
+                        name="pickupCloseTime"
+                        placeholder="幾點"
+                        :options="timeOptions"
+                        :has-error="isError('pickupCloseTime')"
+                        @open="openPickupCloseTimePicker"
+                        @clear-error="clearError('pickupCloseTime')"
+                      />
                     </span>
-                  </span>
-                </div>
+                  </CreateActivityChoiceCard>
               </div>
               <input v-model="form.deadlineType" name="deadlineType" type="hidden" />
             </div>
@@ -716,7 +815,14 @@ async function handleCreateActivity() {
         </div>
         <div class="calendar-weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
         <div class="calendar-grid">
-          <button v-for="day in calendarDays" :key="day.value" class="calendar-day" :class="{ 'is-muted': day.isMuted, 'is-selected': currentCalendarSelectedValues.includes(day.value) }" type="button" @click="selectCalendarDate(day.value)">
+          <button
+            v-for="day in calendarDays"
+            :key="day.value"
+            class="calendar-day"
+            :class="{ 'is-muted': day.isMuted, 'is-selected': currentCalendarSelectedValues.includes(day.value) }"
+            type="button"
+            @click="selectCalendarDate(day.value)"
+          >
             {{ day.label }}
           </button>
         </div>
@@ -741,7 +847,17 @@ async function handleCreateActivity() {
               </svg>
             </button>
             <div :ref="el => (timeWheelRefs.hour.value = el)" class="time-wheel" aria-label="小時" @scroll.passive="onTimeWheelScroll($event, 'hour', hours)">
-              <button v-for="hour in hours" :key="`hour-${hour}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.hour === hour }" type="button" :data-value="hour" @click="timePicker.value.hour = hour; scrollToTimeValue('hour', hour, 'smooth')">{{ hour }}</button>
+              <button
+                v-for="hour in hours"
+                :key="`hour-${hour}`"
+                class="time-wheel-option"
+                :class="{ 'is-selected': timePicker.value.hour === hour }"
+                type="button"
+                :data-value="hour"
+                @click="selectTimeValue('hour', hour)"
+              >
+                {{ hour }}
+              </button>
             </div>
             <button class="time-wheel-arrow" type="button" aria-label="小時增加" @click="stepTime('hour', 1, hours)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -756,7 +872,17 @@ async function handleCreateActivity() {
               </svg>
             </button>
             <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', minutes)">
-              <button v-for="minute in minutes" :key="`minute-${minute}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.minute === minute }" type="button" :data-value="minute" @click="timePicker.value.minute = minute; scrollToTimeValue('minute', minute, 'smooth')">{{ minute }}</button>
+              <button
+                v-for="minute in minutes"
+                :key="`minute-${minute}`"
+                class="time-wheel-option"
+                :class="{ 'is-selected': timePicker.value.minute === minute }"
+                type="button"
+                :data-value="minute"
+                @click="selectTimeValue('minute', minute)"
+              >
+                {{ minute }}
+              </button>
             </div>
             <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, minutes)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -771,7 +897,17 @@ async function handleCreateActivity() {
               </svg>
             </button>
             <div :ref="el => (timeWheelRefs.period.value = el)" class="time-wheel" aria-label="上午或下午" @scroll.passive="onTimeWheelScroll($event, 'period', periods)">
-              <button v-for="period in periods" :key="`period-${period}`" class="time-wheel-option" :class="{ 'is-selected': timePicker.value.period === period }" type="button" :data-value="period" @click="timePicker.value.period = period; scrollToTimeValue('period', period, 'smooth')">{{ period }}</button>
+              <button
+                v-for="period in periods"
+                :key="`period-${period}`"
+                class="time-wheel-option"
+                :class="{ 'is-selected': timePicker.value.period === period }"
+                type="button"
+                :data-value="period"
+                @click="selectTimeValue('period', period)"
+              >
+                {{ period }}
+              </button>
             </div>
             <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', 1, periods)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -787,7 +923,14 @@ async function handleCreateActivity() {
       </section>
     </div>
 
-    <div class="success-dialog-overlay shared-dialog-overlay phone-container modal-frame" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
+    <div
+      class="success-dialog-overlay shared-dialog-overlay phone-container modal-frame"
+      :class="{ 'is-open': dialog.isOpen }"
+      :aria-hidden="String(!dialog.isOpen)"
+      :inert="!dialog.isOpen"
+      @click.self="closeCreateDialog"
+      @keydown.esc="closeCreateDialog"
+    >
       <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
         <h2 id="create-dialog-title" class="success-dialog-title shared-dialog-title">{{ dialog.title }}</h2>
         <p class="success-dialog-copy shared-dialog-copy">{{ dialog.copy }}</p>
@@ -972,41 +1115,6 @@ async function handleCreateActivity() {
   gap: 12px;
 }
 
-.fee-mini-field {
-  display: grid;
-  gap: 8px;
-}
-
-.mini-label {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.2;
-  font-weight: 400;
-}
-
-.money-input {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 41px;
-  border: 1px solid var(--neutral-300);
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.25;
-}
-
-.money-input input {
-  min-height: 0;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
-  font-size: 15px;
-}
-
 .fee-card {
   display: grid;
   overflow: hidden;
@@ -1159,71 +1267,6 @@ async function handleCreateActivity() {
   gap: 12px;
 }
 
-.choice-card {
-  min-height: 80px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  padding: 14px;
-}
-
-.choice-card.is-condensed {
-  align-items: center;
-  min-height: 66px;
-}
-
-.choice-card.is-active {
-  border-color: var(--primary-600);
-}
-
-.radio-mark {
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--line-soft);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-
-.choice-card.is-active .radio-mark {
-  border-color: var(--primary-600);
-}
-
-.choice-card.is-active .radio-mark::after {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--primary-600);
-}
-
-.choice-summary,
-.choice-content {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.choice-title {
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.35;
-  font-weight: 600;
-}
-
-.choice-copy {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.3;
-  font-weight: 400;
-}
-
 .choice-rule {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1247,16 +1290,8 @@ async function handleCreateActivity() {
 #date-picker-button,
 #season-capacity,
 #season-open-date-button,
-#season-open-time,
-#season-close-date-button,
-#season-close-time,
-.money-input,
-.money-input input {
+#season-close-date-button {
   font-size: 15px;
-}
-
-.choice-card.is-condensed .choice-rule {
-  display: none;
 }
 
 .cta-fade {
@@ -1498,40 +1533,6 @@ async function handleCreateActivity() {
   .time-wheel::before,
   .time-wheel::after {
     height: 66px;
-  }
-}
-
-@media (max-width: 500px) {
-  input,
-  select,
-  .money-input input,
-  .fee-input-row input {
-    font-size: 15px;
-  }
-
-  #season-single-fee,
-  #pickup-single-fee,
-  #ac-fee,
-  #season-capacity,
-  #season-open-date-button,
-  #season-open-time,
-  #season-close-date-button,
-  #season-close-time,
-  .money-input,
-  .money-input input {
-    font-size: 15px;
-  }
-
-  .time-row.is-rule select,
-  .choice-rule select {
-    font-size: 15px;
-  }
-
-  .app-shell {
-    width: 100%;
-    height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
   }
 }
 
