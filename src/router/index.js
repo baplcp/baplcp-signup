@@ -60,11 +60,14 @@ router.afterEach((to, from, failure) => {
     return
   }
 
-  history.replaceState({
-    ...history.state,
-    __inAppFrom: pendingInAppFrom?.path ?? from.fullPath,
-    __inAppFallbackFrom: pendingInAppFrom?.fallback ?? '/',
-  }, '')
+  history.replaceState(
+    {
+      ...history.state,
+      __inAppFrom: pendingInAppFrom?.path ?? from.fullPath,
+      __inAppFallbackFrom: pendingInAppFrom?.fallback ?? '/',
+    },
+    ''
+  )
 
   pendingInAppFrom = null
 })

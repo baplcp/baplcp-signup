@@ -1,78 +1,78 @@
 <script setup>
-  import { ref, computed, watch, useTemplateRef } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch, useTemplateRef } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-  const route = useRoute()
-  const router = useRouter()
-  const scrollBox = useTemplateRef('scrollBox')
+const route = useRoute()
+const router = useRouter()
+const scrollBox = useTemplateRef('scrollBox')
 
-  const isIndexPage = computed(() => route.name === 'index')
-  const isMenuOpen = ref(false)
-  const navScrollProgress = ref(0)
+const isIndexPage = computed(() => route.name === 'index')
+const isMenuOpen = ref(false)
+const navScrollProgress = ref(0)
 
-  const hiddenHeaderPath = ['group-list', 'create-activity']
-  const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
-  const simpleHeaderPath = ['group-list']
-  const isShowSinpleHeader = computed(() => simpleHeaderPath.includes(route.name))
-  const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
-  const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
-  const navStyle = computed(() => ({
-    '--nav-progress': String(navScrollProgress.value),
-    '--nav-bg-opacity': String(navBackgroundOpacity.value),
-  }))
+const hiddenHeaderPath = ['group-list', 'create-activity']
+const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
+const simpleHeaderPath = ['group-list']
+const isShowSinpleHeader = computed(() => simpleHeaderPath.includes(route.name))
+const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
+const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
+const navStyle = computed(() => ({
+  '--nav-progress': String(navScrollProgress.value),
+  '--nav-bg-opacity': String(navBackgroundOpacity.value),
+}))
 
-  function setNavScrollProgress(progress) {
-    navScrollProgress.value = Math.max(0, Math.min(Number(progress) || 0, 1))
+function setNavScrollProgress(progress) {
+  navScrollProgress.value = Math.max(0, Math.min(Number(progress) || 0, 1))
+}
+
+const NAV_FADE_DISTANCE = 120
+function handleScroll(event) {
+  setNavScrollProgress(event.currentTarget.scrollTop / NAV_FADE_DISTANCE)
+}
+
+function resetNavScrollState() {
+  navScrollProgress.value = 0
+}
+
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+function closeMenu() {
+  isMenuOpen.value = false
+}
+
+function goBack() {
+  const state = window.history.state
+  const from = state?.__inAppFrom
+  const fallbackFrom = state?.__inAppFallbackFrom
+
+  if (typeof from === 'string' && from.startsWith('/')) {
+    router.replace({
+      path: from,
+      state: {
+        __inAppFrom: typeof fallbackFrom === 'string' && fallbackFrom.startsWith('/') ? fallbackFrom : '/',
+        __inAppFallbackFrom: '/',
+        __skipInAppFromUpdate: true,
+      },
+    })
+  } else {
+    router.replace({ name: 'index' })
   }
+}
 
-  const NAV_FADE_DISTANCE = 120
-  function handleScroll(event) {
-    setNavScrollProgress(event.currentTarget.scrollTop / NAV_FADE_DISTANCE)
+watch(
+  () => route.fullPath,
+  () => {
+    closeMenu()
+    resetNavScrollState()
+    scrollBox.value?.scrollTo(0, 0)
   }
-
-  function resetNavScrollState() {
-    navScrollProgress.value = 0
-  }
-
-  function toggleMenu() {
-    isMenuOpen.value = !isMenuOpen.value
-  }
-
-  function closeMenu() {
-    isMenuOpen.value = false
-  }
-
-  function goBack() {
-    const state = window.history.state
-    const from = state?.__inAppFrom
-    const fallbackFrom = state?.__inAppFallbackFrom
-
-    if (typeof from === 'string' && from.startsWith('/')) {
-      router.replace({
-        path: from,
-        state: {
-          __inAppFrom: typeof fallbackFrom === 'string' && fallbackFrom.startsWith('/') ? fallbackFrom : '/',
-          __inAppFallbackFrom: '/',
-          __skipInAppFromUpdate: true,
-        },
-      })
-    } else {
-      router.replace({ name: 'index' })
-    }
-  }
-
-  watch(
-    () => route.fullPath,
-    () => {
-      closeMenu()
-      resetNavScrollState()
-      scrollBox.value?.scrollTo(0, 0)
-    },
-  )
+)
 </script>
 
 <template>
-  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl" >
+  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl">
     <header v-if="isShowSinpleHeader" class="simple-header">
       <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -80,12 +80,7 @@
         </svg>
       </button>
     </header>
-    <header
-      v-else-if="isShowHeader"
-      class="nav"
-      :class="{ 'is-scrolled': isNavScrolled }"
-      :style="navStyle"
-    >
+    <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
       <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
@@ -96,13 +91,7 @@
         <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
       </button>
 
-      <div
-        class="menu-overlay h-screen md:h-[calc(100vh-48px)]"
-        :class="{ 'is-open': isMenuOpen }"
-        id="menu-overlay"
-        :aria-hidden="String(!isMenuOpen)"
-        :inert="isMenuOpen ? null : ''"
-      >
+      <div class="menu-overlay h-screen md:h-[calc(100vh-48px)]" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
         <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">

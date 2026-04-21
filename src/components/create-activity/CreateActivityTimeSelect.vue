@@ -40,14 +40,7 @@ function handleChange(event) {
 
 <template>
   <span class="select-wrap" @click="handleOpen">
-    <select
-      :id="id || undefined"
-      :value="modelValue"
-      :name="name"
-      data-time-select
-      :class="{ 'is-placeholder': modelValue === '', 'is-error': hasError }"
-      @change="handleChange"
-    >
+    <select :id="id || undefined" :value="modelValue" :name="name" data-time-select :class="{ 'is-placeholder': modelValue === '', 'is-error': hasError }" @change="handleChange">
       <option value="">{{ placeholder }}</option>
       <option v-for="time in options" :key="`${name}-${time}`" :value="time">{{ time }}</option>
     </select>

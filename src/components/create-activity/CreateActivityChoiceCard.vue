@@ -32,15 +32,7 @@ function handleKeydown(event) {
 </script>
 
 <template>
-  <div
-    class="choice-card"
-    :class="{ 'is-active': active, 'is-condensed': condensed }"
-    role="button"
-    tabindex="0"
-    :aria-pressed="String(active)"
-    @click="handleSelect"
-    @keydown="handleKeydown"
-  >
+  <div class="choice-card" :class="{ 'is-active': active, 'is-condensed': condensed }" role="button" tabindex="0" :aria-pressed="String(active)" @click="handleSelect" @keydown="handleKeydown">
     <span class="radio-mark" aria-hidden="true"></span>
     <span class="choice-content">
       <span class="choice-title">{{ title }}</span>

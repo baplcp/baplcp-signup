@@ -19,14 +19,7 @@ function handleClick(segment) {
 
 <template>
   <nav class="segment-tabs" aria-label="球局分類">
-    <button
-      v-for="item in items"
-      :key="item.value"
-      class="segment-tab"
-      :class="{ 'is-active': activeSegment === item.value }"
-      type="button"
-      @click="handleClick(item.value)"
-    >
+    <button v-for="item in items" :key="item.value" class="segment-tab" :class="{ 'is-active': activeSegment === item.value }" type="button" @click="handleClick(item.value)">
       {{ item.label }}
     </button>
   </nav>

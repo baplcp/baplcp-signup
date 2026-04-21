@@ -15,26 +15,14 @@ function isFaqOpen(index) {
 }
 
 function toggleFaq(index) {
-  openFaqIndexes.value = isFaqOpen(index)
-    ? openFaqIndexes.value.filter((openIndex) => openIndex !== index)
-    : [...openFaqIndexes.value, index]
+  openFaqIndexes.value = isFaqOpen(index) ? openFaqIndexes.value.filter(openIndex => openIndex !== index) : [...openFaqIndexes.value, index]
 }
 </script>
 
 <template>
   <div class="faq-list">
-    <article
-      v-for="(faq, index) in faqs"
-      :key="`${faq.question}-${index}`"
-      class="faq-item"
-      :class="{ 'is-open': isFaqOpen(index) }"
-    >
-      <button
-        class="faq-question"
-        type="button"
-        :aria-expanded="String(isFaqOpen(index))"
-        @click="toggleFaq(index)"
-      >
+    <article v-for="(faq, index) in faqs" :key="`${faq.question}-${index}`" class="faq-item" :class="{ 'is-open': isFaqOpen(index) }">
+      <button class="faq-question" type="button" :aria-expanded="String(isFaqOpen(index))" @click="toggleFaq(index)">
         <span>{{ faq.question }}</span>
         <i class="faq-arrow" aria-hidden="true"></i>
       </button>

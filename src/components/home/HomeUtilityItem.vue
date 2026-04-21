@@ -37,9 +37,7 @@ const tagName = computed(() => (props.to ? RouterLink : 'a'))
 
 const linkAttrs = computed(() => {
   if (props.to) {
-    return props.pending
-      ? { to: props.to, 'aria-disabled': 'true', tabindex: '-1' }
-      : { to: props.to }
+    return props.pending ? { to: props.to, 'aria-disabled': 'true', tabindex: '-1' } : { to: props.to }
   }
 
   return {
@@ -51,12 +49,7 @@ const linkAttrs = computed(() => {
 </script>
 
 <template>
-  <component
-    :is="tagName"
-    class="utility-item"
-    :class="{ warm, 'is-pending': pending }"
-    v-bind="linkAttrs"
-  >
+  <component :is="tagName" class="utility-item" :class="{ warm, 'is-pending': pending }" v-bind="linkAttrs">
     <div class="utility-icon">
       <img :src="imageSrc" alt="" />
     </div>

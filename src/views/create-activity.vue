@@ -547,14 +547,7 @@ async function handleCreateActivity() {
                   :has-error="isError('pickupSingleFee')"
                   @clear-error="clearError('pickupSingleFee')"
                 />
-                <CreateActivityMoneyField
-                  v-model="form.acFee"
-                  id="ac-fee"
-                  name="acFee"
-                  label="冷氣"
-                  :has-error="isError('acFee')"
-                  @clear-error="clearError('acFee')"
-                />
+                <CreateActivityMoneyField v-model="form.acFee" id="ac-fee" name="acFee" label="冷氣" :has-error="isError('acFee')" @clear-error="clearError('acFee')" />
               </div>
             </div>
 
@@ -684,28 +677,28 @@ async function handleCreateActivity() {
                     @select="setChoice('seasonDeadlineType', 'custom')"
                   >
                     <span class="choice-rule is-date-time">
-                        <button
-                          id="season-close-date-button"
-                          class="control-button"
-                          :class="{ 'has-value': form.seasonCloseDate, 'is-error': isError('seasonCloseDate') }"
-                          type="button"
-                          @click.stop="openSeasonCloseCalendar"
-                        >
-                          {{ form.seasonCloseDate ? formatDateLabel(form.seasonCloseDate) : '請選擇日期' }}
-                        </button>
-                        <input v-model="form.seasonCloseDate" name="seasonCloseDate" type="hidden" />
-                        <span>的</span>
-                        <CreateActivityTimeSelect
-                          id="season-close-time"
-                          v-model="form.seasonCloseTime"
-                          name="seasonCloseTime"
-                          placeholder="幾點"
-                          :options="timeOptions"
-                          :has-error="isError('seasonCloseTime')"
-                          @open="openSeasonCloseTimePicker"
-                          @clear-error="clearError('seasonCloseTime')"
-                        />
-                      </span>
+                      <button
+                        id="season-close-date-button"
+                        class="control-button"
+                        :class="{ 'has-value': form.seasonCloseDate, 'is-error': isError('seasonCloseDate') }"
+                        type="button"
+                        @click.stop="openSeasonCloseCalendar"
+                      >
+                        {{ form.seasonCloseDate ? formatDateLabel(form.seasonCloseDate) : '請選擇日期' }}
+                      </button>
+                      <input v-model="form.seasonCloseDate" name="seasonCloseDate" type="hidden" />
+                      <span>的</span>
+                      <CreateActivityTimeSelect
+                        id="season-close-time"
+                        v-model="form.seasonCloseTime"
+                        name="seasonCloseTime"
+                        placeholder="幾點"
+                        :options="timeOptions"
+                        :has-error="isError('seasonCloseTime')"
+                        @open="openSeasonCloseTimePicker"
+                        @clear-error="clearError('seasonCloseTime')"
+                      />
+                    </span>
                   </CreateActivityChoiceCard>
                 </div>
                 <input v-model="form.seasonDeadlineType" name="seasonDeadlineType" type="hidden" />
@@ -748,44 +741,44 @@ async function handleCreateActivity() {
             <div class="field">
               <p class="field-label"><strong>截止時間</strong></p>
               <div class="choice-stack">
-                  <CreateActivityChoiceCard
-                    :active="isChoiceActive('deadlineType', 'unlimited')"
-                    :condensed="isChoiceCondensed('deadlineType')"
-                    title="不限時間"
-                    copy="活動開始前皆可報名"
-                    @select="setChoice('deadlineType', 'unlimited')"
-                  />
-                  <CreateActivityChoiceCard
-                    :active="isChoiceActive('deadlineType', 'custom')"
-                    :condensed="isChoiceCondensed('deadlineType')"
-                    title="設定截止時間"
-                    @select="setChoice('deadlineType', 'custom')"
-                  >
-                    <span class="choice-rule">
-                      <span>每次活動</span>
-                      <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom')">
-                        <select
-                          v-model="form.pickupCloseDate"
-                          name="pickupCloseDate"
-                          :class="{ 'is-placeholder': form.pickupCloseDate === '', 'is-error': isError('pickupCloseDate') }"
-                          @change="clearError('pickupCloseDate')"
-                        >
-                          <option value="">幾天前</option>
-                          <option v-for="option in dayBeforeOptions" :key="`pickup-close-date-${option}`" :value="option">{{ option }}</option>
-                        </select>
-                      </span>
-                      <span>的</span>
-                      <CreateActivityTimeSelect
-                        v-model="form.pickupCloseTime"
-                        name="pickupCloseTime"
-                        placeholder="幾點"
-                        :options="timeOptions"
-                        :has-error="isError('pickupCloseTime')"
-                        @open="openPickupCloseTimePicker"
-                        @clear-error="clearError('pickupCloseTime')"
-                      />
+                <CreateActivityChoiceCard
+                  :active="isChoiceActive('deadlineType', 'unlimited')"
+                  :condensed="isChoiceCondensed('deadlineType')"
+                  title="不限時間"
+                  copy="活動開始前皆可報名"
+                  @select="setChoice('deadlineType', 'unlimited')"
+                />
+                <CreateActivityChoiceCard
+                  :active="isChoiceActive('deadlineType', 'custom')"
+                  :condensed="isChoiceCondensed('deadlineType')"
+                  title="設定截止時間"
+                  @select="setChoice('deadlineType', 'custom')"
+                >
+                  <span class="choice-rule">
+                    <span>每次活動</span>
+                    <span class="select-wrap" @click.stop="setChoice('deadlineType', 'custom')">
+                      <select
+                        v-model="form.pickupCloseDate"
+                        name="pickupCloseDate"
+                        :class="{ 'is-placeholder': form.pickupCloseDate === '', 'is-error': isError('pickupCloseDate') }"
+                        @change="clearError('pickupCloseDate')"
+                      >
+                        <option value="">幾天前</option>
+                        <option v-for="option in dayBeforeOptions" :key="`pickup-close-date-${option}`" :value="option">{{ option }}</option>
+                      </select>
                     </span>
-                  </CreateActivityChoiceCard>
+                    <span>的</span>
+                    <CreateActivityTimeSelect
+                      v-model="form.pickupCloseTime"
+                      name="pickupCloseTime"
+                      placeholder="幾點"
+                      :options="timeOptions"
+                      :has-error="isError('pickupCloseTime')"
+                      @open="openPickupCloseTimePicker"
+                      @clear-error="clearError('pickupCloseTime')"
+                    />
+                  </span>
+                </CreateActivityChoiceCard>
               </div>
               <input v-model="form.deadlineType" name="deadlineType" type="hidden" />
             </div>

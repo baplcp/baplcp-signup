@@ -68,7 +68,9 @@ defineProps({
       </div>
       <div class="summary-info activity-summary-info">
         <p class="summary-time activity-summary-time">
-          <span class="summary-date activity-summary-date">{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span>
+          <span class="summary-date activity-summary-date"
+            >{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span
+          >
           <span class="summary-separator activity-summary-separator">|</span>
           <span>{{ time }}</span>
         </p>
