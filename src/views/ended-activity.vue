@@ -28,34 +28,34 @@ const activeSegment = ref(SEGMENT_TABS[0])
         </div>
       </section>
 
-      <section class="summary-card" aria-label="活動摘要">
-        <div class="summary-main">
-          <div class="summary-info">
-            <p class="summary-time">
-              <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
-              <span class="summary-separator">|</span>
+      <section class="summary-card activity-summary-card" aria-label="活動摘要">
+        <div class="summary-main activity-summary-main">
+          <div class="summary-info activity-summary-info">
+            <p class="summary-time activity-summary-time">
+              <span class="summary-date activity-summary-date">12.31<span class="summary-weekday activity-summary-weekday">（日）</span></span>
+              <span class="summary-separator activity-summary-separator">|</span>
               <span>12:20-15:20</span>
             </p>
-            <p class="summary-location">板橋柏吉倫排球場</p>
+            <p class="summary-location activity-summary-location">板橋柏吉倫排球場</p>
           </div>
         </div>
-        <div class="summary-status">
-          <p class="summary-status-text">狀態：<span class="summary-status-value">已參加</span></p>
-          <div class="summary-fee" aria-label="費用 255 元，已付">
-            <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-            <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
-            <span class="summary-fee-amount">$255</span>
-            <span class="summary-fee-state">已付</span>
+        <div class="summary-status activity-summary-status">
+          <p class="summary-status-text activity-summary-status-text">狀態：<span class="summary-status-value">已參加</span></p>
+          <div class="summary-fee activity-summary-fee" aria-label="費用 255 元，已付">
+            <img class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
+            <img class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+            <span class="summary-fee-amount activity-summary-fee-amount">$255</span>
+            <span class="summary-fee-state activity-summary-fee-state">已付</span>
           </div>
         </div>
       </section>
 
       <section class="content">
-        <div class="segment-tabs" role="tablist" aria-label="名單分類">
+        <div class="segment-tabs activity-segment-tabs" role="tablist" aria-label="名單分類">
           <button
             v-for="tab in SEGMENT_TABS"
             :key="tab"
-            class="segment-tab"
+            class="segment-tab activity-segment-tab"
             :class="{ 'is-active': activeSegment === tab }"
             type="button"
             role="tab"
@@ -65,18 +65,18 @@ const activeSegment = ref(SEGMENT_TABS[0])
             {{ tab }}
           </button>
         </div>
-        <div class="list">
-          <div v-for="(member, index) in MEMBERS" :key="`${member.name}-${index}`" class="row">
-            <div class="rank">{{ index + 1 }}</div>
-            <div class="avatar" :style="member.image ? undefined : { background: member.color }">
+        <div class="list activity-member-list">
+          <div v-for="(member, index) in MEMBERS" :key="`${member.name}-${index}`" class="row activity-member-row">
+            <div class="rank activity-member-rank">{{ index + 1 }}</div>
+            <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
               <img v-if="member.image" :src="member.image" alt="" />
               <template v-else>{{ member.badge }}</template>
             </div>
-            <div class="name">{{ member.name }}</div>
-            <div v-if="member.status" class="status-tag">{{ member.status }}</div>
+            <div class="name activity-member-name">{{ member.name }}</div>
+            <div v-if="member.status" class="status-tag activity-member-status">{{ member.status }}</div>
           </div>
         </div>
-        <div class="version">{{ APP_VERSION }}</div>
+        <div class="version app-version-note">{{ APP_VERSION }}</div>
       </section>
     </div>
   </main>
@@ -206,247 +206,20 @@ const activeSegment = ref(SEGMENT_TABS[0])
 }
 
 .summary-card {
-  position: relative;
-  z-index: 3;
-  margin: -88px 16px 0;
-  min-height: 107px;
-  padding: 16px 16px 0;
-  background: var(--surface);
-  border-radius: 12px;
   box-shadow: 2px 2px 28px rgba(143, 149, 178, 0.24);
-  overflow: hidden;
-}
-
-.summary-main {
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  padding-bottom: 16px;
-}
-
-.summary-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.summary-time {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  font-size: 22px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #474d66;
-  white-space: nowrap;
-}
-
-.summary-date {
-  letter-spacing: 0;
-  font-kerning: normal;
-  font-feature-settings: 'kern';
-  margin-right: -2px;
-}
-
-.summary-weekday {
-  display: inline-block;
-  font-size: 13px;
-  transform: translateX(-4px);
-}
-
-.summary-separator {
-  display: inline-block;
-  width: 1px;
-  height: 18px;
-  color: #d8dae5;
-  background: currentColor;
-  font-size: 0;
-  line-height: 0;
-  font-weight: 400;
-  margin: 0 12px 0 2px;
-}
-
-.summary-location {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 400;
-  color: #474d66;
-  opacity: 0.85;
-  white-space: nowrap;
-}
-
-.summary-status {
-  margin: 0 -16px;
-  padding: 16px 16px;
-  border-top: 1px solid #edf0fb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.summary-status-text {
-  margin: 0;
-  min-width: 0;
-  font-size: 15px;
-  line-height: 1.4;
-  font-weight: 400;
-  color: #474d66;
-  white-space: nowrap;
 }
 
 .summary-status-value {
-  color: #17acba;
+  color: var(--success-500);
   font-weight: 400;
-}
-
-.summary-fee {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 8px;
-  color: #474d66;
-  white-space: nowrap;
-}
-
-.summary-fee-money {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  margin-right: -10px;
-}
-
-.summary-fee-air {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  margin-right: -4px;
-}
-
-.summary-fee-amount {
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 700;
-  letter-spacing: 0;
-  margin-right: -4px;
 }
 
 .summary-fee-state {
-  color: #17acba;
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 400;
+  color: var(--success-500);
 }
 
 .content {
   padding: 24px 16px 60px;
-}
-
-.segment-tabs {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 16px;
-}
-
-.segment-tab {
-  min-width: 56px;
-  min-height: 34px;
-  padding: 6px 17px;
-  border-radius: 999px;
-  background: #edeff5;
-  color: #8d94ad;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.segment-tab.is-active {
-  background: var(--primary-700);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 2px;
-}
-
-.rank {
-  width: 18px;
-  flex: 0 0 auto;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--primary-700);
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  overflow: hidden;
-  background: linear-gradient(135deg, #8aa0ff 0%, #5768ff 100%);
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.name {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  word-break: break-word;
-}
-
-.status-tag {
-  flex: 0 0 auto;
-  min-width: 44px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f2f4fa;
-  color: #8b92b1;
-  font-size: 12px;
-  line-height: 1;
-  text-align: center;
-}
-
-.version {
-  margin-top: 18px;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #7a84a7;
-  font-variant-numeric: tabular-nums;
 }
 
 .menu-overlay {

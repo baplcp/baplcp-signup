@@ -124,7 +124,7 @@ function toggleFaq(index) {
           </article>
         </div>
       </section>
-      <div class="app-version">{{ APP_VERSION }}</div>
+      <div class="app-version app-version-note">{{ APP_VERSION }}</div>
     </section>
   </div>
 </template>
@@ -404,11 +404,6 @@ function toggleFaq(index) {
 
 .app-version {
   margin-top: 28px;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #7a84a7;
-  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 500px) {

@@ -174,40 +174,40 @@ function handleEscape() {
           </div>
         </section>
 
-        <section class="summary-card" aria-label="活動摘要">
-          <div class="summary-main">
+        <section class="summary-card activity-summary-card" aria-label="活動摘要">
+          <div class="summary-main activity-summary-main">
             <div class="summary-vacancy">
               <p class="summary-vacancy-label">臨打缺</p>
               <p class="summary-vacancy-value">2</p>
             </div>
-            <div class="summary-info">
-              <p class="summary-time">
-                <span class="summary-date">12.31<span class="summary-weekday">（日）</span></span>
-                <span class="summary-separator">|</span>
+            <div class="summary-info activity-summary-info">
+              <p class="summary-time activity-summary-time">
+                <span class="summary-date activity-summary-date">12.31<span class="summary-weekday activity-summary-weekday">（日）</span></span>
+                <span class="summary-separator activity-summary-separator">|</span>
                 <span>12:20-15:20</span>
               </p>
-              <p class="summary-location">板橋柏吉倫排球場</p>
+              <p class="summary-location activity-summary-location">板橋柏吉倫排球場</p>
             </div>
           </div>
-          <div class="summary-status">
-            <p class="summary-status-text">
+          <div class="summary-status activity-summary-status">
+            <p class="summary-status-text activity-summary-status-text">
               狀態：<span class="summary-status-value" :class="{ 'is-success': hasSubmittedSignup }">{{ summaryStatusText }}</span>
             </p>
-            <div class="summary-fee" :aria-label="summaryFeeLabel">
-              <img class="summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-              <img class="summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
-              <span class="summary-fee-amount">${{ summaryFee }}</span>
-              <span v-if="hasSubmittedSignup" class="summary-fee-state">未付</span>
+            <div class="summary-fee activity-summary-fee" :aria-label="summaryFeeLabel">
+              <img class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
+              <img class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+              <span class="summary-fee-amount activity-summary-fee-amount">${{ summaryFee }}</span>
+              <span v-if="hasSubmittedSignup" class="summary-fee-state activity-summary-fee-state">未付</span>
             </div>
           </div>
         </section>
 
         <section class="content">
-          <div class="segment-tabs" role="tablist" aria-label="名單分類">
+          <div class="segment-tabs activity-segment-tabs" role="tablist" aria-label="名單分類">
             <button
               v-for="tab in SEGMENT_TABS"
               :key="tab"
-              class="segment-tab"
+              class="segment-tab activity-segment-tab"
               :class="{ 'is-active': activeSegment === tab }"
               type="button"
               role="tab"
@@ -217,18 +217,18 @@ function handleEscape() {
               {{ tab }}
             </button>
           </div>
-          <div class="list">
-            <div v-for="(member, index) in MEMBER_LIST" :key="`${member.name}-${index}`" class="row">
-              <div class="rank">{{ index + 1 }}</div>
-              <div class="avatar" :style="member.image ? undefined : { background: member.color }">
+          <div class="list activity-member-list">
+            <div v-for="(member, index) in MEMBER_LIST" :key="`${member.name}-${index}`" class="row activity-member-row">
+              <div class="rank activity-member-rank">{{ index + 1 }}</div>
+              <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
                 <img v-if="member.image" :src="member.image" alt="" />
                 <template v-else>{{ member.badge }}</template>
               </div>
-              <div class="name">{{ member.name }}</div>
-              <div v-if="member.status" class="status-tag">{{ member.status }}</div>
+              <div class="name activity-member-name">{{ member.name }}</div>
+              <div v-if="member.status" class="status-tag activity-member-status">{{ member.status }}</div>
             </div>
           </div>
-          <div class="version">{{ APP_VERSION }}</div>
+          <div class="version app-version-note">{{ APP_VERSION }}</div>
         </section>
       </div>
     </div>
@@ -238,7 +238,7 @@ function handleEscape() {
       <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
 
-    <div class="signup-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
+    <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
       <button class="signup-backdrop" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)"></button>
       <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
         <div class="signup-sheet-header">
@@ -308,11 +308,11 @@ function handleEscape() {
       </section>
     </div>
 
-    <div class="success-dialog-overlay" :class="{ 'is-open': successDialog.open }" :aria-hidden="String(!successDialog.open)" :inert="!successDialog.open">
-      <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
-        <h2 class="success-dialog-title" id="success-dialog-title">{{ successDialog.title }}</h2>
-        <p class="success-dialog-copy">{{ successDialog.copy }}</p>
-        <button ref="successDialogButton" class="success-dialog-button" type="button" @click="setSuccessDialogOpen(false)">{{ successDialog.buttonText }}</button>
+    <div class="success-dialog-overlay shared-dialog-overlay" :class="{ 'is-open': successDialog.open }" :aria-hidden="String(!successDialog.open)" :inert="!successDialog.open">
+      <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
+        <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ successDialog.title }}</h2>
+        <p class="success-dialog-copy shared-dialog-copy">{{ successDialog.copy }}</p>
+        <button ref="successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="setSuccessDialogOpen(false)">{{ successDialog.buttonText }}</button>
       </section>
     </div>
   </main>
@@ -456,22 +456,7 @@ function handleEscape() {
 }
 
 .summary-card {
-  position: relative;
-  z-index: 3;
-  margin: -88px 16px 0;
-  min-height: 107px;
-  padding: 16px 16px 0;
-  background: var(--surface);
-  border-radius: 12px;
   box-shadow: var(--shadow-primary-card);
-  overflow: hidden;
-}
-
-.summary-main {
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  padding-bottom: 16px;
 }
 
 .summary-vacancy {
@@ -504,126 +489,13 @@ function handleEscape() {
   color: #17acba;
 }
 
-.summary-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.summary-time {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  font-size: 22px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #474d66;
-  white-space: nowrap;
-}
-
-.summary-date {
-  letter-spacing: 0;
-  font-kerning: normal;
-  font-feature-settings: 'kern';
-  margin-right: -2px;
-}
-
-.summary-weekday {
-  display: inline-block;
-  font-size: 13px;
-  transform: translateX(-4px);
-}
-
-.summary-separator {
-  display: inline-block;
-  width: 1px;
-  height: 18px;
-  color: #d8dae5;
-  background: currentColor;
-  font-size: 0;
-  line-height: 0;
-  font-weight: 400;
-  margin: 0 12px 0 2px;
-}
-
-.summary-location {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 400;
-  color: #474d66;
-  opacity: 0.85;
-  white-space: nowrap;
-}
-
-.summary-status {
-  margin: 0 -16px;
-  padding: 16px 16px;
-  border-top: 1px solid #edf0fb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.summary-status-text {
-  margin: 0;
-  min-width: 0;
-  font-size: 15px;
-  line-height: 1.4;
-  font-weight: 400;
-  color: #474d66;
-  white-space: nowrap;
-}
-
 .summary-status-value {
-  color: #8f95b2;
+  color: var(--muted-soft);
   font-weight: 400;
 }
 
 .summary-status-value.is-success {
-  color: #17acba;
-}
-
-.summary-fee {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 8px;
-  color: #474d66;
-  white-space: nowrap;
-}
-
-.summary-fee-money {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  margin-right: -10px;
-}
-
-.summary-fee-air {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  margin-right: -4px;
-}
-
-.summary-fee-amount {
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 700;
-  letter-spacing: 0;
-  margin-right: -4px;
-}
-
-.summary-fee-state {
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 400;
+  color: var(--success-500);
 }
 
 .summary-fee-state[hidden] {
@@ -645,99 +517,6 @@ function handleEscape() {
 
 .content {
   padding: 24px 16px 42px;
-}
-
-.segment-tabs {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 16px;
-}
-
-.segment-tab {
-  min-width: 56px;
-  min-height: 34px;
-  padding: 6px 17px;
-  border-radius: 999px;
-  background: #edeff5;
-  color: #8d94ad;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.segment-tab.is-active {
-  background: var(--primary-700);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 2px;
-}
-
-.rank {
-  width: 18px;
-  flex: 0 0 auto;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--primary-700);
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  overflow: hidden;
-  background: linear-gradient(135deg, #8aa0ff 0%, #5768ff 100%);
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.name {
-  flex: 1;
-  min-width: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  word-break: break-word;
-}
-
-.status-tag {
-  flex: 0 0 auto;
-  min-width: 44px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f2f4fa;
-  color: #8b92b1;
-  font-size: 12px;
-  line-height: 1;
-  text-align: center;
 }
 
 .footer-bar {
@@ -1055,70 +834,6 @@ function handleEscape() {
 .success-dialog-overlay {
   position: absolute;
   inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.24s ease;
-}
-
-.success-dialog-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.success-dialog {
-  width: min(100%, 318px);
-  border-radius: 16px;
-  background: #fff;
-  padding: 28px 22px 22px;
-  box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
-  text-align: center;
-  transform: translateY(10px) scale(0.98);
-  transition: transform 0.24s ease;
-}
-
-.success-dialog-overlay.is-open .success-dialog {
-  transform: translateY(0) scale(1);
-}
-
-.success-dialog-title {
-  margin: 0;
-  color: #101840;
-  font-size: 20px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
-.success-dialog-copy {
-  margin: 12px 0 24px;
-  color: #474d66;
-  font-size: 15px;
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-.success-dialog-button {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 10px;
-  background: #5768ff;
-  color: #fff;
-  font-size: 16px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
-.version {
-  margin-top: 18px;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #7a84a7;
-  font-variant-numeric: tabular-nums;
 }
 
 .menu-overlay {

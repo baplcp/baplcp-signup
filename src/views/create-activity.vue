@@ -699,7 +699,7 @@ async function handleCreateActivity() {
       <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? '建立中...' : '建立球局' }}</button>
     </div>
 
-    <div class="calendar-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
+    <div class="calendar-overlay phone-container modal-frame" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
       <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
         <div class="calendar-header">
           <button class="calendar-nav" type="button" aria-label="上一個月" @click="changeCalendarMonth(-1)">
@@ -727,7 +727,7 @@ async function handleCreateActivity() {
       </section>
     </div>
 
-    <div class="time-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': timePicker.isOpen }" :aria-hidden="String(!timePicker.isOpen)" @click.self="closeTimePicker">
+    <div class="time-overlay phone-container modal-frame" :class="{ 'is-open': timePicker.isOpen }" :aria-hidden="String(!timePicker.isOpen)" @click.self="closeTimePicker">
       <section class="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-title">
         <div class="time-header">
           <h2 id="time-title" class="time-title">選擇時間</h2>
@@ -787,11 +787,11 @@ async function handleCreateActivity() {
       </section>
     </div>
 
-    <div class="success-dialog-overlay phone-container top-0 bottom-0 md:top-[24px] md:bottom-[24px] md:rounded-3xl" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
-      <section class="success-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
-        <h2 id="create-dialog-title" class="success-dialog-title">{{ dialog.title }}</h2>
-        <p class="success-dialog-copy">{{ dialog.copy }}</p>
-        <button ref="createDialogButton" class="success-dialog-button" type="button" @click="closeCreateDialog">{{ dialog.buttonText }}</button>
+    <div class="success-dialog-overlay shared-dialog-overlay phone-container modal-frame" :class="{ 'is-open': dialog.isOpen }" :aria-hidden="String(!dialog.isOpen)" :inert="!dialog.isOpen" @click.self="closeCreateDialog" @keydown.esc="closeCreateDialog">
+      <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title">
+        <h2 id="create-dialog-title" class="success-dialog-title shared-dialog-title">{{ dialog.title }}</h2>
+        <p class="success-dialog-copy shared-dialog-copy">{{ dialog.copy }}</p>
+        <button ref="createDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="closeCreateDialog">{{ dialog.buttonText }}</button>
       </section>
     </div>
   </main>
@@ -1484,61 +1484,6 @@ async function handleCreateActivity() {
 
 .success-dialog-overlay {
   position: fixed;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.24s ease;
-}
-
-.success-dialog-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.success-dialog {
-  width: min(100%, 318px);
-  border-radius: 16px;
-  background: #fff;
-  padding: 28px 22px 22px;
-  box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
-  text-align: center;
-  transform: translateY(10px) scale(0.98);
-  transition: transform 0.24s ease;
-}
-
-.success-dialog-overlay.is-open .success-dialog {
-  transform: translateY(0) scale(1);
-}
-
-.success-dialog-title {
-  margin: 0;
-  color: var(--text);
-  font-size: 20px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
-.success-dialog-copy {
-  margin: 12px 0 24px;
-  color: #474d66;
-  font-size: 15px;
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-.success-dialog-button {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 10px;
-  background: var(--primary-600);
-  color: #fff;
-  font-size: 16px;
-  line-height: 1.4;
-  font-weight: 600;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1594,7 +1539,7 @@ input.is-error,
 select.is-error,
 .control-button.is-error,
 .money-input.is-error {
-  border-color: #d14343;
+  border-color: var(--danger-500);
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
 }
 </style>
