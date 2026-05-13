@@ -32,7 +32,7 @@ defineProps({
 </script>
 
 <template>
-  <article class="active-card">
+  <RouterLink :to="to" class="active-card">
     <div class="active-count" :aria-label="countAriaLabel">
       <span class="active-count-label">{{ countLabel }}</span>
       <span class="active-count-value">{{ countValue }}</span>
@@ -41,8 +41,8 @@ defineProps({
       <p class="event-date">{{ date }}</p>
       <p class="event-location">{{ location }}</p>
     </div>
-    <RouterLink :to="to" class="go-button">{{ actionLabel }}</RouterLink>
-  </article>
+    <span class="go-button" aria-hidden="true">{{ actionLabel }}</span>
+  </RouterLink>
 </template>
 
 <style scoped>
@@ -54,6 +54,7 @@ defineProps({
   padding: 12px;
   border-radius: 12px;
   background: rgba(239, 241, 254, 0.8);
+  text-decoration: none;
 }
 
 .active-count {

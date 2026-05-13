@@ -1,9 +1,32 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
+import { supabase } from '~/utils/supabase'
+
+const latestActivity = ref(null)
+
+const heroCta = computed(() => {
+  if (!latestActivity.value) return '/active-activity'
+  const today = new Date().toISOString().split('T')[0]
+  const dates = (latestActivity.value.dates || []).slice().sort()
+  const latestDate = dates.find(d => d >= today) || dates[dates.length - 1] || null
+  if (!latestDate) return '/active-activity'
+  return `/active-activity?id=${latestActivity.value.id}&date=${latestDate}&type=latest`
+})
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, dates')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  if (data) latestActivity.value = data
+})
 
 const faqs = [
   {
@@ -78,7 +101,7 @@ const utilityItems = [
 
 <template>
   <div class="index-page">
-    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" cta-to="/active-activity" />
+    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="heroCta" />
 
     <section class="content">
       <div class="top-cards">

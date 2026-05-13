@@ -19,17 +19,23 @@ const heroTitle = computed(() => {
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
+const resolvedDate = computed(() => {
+  if (route.query.date) return route.query.date
+  if (!activityData.value?.dates) return null
+  const today = new Date().toISOString().split('T')[0]
+  const sorted = activityData.value.dates.slice().sort()
+  return sorted.find(d => d >= today) || sorted[sorted.length - 1] || null
+})
+
 const summaryDate = computed(() => {
-  const dateStr = route.query.date || activityData.value?.dates?.[0]
-  if (!dateStr) return '—'
-  const [, month, day] = dateStr.split('-')
+  if (!resolvedDate.value) return '—'
+  const [, month, day] = resolvedDate.value.split('-')
   return `${Number(month)}.${day}`
 })
 
 const summaryWeekday = computed(() => {
-  const dateStr = route.query.date || activityData.value?.dates?.[0]
-  if (!dateStr) return '—'
-  return WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+  if (!resolvedDate.value) return '—'
+  return WEEKDAYS[new Date(resolvedDate.value + 'T00:00:00').getDay()]
 })
 
 const summaryTime = computed(() => {
