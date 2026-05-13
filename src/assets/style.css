@@ -78,7 +78,8 @@
   }
 
   input,
-  select {
+  select,
+  textarea {
     width: 100%;
     min-height: 41px;
     border: 1px solid var(--neutral-300);
@@ -86,7 +87,7 @@
     background: #fff;
     padding: 10px;
     color: var(--text);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
     outline: none;
     appearance: none;
@@ -99,8 +100,15 @@
     color: var(--muted-soft);
   }
 
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+
   input:focus,
   select:focus,
+  textarea:focus,
   .control-button:focus {
     border-color: rgba(87, 104, 255, 0.72);
     box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
