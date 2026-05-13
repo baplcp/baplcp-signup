@@ -46,7 +46,7 @@ const latestActivity = computed(() => {
     countAriaLabel: `總名額 ${activity.value.single_capacity || '—'} 人`,
     date: formatDateRow(latestDate, activity.value.start_time, activity.value.end_time),
     location: activity.value.location || '—',
-    to: `/active-activity?id=${activity.value.id}&date=${latestDate}`,
+    to: `/active-activity?id=${activity.value.id}&date=${latestDate}&type=latest`,
   }
 })
 
@@ -57,7 +57,7 @@ const upcomingActivities = computed(() => {
   return futureDates.map(dateStr => ({
     date: formatDateRow(dateStr, activity.value.start_time, activity.value.end_time),
     location: activity.value.location || '—',
-    to: `/active-activity?id=${activity.value.id}&date=${dateStr}`,
+    to: `/active-activity?id=${activity.value.id}&date=${dateStr}&type=upcoming`,
     badge: '未開放報名',
     badgeVariant: 'muted',
   }))
@@ -70,7 +70,7 @@ const endedActivities = computed(() => {
   return pastDates.map(dateStr => ({
     date: formatDateLabel(dateStr),
     location: activity.value.location || '—',
-    to: `/ended-activity?id=${activity.value.id}&date=${dateStr}`,
+    to: `/active-activity?id=${activity.value.id}&date=${dateStr}&type=ended`,
   }))
 })
 

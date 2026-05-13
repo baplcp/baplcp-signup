@@ -9,6 +9,14 @@ import { supabase } from '~/utils/supabase'
 const route = useRoute()
 const activityData = ref(null)
 
+const activityType = computed(() => route.query.type || 'latest')
+
+const heroTitle = computed(() => {
+  if (activityType.value === 'upcoming') return '即將到來的球局'
+  if (activityType.value === 'ended') return '已結束的球局'
+  return '最新球局報名'
+})
+
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 const summaryDate = computed(() => {
@@ -208,12 +216,12 @@ function handleEscape() {
 </script>
 
 <template>
-  <main class="active-activity-page" :class="{ 'signup-open': signupOpen }" @keydown.esc="handleEscape">
+  <main class="active-activity-page" :class="[{ 'signup-open': signupOpen }, `hero-${activityType}`]" @keydown.esc="handleEscape">
     <section class="hero">
-      <img class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
+      <img v-if="activityType === 'latest'" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
       <div class="hero-layout">
         <div class="hero-copy">
-          <h1>最新球局報名</h1>
+          <h1>{{ heroTitle }}</h1>
         </div>
       </div>
     </section>
@@ -324,6 +332,14 @@ function handleEscape() {
 .active-activity-page {
   height: 100%;
   background: linear-gradient(180deg, #5768ff 0%, #6373ff 7%, #7d8af9 13%, #c1c6f1 20%, #e8e9f5 27%, #fff 35%, #fff 100%);
+}
+
+.active-activity-page.hero-upcoming {
+  background: linear-gradient(180deg, #1bc4bf 0%, #22cec9 7%, #3dd5d0 13%, #a8ebe9 20%, #ddf5f4 27%, #fff 35%, #fff 100%);
+}
+
+.active-activity-page.hero-ended {
+  background: linear-gradient(180deg, #7b82a8 0%, #8b91b8 7%, #9ea4c6 13%, #c9cbd8 20%, #e6e6ef 27%, #fff 35%, #fff 100%);
 }
 
 .hero {
