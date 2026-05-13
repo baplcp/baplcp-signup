@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import GroupActiveCard from '~/components/group-list/GroupActiveCard.vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
+import { supabase } from '~/utils/supabase'
 
 const activeSegment = ref('all')
 const segmentTabs = [
@@ -12,30 +13,80 @@ const segmentTabs = [
   { label: '已結束', value: 'ended' },
 ]
 
-const latestActivity = {
-  countLabel: '臨打缺',
-  countValue: 9,
-  countAriaLabel: '臨打缺 9 人',
-  date: '4.09 (日)｜8:00-11:00',
-  location: '板橋柏吉倫排球場',
-  to: '/active-activity',
+const activity = ref(null)
+const isLoading = ref(true)
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+
+function formatDateLabel(dateStr) {
+  const [, month, day] = dateStr.split('-')
+  const weekday = WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+  return `${Number(month)}.${day} (${weekday})`
 }
 
-const upcomingActivities = [
-  { date: '4.16 (日)｜12:20-15:20', location: '板橋柏吉倫排球場', to: '/active-activity', badge: '未開放報名', badgeVariant: 'muted' },
-  { date: '4.23 (日)｜12:20-15:20', location: '板橋柏吉倫排球場', to: '/active-activity', badge: '未開放報名', badgeVariant: 'muted' },
-  { date: '4.30 (日)｜12:20-15:20', location: '板橋柏吉倫排球場', to: '/active-activity', badge: '未開放報名', badgeVariant: 'muted' },
-]
+function formatTimeRange(startTime, endTime) {
+  const fmt = t => (t || '').replace(/^0/, '').slice(0, 5)
+  return `${fmt(startTime)}-${fmt(endTime)}`
+}
 
-const endedActivities = [
-  { date: '4.02 (日)', location: '板橋柏吉倫排球場', to: '/ended-activity', badge: '已參加', badgeVariant: 'success' },
-  { date: '3.28 (日)', location: '板橋柏吉倫排球場', to: '/ended-activity' },
-  { date: '3.21 (日)', location: '板橋柏吉倫排球場', to: '/ended-activity', badge: '已請假', badgeVariant: 'muted' },
-  { date: '3.14 (日)', location: '板橋柏吉倫排球場', to: '/ended-activity' },
-  { date: '3.07(日)', location: '板橋柏吉倫排球場', to: '/ended-activity' },
-]
+function formatDateRow(dateStr, startTime, endTime) {
+  return `${formatDateLabel(dateStr)}｜${formatTimeRange(startTime, endTime)}`
+}
 
-const visibleEndedActivities = computed(() => (activeSegment.value === 'all' ? endedActivities.slice(0, 3) : endedActivities))
+const today = new Date().toISOString().split('T')[0]
+
+const latestActivity = computed(() => {
+  if (!activity.value) return null
+  const dates = (activity.value.dates || []).slice().sort()
+  const latestDate = dates.find(d => d >= today) || null
+  if (!latestDate) return null
+  return {
+    countLabel: '總名額',
+    countValue: activity.value.single_capacity || '—',
+    countAriaLabel: `總名額 ${activity.value.single_capacity || '—'} 人`,
+    date: formatDateRow(latestDate, activity.value.start_time, activity.value.end_time),
+    location: activity.value.location || '—',
+    to: `/active-activity?id=${activity.value.id}&date=${latestDate}`,
+  }
+})
+
+const upcomingActivities = computed(() => {
+  if (!activity.value) return []
+  const dates = (activity.value.dates || []).slice().sort()
+  const futureDates = dates.filter(d => d >= today).slice(1)
+  return futureDates.map(dateStr => ({
+    date: formatDateRow(dateStr, activity.value.start_time, activity.value.end_time),
+    location: activity.value.location || '—',
+    to: `/active-activity?id=${activity.value.id}&date=${dateStr}`,
+    badge: '未開放報名',
+    badgeVariant: 'muted',
+  }))
+})
+
+const endedActivities = computed(() => {
+  if (!activity.value) return []
+  const dates = (activity.value.dates || []).slice().sort().reverse()
+  const pastDates = dates.filter(d => d < today)
+  return pastDates.map(dateStr => ({
+    date: formatDateLabel(dateStr),
+    location: activity.value.location || '—',
+    to: `/ended-activity?id=${activity.value.id}&date=${dateStr}`,
+  }))
+})
+
+const visibleEndedActivities = computed(() => (activeSegment.value === 'all' ? endedActivities.value.slice(0, 3) : endedActivities.value))
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (data) activity.value = data
+  isLoading.value = false
+})
 
 function setSegment(segment) {
   activeSegment.value = segment
@@ -56,50 +107,58 @@ function isSegmentVisible(segment) {
 
     <GroupSegmentTabs :items="segmentTabs" :active-segment="activeSegment" @change="setSegment" />
 
-    <h2 v-show="isSegmentVisible('latest')" class="section-title" id="latest-section">最新球局</h2>
-    <GroupActiveCard
-      v-show="isSegmentVisible('latest')"
-      :count-label="latestActivity.countLabel"
-      :count-value="latestActivity.countValue"
-      :count-aria-label="latestActivity.countAriaLabel"
-      :date="latestActivity.date"
-      :location="latestActivity.location"
-      :to="latestActivity.to"
-    />
-
-    <div v-show="isSegmentVisible('upcoming')" class="section-heading" id="upcoming-section">
-      <h2 class="section-title">即將到來</h2>
-      <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('upcoming')">更多</button>
-    </div>
-    <div v-show="isSegmentVisible('upcoming')" class="upcoming-list" aria-label="即將到來">
-      <GroupEventRow
-        v-for="activity in upcomingActivities"
-        :key="activity.date"
-        :to="activity.to"
-        :date="activity.date"
-        :location="activity.location"
-        :badge="activity.badge"
-        :badge-variant="activity.badgeVariant"
-        framed
+    <template v-if="!isLoading">
+      <h2 v-show="isSegmentVisible('latest')" class="section-title" id="latest-section">最新球局</h2>
+      <GroupActiveCard
+        v-if="latestActivity && isSegmentVisible('latest')"
+        v-show="isSegmentVisible('latest')"
+        :count-label="latestActivity.countLabel"
+        :count-value="latestActivity.countValue"
+        :count-aria-label="latestActivity.countAriaLabel"
+        :date="latestActivity.date"
+        :location="latestActivity.location"
+        :to="latestActivity.to"
       />
-    </div>
+      <p v-else-if="isSegmentVisible('latest')" class="empty-hint">目前沒有即將到來的球局</p>
 
-    <div v-show="isSegmentVisible('ended')" class="section-heading history-title" id="ended-section">
-      <h2 class="section-title">已結束</h2>
-      <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('ended')">更多</button>
-    </div>
-    <div v-show="isSegmentVisible('ended')" class="history-list" aria-label="已結束">
-      <GroupEventRow
-        v-for="activity in visibleEndedActivities"
-        :key="activity.date"
-        :to="activity.to"
-        :date="activity.date"
-        :location="activity.location"
-        :badge="activity.badge"
-        :badge-variant="activity.badgeVariant"
-        inset
-      />
-    </div>
+      <div v-show="isSegmentVisible('upcoming')" class="section-heading" id="upcoming-section">
+        <h2 class="section-title">即將到來</h2>
+        <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('upcoming')">更多</button>
+      </div>
+      <div v-show="isSegmentVisible('upcoming')" class="upcoming-list" aria-label="即將到來">
+        <GroupEventRow
+          v-for="act in upcomingActivities"
+          :key="act.date"
+          :to="act.to"
+          :date="act.date"
+          :location="act.location"
+          :badge="act.badge"
+          :badge-variant="act.badgeVariant"
+          framed
+        />
+        <p v-if="upcomingActivities.length === 0" class="empty-hint">沒有其他即將到來的球局</p>
+      </div>
+
+      <div v-show="isSegmentVisible('ended')" class="section-heading history-title" id="ended-section">
+        <h2 class="section-title">已結束</h2>
+        <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('ended')">更多</button>
+      </div>
+      <div v-show="isSegmentVisible('ended')" class="history-list" aria-label="已結束">
+        <GroupEventRow
+          v-for="act in visibleEndedActivities"
+          :key="act.date"
+          :to="act.to"
+          :date="act.date"
+          :location="act.location"
+          :badge="act.badge"
+          :badge-variant="act.badgeVariant"
+          inset
+        />
+        <p v-if="endedActivities.length === 0" class="empty-hint">沒有已結束的球局</p>
+      </div>
+    </template>
+
+    <p v-if="isLoading" class="loading-hint">載入中…</p>
   </main>
 </template>
 
@@ -191,5 +250,13 @@ function isSegmentVisible(segment) {
 .upcoming-list {
   display: grid;
   gap: 0;
+}
+
+.empty-hint,
+.loading-hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted-soft);
 }
 </style>

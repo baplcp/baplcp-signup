@@ -1,8 +1,52 @@
 <script setup>
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { APP_VERSION } from '~/assets/appVersion'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
+import { supabase } from '~/utils/supabase'
+
+const route = useRoute()
+const activityData = ref(null)
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+
+const summaryDate = computed(() => {
+  const dateStr = route.query.date || activityData.value?.dates?.[0]
+  if (!dateStr) return '—'
+  const [, month, day] = dateStr.split('-')
+  return `${Number(month)}.${day}`
+})
+
+const summaryWeekday = computed(() => {
+  const dateStr = route.query.date || activityData.value?.dates?.[0]
+  if (!dateStr) return '—'
+  return WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+})
+
+const summaryTime = computed(() => {
+  if (!activityData.value) return '—'
+  const fmt = t => (t || '').replace(/^0/, '').slice(0, 5)
+  return `${fmt(activityData.value.start_time)}-${fmt(activityData.value.end_time)}`
+})
+
+const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
+
+const summaryFeeAmount = computed(() => {
+  if (!activityData.value) return 255
+  return activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
+})
+
+onMounted(async () => {
+  const id = route.query.id
+  if (!id) return
+  const { data } = await supabase
+    .from('activities')
+    .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+    .eq('id', id)
+    .single()
+  if (data) activityData.value = data
+})
 
 const MEMBER_LIST = [
   { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
@@ -44,9 +88,9 @@ const successDialog = reactive({
 const signupTotal = computed(() => signupState.self + signupState.guest)
 const submittedTotal = computed(() => submittedSignupState.value.self + submittedSignupState.value.guest)
 const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
-const summaryFee = computed(() => (hasSubmittedSignup.value ? submittedTotal.value * 255 : 255))
+const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
 const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `已成功報名 ${submittedTotal.value} 位` : '無報名'))
-const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : '費用 255 元'))
+const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : `費用 ${summaryFeeAmount.value} 元`))
 const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
 const isSignupChanged = computed(() => {
   if (signupState.self !== submittedSignupState.value.self || signupState.guest !== submittedSignupState.value.guest) {
@@ -175,14 +219,14 @@ function handleEscape() {
     </section>
 
     <ActivitySummaryCard
-      date="12.31"
-      weekday="日"
-      time="12:20-15:20"
-      location="板橋柏吉倫排球場"
+      :date="summaryDate"
+      :weekday="summaryWeekday"
+      :time="summaryTime"
+      :location="summaryLocation"
       status-label="狀態"
       :status-value="summaryStatusText"
       :status-tone="hasSubmittedSignup ? 'success' : 'default'"
-      :fee-amount="summaryFee"
+      :fee-amount="hasSubmittedSignup ? summaryFee : summaryFeeAmount"
       :fee-state="hasSubmittedSignup ? '未付' : ''"
       :fee-aria-label="summaryFeeLabel"
       vacancy-label="臨打缺"
