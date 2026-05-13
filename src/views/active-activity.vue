@@ -249,9 +249,21 @@ function handleEscape() {
 
     <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="MEMBER_LIST" :version="APP_VERSION" :bottom-spacing="42" @change="setSegmentTab" />
 
-    <div class="footer-bar">
+    <div v-if="activityType !== 'ended'" class="footer-bar">
       <div class="footer-fade"></div>
-      <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
+      <button
+        v-if="activityType === 'upcoming'"
+        class="cta cta-disabled"
+        type="button"
+        disabled
+      >尚未開放</button>
+      <button
+        v-else
+        ref="heroCtaButton"
+        class="cta"
+        type="button"
+        @click="setSignupOpen(true)"
+      >{{ heroCtaText }}</button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
@@ -436,9 +448,15 @@ function handleEscape() {
   border-radius: 12px;
   background: #1bc4bf;
   color: #fff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
   box-shadow: none;
+}
+
+.cta-disabled {
+  background: #d8dae5;
+  color: #8f95b2;
+  cursor: default;
 }
 
 .signup-overlay {
