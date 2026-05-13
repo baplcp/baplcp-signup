@@ -1,4 +1,9 @@
 import { createRouter, createWebHashHistory, START_LOCATION } from 'vue-router'
+import ActiveActivity from '~/views/active-activity.vue'
+import CreateActivity from '~/views/create-activity.vue'
+import EndedActivity from '~/views/ended-activity.vue'
+import GroupList from '~/views/group-list.vue'
+import Index from '~/views/index.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -6,27 +11,27 @@ const router = createRouter({
     {
       path: '/',
       name: 'index',
-      component: () => import('~/views/index.vue'),
+      component: Index,
     },
     {
       path: '/group-list',
       name: 'group-list',
-      component: () => import('~/views/group-list.vue'),
+      component: GroupList,
     },
     {
       path: '/active-activity',
       name: 'active-activity',
-      component: () => import('~/views/active-activity.vue'),
+      component: ActiveActivity,
     },
     {
       path: '/create-activity',
       name: 'create-activity',
-      component: () => import('~/views/create-activity.vue'),
+      component: CreateActivity,
     },
     {
       path: '/ended-activity',
       name: 'ended-activity',
-      component: () => import('~/views/ended-activity.vue'),
+      component: EndedActivity,
     },
   ],
 })

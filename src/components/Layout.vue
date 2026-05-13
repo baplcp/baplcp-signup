@@ -88,7 +88,9 @@ watch(
       </button>
       <RouterLink to="/" class="brand mr-auto" aria-label="回到首頁 BAPLCP"></RouterLink>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
-        <img src="https://www.figma.com/api/mcp/asset/ef5043d5-e26f-4bcc-ab7a-2a30efead619" alt="" />
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 7.25H12.01M12 12H12.01M12 16.75H12.01" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+        </svg>
       </button>
 
       <div class="menu-overlay h-screen md:h-[calc(100vh-48px)]" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
@@ -222,9 +224,10 @@ watch(
   flex: 0 0 auto;
 }
 
-.menu-btn img {
+.menu-btn svg {
   width: 24px;
   height: 24px;
+  color: #fff;
   transition: filter 0.25s ease;
 }
 
@@ -237,7 +240,7 @@ watch(
   filter: none;
 }
 
-.nav.is-scrolled .menu-btn img {
+.nav.is-scrolled .menu-btn svg {
   filter: var(--brand-purple-filter);
 }
 
