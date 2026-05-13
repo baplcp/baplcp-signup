@@ -1,6 +1,7 @@
 <script setup>
 import { createClient } from '@supabase/supabase-js'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CreateActivityChoiceCard from '../components/create-activity/CreateActivityChoiceCard.vue'
 import CreateActivityMoneyField from '../components/create-activity/CreateActivityMoneyField.vue'
 import CreateActivityTimeSelect from '../components/create-activity/CreateActivityTimeSelect.vue'
@@ -15,10 +16,6 @@ const api = {
     const { data, error } = await client.from('activities').insert(payload).select().single()
     if (error) throw error
     return data
-  },
-  async clearAllActivities() {
-    const { error } = await client.from('activities').delete().not('id', 'is', null)
-    if (error) throw error
   },
 }
 
@@ -57,22 +54,6 @@ const seasonEnabled = ref(true)
 const isSeasonDisabledNoteAlert = ref(false)
 const isSubmitting = ref(false)
 const errorFields = ref(new Set())
-const isClearConfirmOpen = ref(false)
-const isClearing = ref(false)
-
-async function clearAllActivities() {
-  isClearing.value = true
-  try {
-    await api.clearAllActivities()
-    isClearConfirmOpen.value = false
-    openCreateDialog({ title: '已清空所有資料', copy: '所有活動資料已刪除。', buttonText: '確認', returnAfterClose: true })
-  } catch {
-    isClearConfirmOpen.value = false
-    openCreateDialog({ title: '清空失敗', copy: '請稍後再試，或至 Supabase 後台手動刪除。', buttonText: '確認', returnAfterClose: false })
-  } finally {
-    isClearing.value = false
-  }
-}
 
 const dialog = reactive({
   isOpen: false,
@@ -198,8 +179,10 @@ function returnToPreviousPage() {
   else window.location.href = './group-list.html'
 }
 
+const router = useRouter()
+
 function goToCreatedActivityList() {
-  window.location.href = './group-list.html'
+  router.push('/group-list')
 }
 
 function openCreateDialog(options = {}) {
@@ -811,25 +794,6 @@ async function handleCreateActivity() {
       <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? '建立中...' : '建立球局' }}</button>
     </div>
 
-    <div class="danger-zone">
-      <button type="button" class="clear-btn" @click="isClearConfirmOpen = true">清空所有測試資料</button>
-    </div>
-
-    <div
-      class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
-      :class="{ 'is-open': isClearConfirmOpen }"
-      :aria-hidden="String(!isClearConfirmOpen)"
-      :inert="!isClearConfirmOpen"
-    >
-      <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-        <h2 id="confirm-dialog-title" class="shared-dialog-title">確定清空所有資料？</h2>
-        <p class="shared-dialog-copy">此操作會刪除所有活動資料，無法復原。</p>
-        <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isClearing" @click="clearAllActivities">
-          {{ isClearing ? '刪除中...' : '確認刪除' }}
-        </button>
-        <button class="confirm-cancel-btn" type="button" @click="isClearConfirmOpen = false">取消</button>
-      </section>
-    </div>
 
     <div class="calendar-overlay phone-container modal-frame" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
       <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
@@ -1350,55 +1314,6 @@ async function handleCreateActivity() {
   pointer-events: auto;
 }
 
-.danger-zone {
-  padding: 24px 16px 40px;
-  border-top: 1px dashed #ffc0c0;
-  margin: 8px 16px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.clear-btn {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #d14343;
-  background: #fff5f5;
-  border: 1px solid #fac5c5;
-  border-radius: 8px;
-  padding: 8px 20px;
-}
-
-.confirm-overlay {
-  position: fixed;
-  z-index: 9999;
-  margin: auto;
-}
-
-.confirm-dialog {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.confirm-delete-btn {
-  background: #d14343;
-  width: 100%;
-}
-
-.confirm-delete-btn:disabled {
-  background: #d8dae5;
-  cursor: default;
-}
-
-.confirm-cancel-btn {
-  width: 100%;
-  min-height: 44px;
-  font-size: 15px;
-  line-height: 1.4;
-  color: var(--muted);
-  margin-top: 4px;
-}
 
 .calendar-overlay,
 .time-overlay {

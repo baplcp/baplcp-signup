@@ -5,6 +5,20 @@ import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
 import { supabase } from '~/utils/supabase'
 
+const isClearConfirmOpen = ref(false)
+const isClearing = ref(false)
+
+async function clearAllActivities() {
+  isClearing.value = true
+  try {
+    await supabase.from('activities').delete().not('id', 'is', null)
+    activity.value = null
+  } finally {
+    isClearing.value = false
+    isClearConfirmOpen.value = false
+  }
+}
+
 const activeSegment = ref('all')
 const segmentTabs = [
   { label: '全部', value: 'all' },
@@ -103,7 +117,26 @@ function isSegmentVisible(segment) {
 
 <template>
   <main class="group-list-page">
-    <h1 class="page-title">已發起的球局</h1>
+    <div class="page-header">
+      <h1 class="page-title">已發起的球局</h1>
+      <button type="button" class="clear-btn" @click="isClearConfirmOpen = true">清空資料</button>
+    </div>
+
+    <div
+      class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
+      :class="{ 'is-open': isClearConfirmOpen }"
+      :aria-hidden="String(!isClearConfirmOpen)"
+      :inert="!isClearConfirmOpen"
+    >
+      <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true">
+        <h2 class="shared-dialog-title">確定清空所有資料？</h2>
+        <p class="shared-dialog-copy">此操作會刪除所有活動資料，無法復原。</p>
+        <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isClearing" @click="clearAllActivities">
+          {{ isClearing ? '刪除中...' : '確認刪除' }}
+        </button>
+        <button class="confirm-cancel-btn shared-dialog-button" type="button" style="background:#f5f6fa;color:#474d66;" @click="isClearConfirmOpen = false">取消</button>
+      </section>
+    </div>
 
     <GroupSegmentTabs :items="segmentTabs" :active-segment="activeSegment" @change="setSegment" />
 
@@ -169,6 +202,13 @@ function isSegmentVisible(segment) {
   padding: 31px 16px 0;
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .page-title {
   margin: 0;
   font-size: 24px;
@@ -176,6 +216,35 @@ function isSegmentVisible(segment) {
   letter-spacing: 0.48px;
   font-weight: 700;
   color: var(--text);
+}
+
+.clear-btn {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #d14343;
+  white-space: nowrap;
+}
+
+.confirm-overlay {
+  position: fixed;
+  z-index: 9999;
+  margin: auto;
+}
+
+.confirm-delete-btn {
+  background: #d14343;
+  width: 100%;
+}
+
+.confirm-delete-btn:disabled {
+  background: #d8dae5;
+  cursor: default;
+}
+
+.confirm-cancel-btn {
+  width: 100%;
+  margin-top: 4px;
 }
 
 .section-title {
