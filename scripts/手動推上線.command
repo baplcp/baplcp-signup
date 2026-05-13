@@ -27,8 +27,64 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ -z "$(git status --porcelain)" ]; then
-  echo "目前沒有任何檔案變更，不需要上線。"
+if ! git rev-parse --verify "$REMOTE/$BRANCH" >/dev/null 2>&1; then
+  echo "找不到遠端分支 $REMOTE/$BRANCH，先同步遠端資訊..."
+  if ! git fetch "$REMOTE" "$BRANCH"; then
+    echo ""
+    echo "同步遠端資訊失敗。請確認 GitHub 登入權限或網路連線。"
+    echo ""
+    read "pause?按 Enter 關閉..."
+    exit 1
+  fi
+fi
+
+unpushed_count="$(git rev-list --count "$REMOTE/$BRANCH"..HEAD)"
+
+if [ -z "$(git status --porcelain)" ] && [ "$unpushed_count" -eq 0 ]; then
+  echo "目前沒有任何檔案變更，也沒有尚未推上 GitHub 的上線紀錄。"
+  echo ""
+  read "pause?按 Enter 關閉..."
+  exit 0
+fi
+
+if [ -z "$(git status --porcelain)" ] && [ "$unpushed_count" -gt 0 ]; then
+  echo "目前沒有新的檔案變更，但有 $unpushed_count 筆本機上線紀錄尚未推上 GitHub。"
+  echo ""
+  git log --oneline "$REMOTE/$BRANCH"..HEAD
+  echo ""
+
+  read "answer?確定要把以上紀錄推上線嗎？輸入 y 後按 Enter："
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+    echo ""
+    echo "已取消，沒有推上線。"
+    echo ""
+    read "pause?按 Enter 關閉..."
+    exit 0
+  fi
+
+  echo ""
+  echo "1/2 同步 GitHub 最新版本..."
+  if ! git pull --rebase "$REMOTE" "$BRANCH"; then
+    echo ""
+    echo "同步失敗。通常是 GitHub 上也有人改過同一段內容，需要先解衝突。"
+    echo ""
+    read "pause?按 Enter 關閉..."
+    exit 1
+  fi
+
+  echo ""
+  echo "2/2 推上 GitHub Pages..."
+  if ! git push "$REMOTE" "HEAD:$BRANCH"; then
+    echo ""
+    echo "推上線失敗。請確認 GitHub 登入權限或網路連線。"
+    echo ""
+    read "pause?按 Enter 關閉..."
+    exit 1
+  fi
+
+  echo ""
+  echo "完成。GitHub Pages 通常會在 1 到 3 分鐘內更新："
+  echo "$SITE_URL"
   echo ""
   read "pause?按 Enter 關閉..."
   exit 0
