@@ -12,7 +12,7 @@ export const useLiffStore = defineStore('liff', () => {
   const userId = ref(null)
   const displayName = ref(null)
   const pictureUrl = ref(null)
-  const role = ref('guest')
+  const role = ref('member')
 
   function getUserProfile() {
     return {
@@ -44,11 +44,11 @@ export const useLiffStore = defineStore('liff', () => {
         // 第一次登入：自動新增，role 預設 guest
         const { error: insertError } = await supabase
           .from('members')
-          .insert({ user_id: uid, display_name: name, role: 'guest' })
+          .insert({ user_id: uid, display_name: name, role: 'member' })
         if (insertError) {
           console.warn('syncMember insert error', insertError.message)
         }
-        role.value = 'guest'
+        role.value = 'member'
       }
     } catch (e) {
       console.warn('syncMember exception', e)
