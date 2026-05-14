@@ -104,15 +104,16 @@ const memberList = computed(() => {
   const members = []
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
-      const selfTime = formatRegistrationTime(reg.self_added_at || reg.created_at)
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: selfTime })
+      const ts = reg.self_added_at || reg.created_at
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts })
     }
     ;(reg.guests || []).forEach(guest => {
-      const guestTime = formatRegistrationTime(guest.added_at || reg.created_at)
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: guestTime })
+      const ts = guest.added_at || reg.created_at
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts })
     })
   })
-  return members.map((m, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
+  members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
+  return members.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
 })
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const GENDER_OPTIONS = [
@@ -262,10 +263,19 @@ async function submitSignup() {
     return
   }
 
+  const submitTime = new Date().toISOString()
+  const isNewRegistration = !myRegistration.value
   const prevSelfCount = myRegistration.value?.self_count ?? 0
+  const prevGuests = myRegistration.value?.guests ?? []
+
   const selfAddedAt = signupState.self === 1
-    ? (prevSelfCount === 0 ? new Date().toISOString() : (myRegistration.value?.self_added_at ?? new Date().toISOString()))
+    ? (prevSelfCount === 0 ? submitTime : (myRegistration.value?.self_added_at ?? submitTime))
     : null
+
+  const guestsWithTime = signupState.guests.slice(0, signupState.guest).map((g, i) => ({
+    ...g,
+    added_at: isNewRegistration || i >= prevGuests.length ? submitTime : (prevGuests[i].added_at || submitTime),
+  }))
 
   const payload = {
     activity_id: activityData.value?.id,
@@ -276,7 +286,7 @@ async function submitSignup() {
     self_count: signupState.self,
     self_added_at: selfAddedAt,
     guest_count: signupState.guest,
-    guests: signupState.guests.slice(0, signupState.guest),
+    guests: guestsWithTime,
     status: 'active',
   }
 
