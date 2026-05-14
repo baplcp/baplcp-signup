@@ -2,6 +2,7 @@ import liff from '@line/liff'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '~/utils/supabase'
+import { consumeOAuthCallback, popPostOAuthRedirect, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
 
 const LIFF_ID = '2009808077-q6H0su3r'
 
@@ -74,16 +75,42 @@ export const useLiffStore = defineStore('liff', () => {
 
       if (!liff.isInClient()) {
         // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
-        // LINE 平台限制：行動版外部瀏覽器無法透過 LIFF 登入，不發起跳轉
         isExternalBrowser.value = true
+
+        // 優先檢查是否為標準 LINE OAuth 回調（URL 帶有 ?code=...&state=...）
+        const oauthCode = consumeOAuthCallback()
+        if (oauthCode) {
+          try {
+            const { data, error } = await supabase.functions.invoke('line-token', {
+              body: { code: oauthCode, redirectUri: LINE_OAUTH_REDIRECT_URI },
+            })
+            if (!error && data?.userId) {
+              userId.value = data.userId
+              displayName.value = data.displayName
+              pictureUrl.value = data.pictureUrl ?? null
+              await syncMember(data.userId, data.displayName)
+              initialized.value = true
+              // 還原登入前的頁面 hash
+              const targetHash = popPostOAuthRedirect()
+              if (targetHash && window.location.hash !== targetHash) {
+                window.location.hash = targetHash
+              }
+              return
+            }
+          } catch (e) {
+            console.warn('LINE OAuth token exchange failed', e)
+          }
+        }
+
+        // 已透過 LIFF token（極少數情況）登入
         if (liff.isLoggedIn()) {
-          // token 尚未過期的極少數情況，直接讀取 profile
           const profile = await liff.getProfile()
           userId.value = profile.userId
           displayName.value = profile.displayName
           pictureUrl.value = profile.pictureUrl
           await syncMember(profile.userId, profile.displayName)
         }
+
         initialized.value = true
         return
       }

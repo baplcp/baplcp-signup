@@ -4,6 +4,7 @@ import CreateActivity from '~/views/create-activity.vue'
 import EndedActivity from '~/views/ended-activity.vue'
 import GroupList from '~/views/group-list.vue'
 import Index from '~/views/index.vue'
+import ManageActivities from '~/views/manage-activities.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -32,6 +33,11 @@ const router = createRouter({
       path: '/ended-activity',
       name: 'ended-activity',
       component: EndedActivity,
+    },
+    {
+      path: '/manage-activities',
+      name: 'manage-activities',
+      component: ManageActivities,
     },
   ],
 })

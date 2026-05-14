@@ -5,6 +5,7 @@ import ActivityMemberSection from '~/components/activity/ActivityMemberSection.v
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
 import { useLiffStore } from '~/stores/liff'
 import { supabase } from '~/utils/supabase'
+import { startLineOAuth } from '~/utils/lineOAuth'
 
 const route = useRoute()
 const liffStore = useLiffStore()
@@ -312,9 +313,10 @@ async function submitSignup() {
   if (!liffStore.userId) {
     if (liffStore.isExternalBrowser) {
       setSuccessDialogOpen(true, {
-        title: '請從 LINE 開啟',
-        copy: '報名功能僅支援在 LINE 應用程式內使用。請複製此頁面網址，在 LINE 中貼上並開啟連結。',
-        buttonText: '了解',
+        title: '請先登入',
+        copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往 LINE 登入。',
+        buttonText: '以 LINE 登入',
+        onButtonClick: () => startLineOAuth(),
       })
     } else {
       setSuccessDialogOpen(true, {

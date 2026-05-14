@@ -22,7 +22,7 @@ const navScrollProgress = ref(0)
 
 const hiddenHeaderPath = ['group-list', 'create-activity']
 const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
-const simpleHeaderPath = ['group-list']
+const simpleHeaderPath = ['group-list', 'manage-activities']
 const isShowSinpleHeader = computed(() => simpleHeaderPath.includes(route.name))
 const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
 const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
@@ -89,6 +89,7 @@ watch(
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
+      <RouterLink v-if="isOrganizer && route.name === 'group-list'" class="manage-link" to="/manage-activities">管理</RouterLink>
     </header>
     <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
       <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
@@ -247,6 +248,15 @@ watch(
   place-items: center;
   color: #667095;
   flex: 0 0 auto;
+}
+
+.manage-link {
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--primary-700);
+  text-decoration: none;
 }
 
 .brand {

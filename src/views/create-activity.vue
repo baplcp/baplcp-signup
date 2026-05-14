@@ -1,7 +1,7 @@
 <script setup>
 import { createClient } from '@supabase/supabase-js'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CreateActivityChoiceCard from '../components/create-activity/CreateActivityChoiceCard.vue'
 import CreateActivityMoneyField from '../components/create-activity/CreateActivityMoneyField.vue'
 import CreateActivityTimeSelect from '../components/create-activity/CreateActivityTimeSelect.vue'
@@ -14,6 +14,16 @@ const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 const api = {
   async createActivity(payload) {
     const { data, error } = await client.from('activities').insert(payload).select().single()
+    if (error) throw error
+    return data
+  },
+  async getActivity(id) {
+    const { data, error } = await client.from('activities').select('*').eq('id', id).single()
+    if (error) throw error
+    return data
+  },
+  async updateActivity(id, payload) {
+    const { data, error } = await client.from('activities').update(payload).eq('id', id).select().single()
     if (error) throw error
     return data
   },
@@ -104,6 +114,7 @@ const currentCalendarSelectedValues = computed(() => {
 watch(
   selectedDates,
   dates => {
+    if (isPopulatingForm.value) return
     clearError('activityDates')
     isSeasonDisabledNoteAlert.value = false
 
@@ -125,8 +136,55 @@ watch(visibleMonth, () => {
   calendarDays.value = buildCalendarDays(visibleMonth.value)
 })
 
-onMounted(() => {
+onMounted(async () => {
   calendarDays.value = buildCalendarDays(visibleMonth.value)
+
+  const idParam = route.query.id
+  if (idParam) {
+    editId.value = idParam
+    isPopulatingForm.value = true
+    try {
+      const data = await api.getActivity(idParam)
+      form.gameType = data.game_type || 'season'
+      form.activityTitle = data.title || ''
+      form.location = data.location || ''
+      selectedDates.value = data.dates || []
+      form.activityStartTime = data.start_time || ''
+      form.activityEndTime = data.end_time || ''
+      form.seasonSingleFee = String(data.season_fee_per_session ?? '')
+      form.pickupSingleFee = String(data.pickup_fee_per_session ?? '')
+      form.acFee = String(data.ac_fee ?? '')
+      form.singleCapacity = String(data.single_capacity ?? '18')
+      seasonEnabled.value = data.season_enabled ?? true
+      form.seasonIncludeAc = data.season_include_ac ?? true
+      form.seasonCapacity = data.season_capacity || 'unlimited'
+      form.seasonOpenDate = data.season_open_date || ''
+      form.seasonOpenTime = data.season_open_time || '00:00'
+      form.seasonDeadlineType = data.season_deadline_type || 'unlimited'
+      form.seasonCloseDate = data.season_close_date || ''
+      form.seasonCloseTime = data.season_close_time || ''
+      form.pickupOpenDate = data.pickup_open_days_before ? `前 ${data.pickup_open_days_before} 天` : '前 7 天'
+      form.pickupOpenTime = data.pickup_open_time || '20:00'
+      form.deadlineType = data.pickup_deadline_type || 'unlimited'
+      form.pickupCloseDate = data.pickup_close_days_before ? `前 ${data.pickup_close_days_before} 天` : '前 1 天'
+      form.pickupCloseTime = data.pickup_close_time || ''
+
+      const firstDate = selectedDates.value[0]
+      if (firstDate) {
+        visibleMonth.value = getFirstDayOfMonth(new Date(firstDate))
+        calendarDays.value = buildCalendarDays(visibleMonth.value)
+      }
+    } catch (err) {
+      openCreateDialog({
+        title: '載入失敗',
+        copy: err.message || '無法取得球局資料，請稍後再試。',
+        buttonText: '確認',
+        returnAfterClose: false,
+      })
+    } finally {
+      isPopulatingForm.value = false
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -179,7 +237,12 @@ function returnToPreviousPage() {
   else window.location.href = './group-list.html'
 }
 
+const route = useRoute()
 const router = useRouter()
+
+const editId = ref(null)
+const isEditMode = computed(() => !!editId.value)
+const isPopulatingForm = ref(false)
 
 function goToCreatedActivityList() {
   router.push('/group-list')
@@ -441,21 +504,31 @@ function buildActivityPayload() {
   }
 }
 
-async function handleCreateActivity() {
+async function handleSubmitActivity() {
   if (!validate()) return
 
   isSubmitting.value = true
   try {
-    await api.createActivity(buildActivityPayload())
-    openCreateDialog({
-      title: '球局建立成功',
-      copy: '新球局已建立完成。',
-      buttonText: '確認',
-      returnAfterClose: true,
-    })
+    if (isEditMode.value) {
+      await api.updateActivity(editId.value, buildActivityPayload())
+      openCreateDialog({
+        title: '設定已更新',
+        copy: '球局設定已更新完成。',
+        buttonText: '確認',
+        returnAfterClose: true,
+      })
+    } else {
+      await api.createActivity(buildActivityPayload())
+      openCreateDialog({
+        title: '球局建立成功',
+        copy: '新球局已建立完成。',
+        buttonText: '確認',
+        returnAfterClose: true,
+      })
+    }
   } catch (err) {
     openCreateDialog({
-      title: '建立失敗',
+      title: isEditMode.value ? '更新失敗' : '建立失敗',
       copy: err.message || '請稍後再試',
       buttonText: '確認',
       returnAfterClose: false,
@@ -474,9 +547,9 @@ async function handleCreateActivity() {
       </header>
 
       <section class="page">
-        <h1 class="page-title">建立新球局</h1>
+        <h1 class="page-title">{{ isEditMode ? '修改球局設定' : '建立新球局' }}</h1>
 
-        <form id="create-activity-form" class="form-block" @submit.prevent="handleCreateActivity">
+        <form id="create-activity-form" class="form-block" @submit.prevent="handleSubmitActivity">
           <section class="section" aria-labelledby="details-title">
             <h2 id="details-title" class="section-title">詳細資訊</h2>
             <input v-model="form.gameType" name="gameType" type="hidden" />
@@ -791,7 +864,7 @@ async function handleCreateActivity() {
     </div>
 
     <div class="cta-fade">
-      <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? '建立中...' : '建立球局' }}</button>
+      <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? (isEditMode ? '儲存中...' : '建立中...') : (isEditMode ? '儲存設定' : '建立球局') }}</button>
     </div>
 
 
