@@ -13,6 +13,7 @@ export const useLiffStore = defineStore('liff', () => {
   const displayName = ref(null)
   const pictureUrl = ref(null)
   const role = ref('member')
+  const gender = ref(null)
 
   function getUserProfile() {
     return {
@@ -28,7 +29,7 @@ export const useLiffStore = defineStore('liff', () => {
     try {
       const { data, error } = await supabase
         .from('members')
-        .select('role')
+        .select('role, gender')
         .eq('user_id', uid)
         .maybeSingle()
 
@@ -38,8 +39,9 @@ export const useLiffStore = defineStore('liff', () => {
       }
 
       if (data) {
-        // 已有記錄：直接讀取 role，不覆蓋管理員設定
+        // 已有記錄：直接讀取 role 與 gender，不覆蓋管理員設定
         role.value = data.role
+        gender.value = data.gender || null
       } else {
         // 第一次登入：自動新增，role 預設 guest
         const { error: insertError } = await supabase
@@ -93,6 +95,17 @@ export const useLiffStore = defineStore('liff', () => {
     return initializationPromise
   }
 
+  async function updateGender(newGender) {
+    if (!userId.value) return
+    const value = newGender || null
+    const { error } = await supabase
+      .from('members')
+      .update({ gender: value })
+      .eq('user_id', userId.value)
+    if (!error) gender.value = value
+    else console.warn('updateGender error', error.message)
+  }
+
   function login() {
     // 清空 singleton，確保跳轉回來後重新初始化（避免 same-page 跳轉時舊 promise 已完成）
     initializationPromise = null
@@ -105,8 +118,10 @@ export const useLiffStore = defineStore('liff', () => {
     displayName,
     pictureUrl,
     role,
+    gender,
     getUserProfile,
     initialize,
     login,
+    updateGender,
   }
 })

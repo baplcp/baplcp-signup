@@ -4,6 +4,10 @@ import GroupActiveCard from '~/components/group-list/GroupActiveCard.vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
 import { supabase } from '~/utils/supabase'
+import { useLiffStore } from '~/stores/liff'
+
+const liffStore = useLiffStore()
+const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const isClearConfirmOpen = ref(false)
 const isClearing = ref(false)
@@ -119,7 +123,7 @@ function isSegmentVisible(segment) {
   <main class="group-list-page">
     <div class="page-header">
       <h1 class="page-title">已發起的球局</h1>
-      <button type="button" class="clear-btn" @click="isClearConfirmOpen = true">清空資料</button>
+      <button v-if="isOrganizer" type="button" class="clear-btn" @click="isClearConfirmOpen = true">清空資料</button>
     </div>
 
     <div

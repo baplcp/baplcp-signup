@@ -17,6 +17,7 @@ const ROLE_CONFIG = {
   member:    { label: '一般會員', modifier: 'is-member' },
 }
 const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.member)
+const isOrganizer = computed(() => liffStore.role === 'organizer')
 const navScrollProgress = ref(0)
 
 const hiddenHeaderPath = ['group-list', 'create-activity']
@@ -178,7 +179,7 @@ watch(
             </section>
           </div>
           <div class="drawer-footer">
-            <RouterLink @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
+            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
           </div>
         </aside>
       </div>

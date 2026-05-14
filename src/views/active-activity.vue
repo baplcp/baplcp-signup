@@ -54,6 +54,7 @@ const summaryFeeAmount = computed(() => {
 
 const registrations = ref([])
 const myRegistration = ref(null)
+const memberGenders = ref({})
 
 async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
@@ -63,6 +64,16 @@ async function fetchRegistrations() {
   if (data) {
     registrations.value = data
     myRegistration.value = data.find(r => r.user_id === liffStore.userId) || null
+
+    const userIds = [...new Set(data.map(r => r.user_id))]
+    if (userIds.length) {
+      const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
+      memberGenders.value = memberData
+        ? Object.fromEntries(memberData.map(m => [m.user_id, m.gender || null]))
+        : {}
+    } else {
+      memberGenders.value = {}
+    }
   }
 }
 
@@ -105,11 +116,11 @@ const memberList = computed(() => {
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts })
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null })
     }
     ;(reg.guests || []).forEach(guest => {
       const ts = guest.added_at || reg.created_at
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts, gender: guest.gender || null })
     })
   })
   members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
