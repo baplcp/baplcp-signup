@@ -98,12 +98,10 @@ onMounted(async () => {
   } else {
     try {
       await liff.init({ liffId: '2009808077-q6H0su3r' })
-      if (!liff.isLoggedIn()) {
-        liff.login()
-        return
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile()
+        liffUser.value = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
       }
-      const profile = await liff.getProfile()
-      liffUser.value = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
     } catch (e) {
       console.error('LIFF init failed', e)
     }
@@ -236,6 +234,11 @@ function adjustSignupCount(type, direction) {
 }
 
 async function submitSignup() {
+  if (!import.meta.env.DEV && !liff.isLoggedIn()) {
+    liff.login({ redirectUri: window.location.href })
+    return
+  }
+
   if (!isSignupChanged.value) return
 
   const total = signupTotal.value
