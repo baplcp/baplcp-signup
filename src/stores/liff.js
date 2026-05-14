@@ -8,8 +8,6 @@ let initializationPromise = null
 
 export const useLiffStore = defineStore('liff', () => {
   const initialized = ref(false)
-  const loading = ref(false)
-  const error = ref(null)
   const userId = ref(null)
   const displayName = ref(null)
   const pictureUrl = ref(null)
@@ -23,38 +21,30 @@ export const useLiffStore = defineStore('liff', () => {
   }
 
   async function initializeClient() {
-    loading.value = true
-    error.value = null
+    if (import.meta.env.DEV) {
+      userId.value = 'dev-user-001'
+      displayName.value = 'Dev User'
+      pictureUrl.value = null
+      initialized.value = true
+      return
+    }
 
     try {
-      if (import.meta.env.DEV) {
-        userId.value = 'dev-user-001'
-        displayName.value = 'Dev User'
-        pictureUrl.value = null
-        initialized.value = true
-        return getUserProfile()
-      }
-
       await liff.init({ liffId: LIFF_ID })
 
-      if (!liff.isLoggedIn()) {
-        liff.login()
-        return null
+      if (liff.isLoggedIn()) {
+        sessionStorage.removeItem('liff-login-attempted')
+        const profile = await liff.getProfile()
+        userId.value = profile.userId
+        displayName.value = profile.displayName
+        pictureUrl.value = profile.pictureUrl
+        initialized.value = true
+      } else if (!sessionStorage.getItem('liff-login-attempted')) {
+        sessionStorage.setItem('liff-login-attempted', '1')
+        liff.login({ redirectUri: window.location.href })
       }
-
-      const profile = await liff.getProfile()
-      userId.value = profile.userId
-      displayName.value = profile.displayName
-      pictureUrl.value = profile.pictureUrl
-      initialized.value = true
-      return getUserProfile()
-    } catch (initError) {
-      console.error('LIFF init failed', initError)
-      error.value = initError
-      initialized.value = false
-      return null
-    } finally {
-      loading.value = false
+    } catch (e) {
+      console.error('LIFF init failed', e)
     }
   }
 
@@ -62,17 +52,20 @@ export const useLiffStore = defineStore('liff', () => {
     if (!initializationPromise) {
       initializationPromise = initializeClient()
     }
-
     return initializationPromise
+  }
+
+  function login() {
+    liff.login({ redirectUri: window.location.href })
   }
 
   return {
     initialized,
-    loading,
-    error,
     userId,
     displayName,
     pictureUrl,
+    getUserProfile,
     initialize,
+    login,
   }
 })

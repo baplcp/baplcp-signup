@@ -67,7 +67,6 @@ async function fetchRegistrations() {
 }
 
 onMounted(async () => {
-  // 抓 activity 資料
   const id = route.query.id
   if (id) {
     const { data } = await supabase.from('activities').select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session').eq('id', id).single()
@@ -81,8 +80,6 @@ onMounted(async () => {
       .single()
     if (data) activityData.value = data
   }
-
-  await liffStore.initialize()
 
   await fetchRegistrations()
 })
@@ -211,8 +208,8 @@ function adjustSignupCount(type, direction) {
 }
 
 async function submitSignup() {
-  if (!import.meta.env.DEV && !liff.isLoggedIn()) {
-    liff.login({ redirectUri: window.location.href })
+  if (!liffStore.userId) {
+    liffStore.login()
     return
   }
 
