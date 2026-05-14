@@ -90,15 +90,25 @@ const vacancyCount = computed(() => {
   return Math.max(0, capacity - confirmed)
 })
 
+function formatRegistrationTime(isoString) {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  const s = String(d.getSeconds()).padStart(2, '0')
+  return `${h}:${m}:${s}`
+}
+
 const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
   const members = []
   registrations.value.forEach(reg => {
+    const time = formatRegistrationTime(reg.created_at)
     if (reg.self_count > 0) {
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time })
     }
     ;(reg.guests || []).forEach(guest => {
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time })
     })
   })
   return members.map((m, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))

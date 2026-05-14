@@ -52,7 +52,10 @@ function setSegment(tab) {
           <img v-if="member.image" :src="member.image" alt="" />
           <template v-else>{{ member.badge }}</template>
         </div>
-        <div class="name activity-member-name">{{ member.name }}</div>
+        <div class="name activity-member-name">
+          <span>{{ member.name }}</span>
+          <span v-if="member.time" class="activity-member-time">{{ member.time }}</span>
+        </div>
         <div v-if="member.status" class="status-tag activity-member-status">{{ member.status }}</div>
       </div>
     </div>
