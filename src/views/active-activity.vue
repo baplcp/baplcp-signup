@@ -1,4 +1,5 @@
 <script setup>
+import liff from '@line/liff'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { APP_VERSION } from '~/assets/appVersion'
@@ -51,27 +52,80 @@ const summaryFeeAmount = computed(() => {
   return activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
 })
 
-onMounted(async () => {
-  const id = route.query.id
-  if (!id) return
+const liffUser = ref(null)
+const registrations = ref([])
+const myRegistration = ref(null)
+
+async function fetchRegistrations() {
+  const activityId = route.query.id || activityData.value?.id
+  const date = resolvedDate.value
+  if (!activityId || !date) return
   const { data } = await supabase
-    .from('activities')
-    .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
-    .eq('id', id)
-    .single()
-  if (data) activityData.value = data
+    .from('registrations')
+    .select('*')
+    .eq('activity_id', activityId)
+    .eq('activity_date', date)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+  if (data) {
+    registrations.value = data
+    myRegistration.value = data.find(r => r.user_id === liffUser.value?.userId) || null
+  }
+}
+
+onMounted(async () => {
+  // 抓 activity 資料
+  const id = route.query.id
+  if (id) {
+    const { data } = await supabase
+      .from('activities')
+      .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+      .eq('id', id)
+      .single()
+    if (data) activityData.value = data
+  } else {
+    const { data } = await supabase
+      .from('activities')
+      .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (data) activityData.value = data
+  }
+
+  // LIFF 登入
+  if (import.meta.env.DEV) {
+    liffUser.value = { userId: 'dev-user-001', displayName: 'Dev User', pictureUrl: null }
+  } else {
+    try {
+      await liff.init({ liffId: '2009808077-q6H0su3r' })
+      if (!liff.isLoggedIn()) {
+        liff.login()
+        return
+      }
+      const profile = await liff.getProfile()
+      liffUser.value = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
+    } catch (e) {
+      console.error('LIFF init failed', e)
+    }
+  }
+
+  await fetchRegistrations()
 })
 
-const MEMBER_LIST = [
-  { name: '莊則元', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile01.png' },
-  { name: '施政維', badge: '施', image: import.meta.env.BASE_URL + '/images/profile02.png' },
-  { name: '莊宸豪', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile03.png' },
-  { name: '蔚', badge: '蔚', image: import.meta.env.BASE_URL + '/images/profile04.png' },
-  { name: '乃瑄', badge: '乃', image: import.meta.env.BASE_URL + '/images/profile05.png' },
-  { name: '莊辰豪', badge: '莊', image: import.meta.env.BASE_URL + '/images/profile06.png' },
-  { name: '黃品諭', badge: '黃', image: import.meta.env.BASE_URL + '/images/profile07.png', status: '候補' },
-  { name: '黃品翰', badge: '黃', color: 'linear-gradient(135deg, #b59dc8 0%, #8468a0 100%)', status: '候補' },
-]
+const memberList = computed(() => {
+  const capacity = activityData.value?.single_capacity ?? Infinity
+  const members = []
+  registrations.value.forEach(reg => {
+    if (reg.self_count > 0) {
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
+    }
+    ;(reg.guests || []).forEach(guest => {
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
+    })
+  })
+  return members.map((m, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
+})
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const GENDER_OPTIONS = [
   { value: '', label: '性別', disabled: true },
@@ -91,7 +145,6 @@ const signupState = reactive({
   guest: 0,
   guests: [],
 })
-const submittedSignupState = ref(cloneSignupState(signupState))
 const successDialog = reactive({
   open: false,
   title: '報名已送出',
@@ -100,39 +153,27 @@ const successDialog = reactive({
 })
 
 const signupTotal = computed(() => signupState.self + signupState.guest)
-const submittedTotal = computed(() => submittedSignupState.value.self + submittedSignupState.value.guest)
+const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.value.self_count || 0) + (myRegistration.value.guest_count || 0) : 0))
 const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
 const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
 const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `已成功報名 ${submittedTotal.value} 位` : '無報名'))
 const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : `費用 ${summaryFeeAmount.value} 元`))
 const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
 const isSignupChanged = computed(() => {
-  if (signupState.self !== submittedSignupState.value.self || signupState.guest !== submittedSignupState.value.guest) {
-    return true
-  }
+  const prevSelf = myRegistration.value?.self_count ?? 0
+  const prevGuest = myRegistration.value?.guest_count ?? 0
+  const prevGuests = myRegistration.value?.guests ?? []
+
+  if (signupState.self !== prevSelf || signupState.guest !== prevGuest) return true
 
   for (let index = 0; index < signupState.guest; index += 1) {
-    const currentGuest = signupState.guests[index] || { name: '', gender: '' }
-    const submittedGuest = submittedSignupState.value.guests[index] || { name: '', gender: '' }
-
-    if ((currentGuest.name || '') !== (submittedGuest.name || '') || (currentGuest.gender || '') !== (submittedGuest.gender || '')) {
-      return true
-    }
+    const cur = signupState.guests[index] || { name: '', gender: '' }
+    const prev = prevGuests[index] || { name: '', gender: '' }
+    if ((cur.name || '') !== (prev.name || '') || (cur.gender || '') !== (prev.gender || '')) return true
   }
 
   return false
 })
-
-function cloneSignupState(state) {
-  return {
-    self: state.self,
-    guest: state.guest,
-    guests: state.guests.map(guest => ({
-      name: guest && guest.name ? guest.name : '',
-      gender: guest && guest.gender ? guest.gender : '',
-    })),
-  }
-}
 
 function focusElement(target) {
   nextTick(() => {
@@ -145,6 +186,17 @@ function setSignupOpen(isOpen, options = {}) {
   signupOpen.value = isOpen
 
   if (isOpen) {
+    // 預填現有報名資料
+    if (myRegistration.value) {
+      signupState.self = myRegistration.value.self_count || 0
+      signupState.guest = myRegistration.value.guest_count || 0
+      signupState.guests = (myRegistration.value.guests || []).map(g => ({ name: g.name || '', gender: g.gender || '' }))
+      while (signupState.guests.length < signupState.guest) signupState.guests.push({ name: '', gender: '' })
+    } else {
+      signupState.self = 0
+      signupState.guest = 0
+      signupState.guests = []
+    }
     focusElement(signupCloseButton)
   } else if (restoreFocus) {
     focusElement(heroCtaButton)
@@ -184,7 +236,7 @@ function adjustSignupCount(type, direction) {
   signupState.guests.splice(signupState.guest)
 }
 
-function submitSignup() {
+async function submitSignup() {
   if (!isSignupChanged.value) return
 
   const total = signupTotal.value
@@ -200,13 +252,34 @@ function submitSignup() {
     return
   }
 
-  submittedSignupState.value = cloneSignupState(signupState)
-  setSignupOpen(false, { restoreFocus: false })
-  setSuccessDialogOpen(true, {
-    title: isUpdatingExistingSignup || total <= 0 ? '報名已更新' : '報名已送出',
-    copy: total > 0 ? `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入` : '已更新為無報名，請稍候確認名單是否同步完成',
-    buttonText: '確認',
-  })
+  const payload = {
+    activity_id: activityData.value?.id,
+    activity_date: resolvedDate.value,
+    user_id: liffUser.value?.userId,
+    display_name: liffUser.value?.displayName,
+    picture_url: liffUser.value?.pictureUrl || null,
+    self_count: signupState.self,
+    guest_count: signupState.guest,
+    guests: signupState.guests.slice(0, signupState.guest),
+    status: 'active',
+  }
+
+  try {
+    if (myRegistration.value) {
+      await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
+    } else {
+      await supabase.from('registrations').insert(payload)
+    }
+    await fetchRegistrations()
+    setSignupOpen(false, { restoreFocus: false })
+    setSuccessDialogOpen(true, {
+      title: isUpdatingExistingSignup || total <= 0 ? '報名已更新' : '報名已送出',
+      copy: total > 0 ? `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入` : '已更新為無報名，請稍候確認名單是否同步完成',
+      buttonText: '確認',
+    })
+  } catch {
+    setSuccessDialogOpen(true, { title: '報名失敗', copy: '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
+  }
 }
 
 function handleEscape() {
@@ -247,7 +320,8 @@ function handleEscape() {
       vacancy-value="2"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="MEMBER_LIST" :version="APP_VERSION" :bottom-spacing="42" @change="setSegmentTab" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :version="APP_VERSION" :bottom-spacing="memberList.length === 0 ? 0 : 42" @change="setSegmentTab" />
+    <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
       <div class="footer-fade"></div>
@@ -742,5 +816,13 @@ function handleEscape() {
 .success-dialog-overlay {
   position: absolute;
   inset: 0;
+}
+
+.empty-member-hint {
+  padding: 0 16px 80px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8f95b2;
 }
 </style>
