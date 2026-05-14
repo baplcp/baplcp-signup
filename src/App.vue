@@ -43,7 +43,7 @@ async function confirmGender() {
       <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
       <div class="gender-options">
         <button
-          v-for="opt in [{ value: 'female', label: '女' }, { value: 'male', label: '男' }, { value: 'other', label: '其他' }]"
+          v-for="opt in [{ value: 'female', label: '女' }, { value: 'male', label: '男' }]"
           :key="opt.value"
           class="gender-option-btn"
           :class="{ 'is-selected': selectedGender === opt.value }"
