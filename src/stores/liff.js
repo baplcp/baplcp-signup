@@ -64,8 +64,37 @@ export const useLiffStore = defineStore('liff', () => {
       userId.value = 'dev-user-001'
       displayName.value = 'Dev User'
       pictureUrl.value = null
-      // 開發時若需要測試特定角色，可改為 role.value = 'admin'
       await syncMember('dev-user-001', 'Dev User')
+      initialized.value = true
+      return
+    }
+
+    // 在 liff.init() 之前先檢查 LINE OAuth callback，
+    // 避免 LIFF SDK 把 ?code 參數誤判為自己的 OAuth 並消耗掉
+    const oauthCode = consumeOAuthCallback()
+    if (oauthCode) {
+      isExternalBrowser.value = true
+      try {
+        const { data, error } = await supabase.functions.invoke('line-token', {
+          body: { code: oauthCode, redirectUri: LINE_OAUTH_REDIRECT_URI },
+        })
+        if (!error && data?.userId) {
+          userId.value = data.userId
+          displayName.value = data.displayName
+          pictureUrl.value = data.pictureUrl ?? null
+          await syncMember(data.userId, data.displayName)
+          initialized.value = true
+          // 還原登入前的頁面 hash
+          const targetHash = popPostOAuthRedirect()
+          if (targetHash && window.location.hash !== targetHash) {
+            window.location.hash = targetHash
+          }
+          return
+        }
+      } catch (e) {
+        console.warn('LINE OAuth token exchange failed', e)
+      }
+      // token exchange 失敗，降級為訪客狀態
       initialized.value = true
       return
     }
@@ -76,31 +105,6 @@ export const useLiffStore = defineStore('liff', () => {
       if (!liff.isInClient()) {
         // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
         isExternalBrowser.value = true
-
-        // 優先檢查是否為標準 LINE OAuth 回調（URL 帶有 ?code=...&state=...）
-        const oauthCode = consumeOAuthCallback()
-        if (oauthCode) {
-          try {
-            const { data, error } = await supabase.functions.invoke('line-token', {
-              body: { code: oauthCode, redirectUri: LINE_OAUTH_REDIRECT_URI },
-            })
-            if (!error && data?.userId) {
-              userId.value = data.userId
-              displayName.value = data.displayName
-              pictureUrl.value = data.pictureUrl ?? null
-              await syncMember(data.userId, data.displayName)
-              initialized.value = true
-              // 還原登入前的頁面 hash
-              const targetHash = popPostOAuthRedirect()
-              if (targetHash && window.location.hash !== targetHash) {
-                window.location.hash = targetHash
-              }
-              return
-            }
-          } catch (e) {
-            console.warn('LINE OAuth token exchange failed', e)
-          }
-        }
 
         // 已透過 LIFF token（極少數情況）登入
         if (liff.isLoggedIn()) {
