@@ -144,7 +144,25 @@ const memberList = computed(() => {
   return members.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
 })
 
-async function removeRegistrationMember(member) {
+const removeDialog = reactive({ open: false, member: null })
+const removeConfirmButton = ref(null)
+
+function handleRemoveRequest(member) {
+  removeDialog.member = member
+  removeDialog.open = true
+  focusElement(removeConfirmButton)
+}
+
+function cancelRemove() {
+  removeDialog.open = false
+  removeDialog.member = null
+}
+
+async function confirmRemove() {
+  const member = removeDialog.member
+  removeDialog.open = false
+  removeDialog.member = null
+
   const reg = registrations.value.find(r => r.id === member._regId)
   if (!reg) return
 
@@ -292,12 +310,20 @@ async function submitSignup() {
   await liffStore.initialize()
 
   if (!liffStore.userId) {
-    setSuccessDialogOpen(true, {
-      title: '請先登入',
-      copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往登入。',
-      buttonText: '前往 LINE 登入',
-      onButtonClick: () => liffStore.login(),
-    })
+    if (liffStore.isExternalBrowser) {
+      setSuccessDialogOpen(true, {
+        title: '請從 LINE 開啟',
+        copy: '報名功能僅支援在 LINE 應用程式內使用。請複製此頁面網址，在 LINE 中貼上並開啟連結。',
+        buttonText: '了解',
+      })
+    } else {
+      setSuccessDialogOpen(true, {
+        title: '請先登入',
+        copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往登入。',
+        buttonText: '前往 LINE 登入',
+        onButtonClick: () => liffStore.login(),
+      })
+    }
     return
   }
 
@@ -416,7 +442,7 @@ function handleEscape() {
       :vacancy-value="vacancyCount"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" :is-admin="isAdmin" @change="setSegmentTab" @remove="removeRegistrationMember" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" :is-admin="isAdmin" @change="setSegmentTab" @remove="handleRemoveRequest" />
     <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
@@ -500,6 +526,18 @@ function handleEscape() {
         <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ successDialog.title }}</h2>
         <p class="success-dialog-copy shared-dialog-copy">{{ successDialog.copy }}</p>
         <button ref="successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="handleDialogButtonClick">{{ successDialog.buttonText }}</button>
+      </section>
+    </div>
+
+    <div class="remove-dialog-overlay shared-dialog-overlay" :class="{ 'is-open': removeDialog.open }" :aria-hidden="String(!removeDialog.open)" :inert="!removeDialog.open">
+      <button class="remove-dialog-backdrop" type="button" aria-label="取消移除" @click="cancelRemove"></button>
+      <section class="remove-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="remove-dialog-title">
+        <h2 class="remove-dialog-title shared-dialog-title" id="remove-dialog-title">確認移除成員？</h2>
+        <p class="remove-dialog-copy shared-dialog-copy">確定要將「{{ removeDialog.member?.name }}」從名單中移除嗎？此操作無法復原。</p>
+        <div class="remove-dialog-actions">
+          <button type="button" class="remove-dialog-cancel" @click="cancelRemove">取消</button>
+          <button ref="removeConfirmButton" type="button" class="remove-dialog-confirm" @click="confirmRemove">確認移除</button>
+        </div>
       </section>
     </div>
   </main>

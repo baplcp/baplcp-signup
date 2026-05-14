@@ -14,6 +14,7 @@ export const useLiffStore = defineStore('liff', () => {
   const pictureUrl = ref(null)
   const role = ref('member')
   const gender = ref(null)
+  const isExternalBrowser = ref(false)
 
   function getUserProfile() {
     return {
@@ -71,6 +72,23 @@ export const useLiffStore = defineStore('liff', () => {
     try {
       await liff.init({ liffId: LIFF_ID })
 
+      if (!liff.isInClient()) {
+        // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
+        // LINE 不允許此 LIFF 從外部瀏覽器登入，不觸發登入跳轉
+        isExternalBrowser.value = true
+        if (liff.isLoggedIn()) {
+          // 極少數情況（例如之前已登入過且 token 未過期）
+          const profile = await liff.getProfile()
+          userId.value = profile.userId
+          displayName.value = profile.displayName
+          pictureUrl.value = profile.pictureUrl
+          await syncMember(profile.userId, profile.displayName)
+        }
+        initialized.value = true
+        return
+      }
+
+      // LINE 內部瀏覽器 — 正常 LIFF 流程
       if (liff.isLoggedIn()) {
         sessionStorage.removeItem('liff-login-attempted')
         const profile = await liff.getProfile()
@@ -85,6 +103,7 @@ export const useLiffStore = defineStore('liff', () => {
       }
     } catch (e) {
       console.error('LIFF init failed', e)
+      initialized.value = true
     }
   }
 
@@ -119,6 +138,7 @@ export const useLiffStore = defineStore('liff', () => {
     pictureUrl,
     role,
     gender,
+    isExternalBrowser,
     getUserProfile,
     initialize,
     login,
