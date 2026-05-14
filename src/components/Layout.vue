@@ -106,10 +106,27 @@ watch(
         <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
-            <img class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
+            <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
+            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
+            <!-- 未登入：灰色人頭預設圖 -->
+            <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="26" r="13" fill="#c1c7e0" />
+                <path d="M8 58c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#c1c7e0" />
+              </svg>
+            </span>
             <div class="drawer-user-stack">
               <p class="drawer-user" id="drawer-user-name">{{ liffStore.displayName || '訪客' }}</p>
-              <span class="drawer-role" :class="roleConfig.modifier">
+              <!-- 未登入：請先登入 badge -->
+              <span v-if="!liffStore.userId" class="drawer-role is-guest">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <span>請先登入</span>
+              </span>
+              <!-- 已登入：顯示對應身份 badge -->
+              <span v-else class="drawer-role" :class="roleConfig.modifier">
                 <!-- organizer: 皇冠 -->
                 <svg v-if="liffStore.role === 'organizer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor" />
@@ -336,6 +353,18 @@ watch(
   flex: 0 0 auto;
 }
 
+.drawer-avatar--guest {
+  background: #edeff5;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+}
+
+.drawer-avatar--guest svg {
+  width: 56px;
+  height: 56px;
+}
+
 .drawer-user-stack {
   flex: 1;
   min-width: 0;
@@ -386,6 +415,12 @@ watch(
   border-color: rgba(87, 104, 255, 0.25);
   background: rgba(168, 177, 244, 0.15);
   color: #5768ff;
+}
+
+.drawer-role.is-guest {
+  border-color: rgba(143, 149, 178, 0.25);
+  background: rgba(237, 239, 245, 0.5);
+  color: #a8b1cc;
 }
 
 .drawer-close {

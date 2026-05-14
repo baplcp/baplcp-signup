@@ -178,6 +178,72 @@ Supabase 作為後端服務，主要負責：
 
 ---
 
+## Supabase 資料表結構
+
+### activities
+球局資訊，欄位包含 `id`、`dates`、`title`、`location`、`capacity` 等。
+
+### registrations
+報名紀錄，欄位包含 `user_id`、`display_name`、`picture_url`、`activity_id`、`activity_date`、`status`、`guests` 等。
+
+### members
+會員身份管理表，欄位如下：
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| `id` | uuid | 主鍵，自動產生 |
+| `user_id` | text (UNIQUE) | LINE userId |
+| `role` | text | `organizer` / `engineer` / `member`（預設） |
+| `display_name` | text | LINE 顯示名稱，備忘用 |
+| `created_at` | timestamptz | 自動填入 |
+| `updated_at` | timestamptz | 自動更新 |
+
+**角色說明：**
+- `organizer`：偉大的主揪
+- `engineer`：苦命的工程師
+- `member`：一般會員（所有新登入者的預設值）
+
+**運作邏輯：** 使用者第一次登入 LIFF 時自動寫入 members（role = member）。管理員直接在 Supabase Table Editor 修改 role 欄位，下次登入即生效。
+
+**RLS 設定：** SELECT 與 INSERT 皆對 anon 開放（查詢時以 user_id 自然過濾）。
+
+---
+
+## 會員身份系統
+
+身份資訊儲存於 `src/stores/liff.js` 的 Pinia store，透過 `liffStore.role` 存取。
+
+```js
+import { useLiffStore } from '~/stores/liff'
+const liffStore = useLiffStore()
+
+// 在 template 直接用 liffStore.role
+// 在 script 用 computed 衍生
+const isOrganizer = computed(() => liffStore.role === 'organizer')
+const isEngineer  = computed(() => liffStore.role === 'engineer')
+```
+
+---
+
+## 路徑別名
+
+Vite 設定的別名為 `~`，對應 `src/`。import 時使用 `~/` 而非 `@/`。
+
+```js
+import { supabase } from '~/utils/supabase'
+import { useLiffStore } from '~/stores/liff'
+```
+
+---
+
+## 部署方式
+
+- 程式碼改完後由開發者手動執行 `scripts/手動推上線.command` 推上線
+- GitHub Actions（`.github/workflows/deploy.yml`）自動 build 並部署到 GitHub Pages
+- **不需要也不應該由 Claude 執行 git push**
+
+---
+
 ## 重要規則
 
 - 每次只修改指定的檔案
@@ -185,3 +251,5 @@ Supabase 作為後端服務，主要負責：
 - 改完告訴我改了哪些地方
 
 - 用繁體中文回覆
+
+- 改完程式碼不要自動 git push，由開發者手動推
