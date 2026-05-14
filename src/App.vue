@@ -1,9 +1,18 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Layout from '~/components/Layout.vue'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
+const router = useRouter()
+
+// LINE OAuth 登入後還原原本的頁面（外部瀏覽器 OAuth 回調用）
+watch(() => liffStore.pendingRedirect, (path) => {
+  if (!path) return
+  liffStore.pendingRedirect = null
+  router.replace(path)
+})
 
 const selectedGender = ref('')
 const saving = ref(false)

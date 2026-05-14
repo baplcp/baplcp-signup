@@ -16,6 +16,7 @@ export const useLiffStore = defineStore('liff', () => {
   const role = ref('member')
   const gender = ref(null)
   const isExternalBrowser = ref(false)
+  const pendingRedirect = ref(null)
 
   function getUserProfile() {
     return {
@@ -84,10 +85,10 @@ export const useLiffStore = defineStore('liff', () => {
           pictureUrl.value = data.pictureUrl ?? null
           await syncMember(data.userId, data.displayName)
           initialized.value = true
-          // 還原登入前的頁面 hash
+          // 還原登入前的頁面，交由 App.vue 透過 router.replace 處理
           const targetHash = popPostOAuthRedirect()
-          if (targetHash && window.location.hash !== targetHash) {
-            window.location.hash = targetHash
+          if (targetHash && targetHash !== '#/') {
+            pendingRedirect.value = targetHash.startsWith('#') ? targetHash.slice(1) : targetHash
           }
           return
         }
@@ -170,6 +171,7 @@ export const useLiffStore = defineStore('liff', () => {
     role,
     gender,
     isExternalBrowser,
+    pendingRedirect,
     getUserProfile,
     initialize,
     login,

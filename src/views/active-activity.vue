@@ -245,6 +245,15 @@ function focusElement(target) {
 }
 
 function setSignupOpen(isOpen, options = {}) {
+  if (isOpen && !liffStore.userId) {
+    if (liffStore.isExternalBrowser) {
+      startLineOAuth()
+    } else {
+      liffStore.login()
+    }
+    return
+  }
+
   const { restoreFocus = true } = options
   signupOpen.value = isOpen
 
