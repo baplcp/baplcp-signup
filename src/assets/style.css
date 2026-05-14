@@ -53,6 +53,7 @@
     --success-500: #17acba;
     --danger-500: #d14343;
     --overlay-40: rgba(0, 0, 0, 0.4);
+    background: var(--bg);
   }
 
   body {

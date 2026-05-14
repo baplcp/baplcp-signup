@@ -2,7 +2,6 @@
 import liff from '@line/liff'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { APP_VERSION } from '~/assets/appVersion'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
 import { supabase } from '~/utils/supabase'
@@ -320,7 +319,7 @@ function handleEscape() {
       vacancy-value="2"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :version="APP_VERSION" :bottom-spacing="memberList.length === 0 ? 0 : 42" @change="setSegmentTab" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" @change="setSegmentTab" />
     <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
@@ -496,13 +495,15 @@ function handleEscape() {
 }
 
 .footer-bar {
-  position: sticky;
-  left: 0;
-  right: 0;
+  position: fixed;
   bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 24.375rem;
   z-index: 15;
   padding: 0 16px 16px;
-  background: #000;
+  background: transparent;
 }
 
 .footer-fade {
@@ -824,5 +825,13 @@ function handleEscape() {
   font-size: 14px;
   line-height: 1.5;
   color: #8f95b2;
+}
+
+@media (min-width: 768px) {
+  .footer-bar {
+    bottom: 24px;
+    border-radius: 0 0 1.5rem 1.5rem;
+    overflow: hidden;
+  }
 }
 </style>
