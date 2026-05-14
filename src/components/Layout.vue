@@ -337,11 +337,9 @@ watch(
   color: var(--text);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   transform: translateX(100%);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
 .side-menu::-webkit-scrollbar {
@@ -447,6 +445,13 @@ watch(
   gap: 23px;
   flex: 1;
   padding-bottom: 32px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.drawer-content::-webkit-scrollbar {
+  display: none;
 }
 
 .drawer-section {
@@ -514,8 +519,8 @@ watch(
 }
 
 .drawer-footer {
-  margin-top: auto;
-  padding: 0 16px;
+  flex-shrink: 0;
+  padding: 16px 16px 0;
 }
 
 .drawer-create-button {
