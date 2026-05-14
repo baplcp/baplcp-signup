@@ -74,10 +74,10 @@ export const useLiffStore = defineStore('liff', () => {
 
       if (!liff.isInClient()) {
         // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
-        // LINE 不允許此 LIFF 從外部瀏覽器登入，不觸發登入跳轉
+        // LINE 平台限制：行動版外部瀏覽器無法透過 LIFF 登入，不發起跳轉
         isExternalBrowser.value = true
         if (liff.isLoggedIn()) {
-          // 極少數情況（例如之前已登入過且 token 未過期）
+          // token 尚未過期的極少數情況，直接讀取 profile
           const profile = await liff.getProfile()
           userId.value = profile.userId
           displayName.value = profile.displayName
