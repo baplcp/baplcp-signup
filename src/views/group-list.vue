@@ -1,27 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import GroupActiveCard from '~/components/group-list/GroupActiveCard.vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
 import { supabase } from '~/utils/supabase'
-import { useLiffStore } from '~/stores/liff'
-
-const liffStore = useLiffStore()
-const isOrganizer = computed(() => liffStore.role === 'organizer')
-
-const isClearConfirmOpen = ref(false)
-const isClearing = ref(false)
-
-async function clearAllActivities() {
-  isClearing.value = true
-  try {
-    await supabase.from('activities').delete().not('id', 'is', null)
-    activities.value = []
-  } finally {
-    isClearing.value = false
-    isClearConfirmOpen.value = false
-  }
-}
 
 const activeSegment = ref('all')
 const segmentTabs = [
@@ -33,6 +15,7 @@ const segmentTabs = [
 
 const activities = ref([])
 const isLoading = ref(true)
+const latestSpots = ref(null)
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -68,10 +51,11 @@ const latestInfo = computed(() => {
 const latestActivity = computed(() => {
   if (!latestInfo.value) return null
   const { act, date: latestDate } = latestInfo.value
+  const spots = latestSpots.value
   return {
-    countLabel: '總名額',
-    countValue: act.single_capacity || '—',
-    countAriaLabel: `總名額 ${act.single_capacity || '—'} 人`,
+    countLabel: '臨打缺',
+    countValue: spots !== null ? spots : '—',
+    countAriaLabel: `臨打缺 ${spots !== null ? spots : '—'} 人`,
     date: formatDateRow(latestDate, act.start_time, act.end_time),
     location: act.location || '—',
     to: `/active-activity?id=${act.id}&date=${latestDate}&type=latest`,
@@ -127,6 +111,29 @@ onMounted(async () => {
 
   if (data) activities.value = data
   isLoading.value = false
+
+  // 查最新球局的報名人數，計算臨打缺幾
+  const todayStr = new Date().toISOString().split('T')[0]
+  const futureDates = []
+  for (const act of (data || [])) {
+    const sorted = (act.dates || []).slice().sort()
+    const nearestDate = sorted.find(d => d >= todayStr)
+    if (nearestDate) futureDates.push({ act, date: nearestDate })
+  }
+  if (futureDates.length > 0) {
+    futureDates.sort((a, b) => a.date.localeCompare(b.date))
+    const { act, date } = futureDates[0]
+    const { data: regs } = await supabase
+      .from('registrations')
+      .select('self_count, guest_count')
+      .eq('activity_id', act.id)
+      .eq('activity_date', date)
+      .eq('status', 'active')
+    if (regs) {
+      const totalPeople = regs.reduce((sum, r) => sum + (r.self_count || 0) + (r.guest_count || 0), 0)
+      latestSpots.value = Math.max(0, (act.single_capacity || 0) - totalPeople)
+    }
+  }
 })
 
 function setSegment(segment) {
@@ -146,23 +153,6 @@ function isSegmentVisible(segment) {
   <main class="group-list-page">
     <div class="page-header">
       <h1 class="page-title">已發起的球局</h1>
-      <button v-if="isOrganizer" type="button" class="clear-btn" @click="isClearConfirmOpen = true">清空資料</button>
-    </div>
-
-    <div
-      class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
-      :class="{ 'is-open': isClearConfirmOpen }"
-      :aria-hidden="String(!isClearConfirmOpen)"
-      :inert="!isClearConfirmOpen"
-    >
-      <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true">
-        <h2 class="shared-dialog-title">確定清空所有資料？</h2>
-        <p class="shared-dialog-copy">此操作會刪除所有活動資料，無法復原。</p>
-        <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isClearing" @click="clearAllActivities">
-          {{ isClearing ? '刪除中...' : '確認刪除' }}
-        </button>
-        <button class="confirm-cancel-btn shared-dialog-button" type="button" style="background:#f5f6fa;color:#474d66;" @click="isClearConfirmOpen = false">取消</button>
-      </section>
     </div>
 
     <GroupSegmentTabs :items="segmentTabs" :active-segment="activeSegment" @change="setSegment" />
@@ -243,35 +233,6 @@ function isSegmentVisible(segment) {
   letter-spacing: 0.48px;
   font-weight: 700;
   color: var(--text);
-}
-
-.clear-btn {
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
-  color: #d14343;
-  white-space: nowrap;
-}
-
-.confirm-overlay {
-  position: fixed;
-  z-index: 9999;
-  margin: auto;
-}
-
-.confirm-delete-btn {
-  background: #d14343;
-  width: 100%;
-}
-
-.confirm-delete-btn:disabled {
-  background: #d8dae5;
-  cursor: default;
-}
-
-.confirm-cancel-btn {
-  width: 100%;
-  margin-top: 4px;
 }
 
 .section-title {
