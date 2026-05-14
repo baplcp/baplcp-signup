@@ -110,9 +110,12 @@ watch(
             <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
             <!-- 未登入：灰色人頭預設圖 -->
             <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="26" r="13" fill="#c1c7e0" />
-                <path d="M8 58c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#c1c7e0" />
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" fill="#edeff5" r="31" />
+                <g fill="#c1c7e0">
+                  <path d="m56.877 50.4748a31.0647 31.0647 0 0 0 -49.7651-.0156 30.9669 30.9669 0 0 0 49.7651.0156z" />
+                  <circle cx="32" cy="22" r="12" />
+                </g>
               </svg>
             </span>
             <div class="drawer-user-stack">
@@ -353,16 +356,10 @@ watch(
   flex: 0 0 auto;
 }
 
-.drawer-avatar--guest {
-  background: #edeff5;
-  display: grid;
-  place-items: end center;
-  overflow: hidden;
-}
-
 .drawer-avatar--guest svg {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
+  display: block;
 }
 
 .drawer-user-stack {
