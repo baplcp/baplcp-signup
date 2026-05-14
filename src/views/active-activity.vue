@@ -245,6 +245,23 @@ async function submitSignup() {
     return
   }
 
+  // 取消報名：刪掉整筆 row，讓重報時 INSERT 新 row 取得新的 created_at 與排名
+  if (total <= 0 && myRegistration.value) {
+    try {
+      await supabase.from('registrations').delete().eq('id', myRegistration.value.id)
+      await fetchRegistrations()
+      setSignupOpen(false, { restoreFocus: false })
+      setSuccessDialogOpen(true, {
+        title: '報名已取消',
+        copy: '已取消報名，名單將同步更新。',
+        buttonText: '確認',
+      })
+    } catch {
+      setSuccessDialogOpen(true, { title: '取消失敗', copy: '取消時發生錯誤，請稍後再試。', buttonText: '確認' })
+    }
+    return
+  }
+
   const prevSelfCount = myRegistration.value?.self_count ?? 0
   const selfAddedAt = signupState.self === 1
     ? (prevSelfCount === 0 ? new Date().toISOString() : (myRegistration.value?.self_added_at ?? new Date().toISOString()))
@@ -272,8 +289,8 @@ async function submitSignup() {
     await fetchRegistrations()
     setSignupOpen(false, { restoreFocus: false })
     setSuccessDialogOpen(true, {
-      title: isUpdatingExistingSignup || total <= 0 ? '報名已更新' : '報名已送出',
-      copy: total > 0 ? `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入` : '已更新為無報名，請稍候確認名單是否同步完成',
+      title: isUpdatingExistingSignup ? '報名已更新' : '報名已送出',
+      copy: `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入`,
       buttonText: '確認',
     })
   } catch {
