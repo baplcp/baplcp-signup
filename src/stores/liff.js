@@ -94,6 +94,8 @@ export const useLiffStore = defineStore('liff', () => {
   }
 
   function login() {
+    // 清空 singleton，確保跳轉回來後重新初始化（避免 same-page 跳轉時舊 promise 已完成）
+    initializationPromise = null
     liff.login({ redirectUri: window.location.href })
   }
 

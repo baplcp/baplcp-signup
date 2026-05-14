@@ -847,8 +847,9 @@ function handleEscape() {
 }
 
 .success-dialog-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 10000;
 }
 
 .empty-member-hint {
