@@ -99,8 +99,13 @@ onMounted(async () => {
     try {
       await liff.init({ liffId: '2009808077-q6H0su3r' })
       if (liff.isLoggedIn()) {
+        sessionStorage.removeItem('liff-login-attempted')
         const profile = await liff.getProfile()
         liffUser.value = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
+      } else if (!sessionStorage.getItem('liff-login-attempted')) {
+        sessionStorage.setItem('liff-login-attempted', '1')
+        liff.login({ redirectUri: window.location.href })
+        return
       }
     } catch (e) {
       console.error('LIFF init failed', e)
