@@ -84,6 +84,12 @@ onMounted(async () => {
   await fetchRegistrations()
 })
 
+const vacancyCount = computed(() => {
+  const capacity = activityData.value?.single_capacity ?? 0
+  const confirmed = memberList.value.filter(m => !m.status).length
+  return Math.max(0, capacity - confirmed)
+})
+
 const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
   const members = []
@@ -127,7 +133,7 @@ const signupTotal = computed(() => signupState.self + signupState.guest)
 const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.value.self_count || 0) + (myRegistration.value.guest_count || 0) : 0))
 const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
 const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
-const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `已成功報名 ${submittedTotal.value} 位` : '無報名'))
+const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `成功卡位 ${submittedTotal.value} 位` : '無報名'))
 const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : `費用 ${summaryFeeAmount.value} 元`))
 const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
 const isSignupChanged = computed(() => {
@@ -293,7 +299,7 @@ function handleEscape() {
       :fee-state="hasSubmittedSignup ? '未付' : ''"
       :fee-aria-label="summaryFeeLabel"
       vacancy-label="臨打缺"
-      vacancy-value="2"
+      :vacancy-value="vacancyCount"
     />
 
     <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" @change="setSegmentTab" />

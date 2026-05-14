@@ -14,7 +14,7 @@ defineProps({
   },
   version: {
     type: String,
-    required: true,
+    default: '',
   },
   bottomSpacing: {
     type: Number,
