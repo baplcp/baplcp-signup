@@ -10,6 +10,13 @@ const scrollBox = useTemplateRef('scrollBox')
 
 const isIndexPage = computed(() => route.name === 'index')
 const isMenuOpen = ref(false)
+
+const ROLE_CONFIG = {
+  organizer: { label: '偉大的主揪', modifier: 'is-organizer' },
+  engineer:  { label: '苦命的工程師', modifier: 'is-engineer' },
+  member:    { label: '一般會員', modifier: 'is-member' },
+}
+const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.member)
 const navScrollProgress = ref(0)
 
 const hiddenHeaderPath = ['group-list', 'create-activity']
@@ -102,12 +109,23 @@ watch(
             <img class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
             <div class="drawer-user-stack">
               <p class="drawer-user" id="drawer-user-name">{{ liffStore.displayName || '訪客' }}</p>
-              <span class="drawer-role">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <span class="drawer-role" :class="roleConfig.modifier">
+                <!-- organizer: 皇冠 -->
+                <svg v-if="liffStore.role === 'organizer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor" />
                   <path d="M5.5 17L4 7.5L8.5 11L12 5L15.5 11L20 7.5L18.5 17H5.5Z" fill="currentColor" />
                 </svg>
-                <span>偉大的主揪</span>
+                <!-- engineer: 程式碼括號 -->
+                <svg v-else-if="liffStore.role === 'engineer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M8 6L2 12L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M16 6L22 12L16 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <!-- member: 人像 -->
+                <svg v-else viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <span>{{ roleConfig.label }}</span>
               </span>
             </div>
             <button @click="closeMenu" class="drawer-close" type="button" data-menu-close aria-label="關閉選單">
@@ -341,14 +359,14 @@ watch(
   justify-content: center;
   gap: 4px;
   padding: 4px 6px;
-  border: 1px solid rgba(217, 141, 53, 0.3);
   border-radius: 6px;
-  background: rgba(248, 222, 183, 0.2);
-  color: #c79051;
   font-size: 12px;
   line-height: 1.4;
   font-weight: 400;
   white-space: nowrap;
+  border: 1px solid rgba(143, 149, 178, 0.3);
+  background: rgba(237, 239, 245, 0.4);
+  color: #8f95b2;
 }
 
 .drawer-role svg {
@@ -356,7 +374,18 @@ watch(
   width: 13px;
   height: 13px;
   flex: 0 0 auto;
-  color: #e6b883;
+}
+
+.drawer-role.is-organizer {
+  border-color: rgba(217, 141, 53, 0.3);
+  background: rgba(248, 222, 183, 0.2);
+  color: #c79051;
+}
+
+.drawer-role.is-engineer {
+  border-color: rgba(87, 104, 255, 0.25);
+  background: rgba(168, 177, 244, 0.15);
+  color: #5768ff;
 }
 
 .drawer-close {
