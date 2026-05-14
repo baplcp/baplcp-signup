@@ -405,6 +405,11 @@ async function submitSignup() {
 }
 
 function handleEscape() {
+  if (removeDialog.open) {
+    cancelRemove()
+    return
+  }
+
   if (successDialog.open) {
     setSuccessDialogOpen(false)
     return
@@ -942,6 +947,70 @@ function handleEscape() {
   position: fixed;
   inset: 0;
   z-index: 10000;
+}
+
+.remove-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+}
+
+.remove-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.remove-dialog {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 340px;
+  margin: auto;
+  padding: 28px 24px 24px;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.remove-dialog-title {
+  color: #d14343;
+}
+
+.remove-dialog-copy {
+  margin: 10px 0 0;
+  color: #474d66;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.remove-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.remove-dialog-cancel {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #d8dae5;
+  background: #fff;
+  color: #474d66;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.remove-dialog-confirm {
+  min-height: 44px;
+  border-radius: 10px;
+  background: #d14343;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .empty-member-hint {
