@@ -16,7 +16,7 @@ async function clearAllActivities() {
   isClearing.value = true
   try {
     await supabase.from('activities').delete().not('id', 'is', null)
-    activity.value = null
+    activities.value = []
   } finally {
     isClearing.value = false
     isClearConfirmOpen.value = false
@@ -31,7 +31,7 @@ const segmentTabs = [
   { label: '已結束', value: 'ended' },
 ]
 
-const activity = ref(null)
+const activities = ref([])
 const isLoading = ref(true)
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
@@ -53,42 +53,66 @@ function formatDateRow(dateStr, startTime, endTime) {
 
 const today = new Date().toISOString().split('T')[0]
 
+const latestInfo = computed(() => {
+  const futureDates = []
+  for (const act of activities.value) {
+    const sorted = (act.dates || []).slice().sort()
+    const nearestDate = sorted.find(d => d >= today)
+    if (nearestDate) futureDates.push({ act, date: nearestDate })
+  }
+  if (futureDates.length === 0) return null
+  futureDates.sort((a, b) => a.date.localeCompare(b.date))
+  return futureDates[0]
+})
+
 const latestActivity = computed(() => {
-  if (!activity.value) return null
-  const dates = (activity.value.dates || []).slice().sort()
-  const latestDate = dates.find(d => d >= today) || null
-  if (!latestDate) return null
+  if (!latestInfo.value) return null
+  const { act, date: latestDate } = latestInfo.value
   return {
     countLabel: '總名額',
-    countValue: activity.value.single_capacity || '—',
-    countAriaLabel: `總名額 ${activity.value.single_capacity || '—'} 人`,
-    date: formatDateRow(latestDate, activity.value.start_time, activity.value.end_time),
-    location: activity.value.location || '—',
-    to: `/active-activity?id=${activity.value.id}&date=${latestDate}&type=latest`,
+    countValue: act.single_capacity || '—',
+    countAriaLabel: `總名額 ${act.single_capacity || '—'} 人`,
+    date: formatDateRow(latestDate, act.start_time, act.end_time),
+    location: act.location || '—',
+    to: `/active-activity?id=${act.id}&date=${latestDate}&type=latest`,
   }
 })
 
 const upcomingActivities = computed(() => {
-  if (!activity.value) return []
-  const dates = (activity.value.dates || []).slice().sort()
-  const futureDates = dates.filter(d => d >= today).slice(1)
-  return futureDates.map(dateStr => ({
-    date: formatDateRow(dateStr, activity.value.start_time, activity.value.end_time),
-    location: activity.value.location || '—',
-    to: `/active-activity?id=${activity.value.id}&date=${dateStr}&type=upcoming`,
+  if (!latestInfo.value) return []
+  const { act: latestAct, date: latestDate } = latestInfo.value
+  const rows = []
+  for (const act of activities.value) {
+    const sorted = (act.dates || []).slice().sort()
+    for (const dateStr of sorted) {
+      if (dateStr >= today && !(act.id === latestAct.id && dateStr === latestDate)) {
+        rows.push({ act, dateStr })
+      }
+    }
+  }
+  rows.sort((a, b) => a.dateStr.localeCompare(b.dateStr))
+  return rows.map(({ act, dateStr }) => ({
+    date: formatDateRow(dateStr, act.start_time, act.end_time),
+    location: act.location || '—',
+    to: `/active-activity?id=${act.id}&date=${dateStr}&type=upcoming`,
     badge: '未開放報名',
     badgeVariant: 'muted',
   }))
 })
 
 const endedActivities = computed(() => {
-  if (!activity.value) return []
-  const dates = (activity.value.dates || []).slice().sort().reverse()
-  const pastDates = dates.filter(d => d < today)
-  return pastDates.map(dateStr => ({
+  const rows = []
+  for (const act of activities.value) {
+    const sorted = (act.dates || []).slice().sort()
+    for (const dateStr of sorted) {
+      if (dateStr < today) rows.push({ act, dateStr })
+    }
+  }
+  rows.sort((a, b) => b.dateStr.localeCompare(a.dateStr))
+  return rows.map(({ act, dateStr }) => ({
     date: formatDateLabel(dateStr),
-    location: activity.value.location || '—',
-    to: `/active-activity?id=${activity.value.id}&date=${dateStr}&type=ended`,
+    location: act.location || '—',
+    to: `/active-activity?id=${act.id}&date=${dateStr}&type=ended`,
   }))
 })
 
@@ -99,10 +123,8 @@ onMounted(async () => {
     .from('activities')
     .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
 
-  if (data) activity.value = data
+  if (data) activities.value = data
   isLoading.value = false
 })
 
