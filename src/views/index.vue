@@ -7,15 +7,20 @@ import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { supabase } from '~/utils/supabase'
 
-const latestActivity = ref(null)
+const activities = ref([])
 
 const heroCta = computed(() => {
-  if (!latestActivity.value) return '/active-activity'
   const today = new Date().toISOString().split('T')[0]
-  const dates = (latestActivity.value.dates || []).slice().sort()
-  const latestDate = dates.find(d => d >= today) || dates[dates.length - 1] || null
-  if (!latestDate) return '/active-activity'
-  return `/active-activity?id=${latestActivity.value.id}&date=${latestDate}&type=latest`
+  const futureDates = []
+  for (const act of activities.value) {
+    const sorted = (act.dates || []).slice().sort()
+    const nearestDate = sorted.find(d => d >= today)
+    if (nearestDate) futureDates.push({ act, date: nearestDate })
+  }
+  if (futureDates.length === 0) return '/active-activity'
+  futureDates.sort((a, b) => a.date.localeCompare(b.date))
+  const { act, date } = futureDates[0]
+  return `/active-activity?id=${act.id}&date=${date}&type=latest`
 })
 
 onMounted(async () => {
@@ -23,9 +28,7 @@ onMounted(async () => {
     .from('activities')
     .select('id, dates')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-  if (data) latestActivity.value = data
+  if (data) activities.value = data
 })
 
 const faqs = [

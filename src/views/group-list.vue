@@ -116,7 +116,8 @@ const endedActivities = computed(() => {
   }))
 })
 
-const visibleEndedActivities = computed(() => (activeSegment.value === 'all' ? endedActivities.value.slice(0, 3) : endedActivities.value))
+const visibleUpcomingActivities = computed(() => (activeSegment.value === 'all' ? upcomingActivities.value.slice(0, 5) : upcomingActivities.value))
+const visibleEndedActivities = computed(() => (activeSegment.value === 'all' ? endedActivities.value.slice(0, 5) : endedActivities.value))
 
 onMounted(async () => {
   const { data } = await supabase
@@ -186,7 +187,7 @@ function isSegmentVisible(segment) {
       </div>
       <div v-show="isSegmentVisible('upcoming')" class="upcoming-list" aria-label="即將到來">
         <GroupEventRow
-          v-for="act in upcomingActivities"
+          v-for="act in visibleUpcomingActivities"
           :key="act.date"
           :to="act.to"
           :date="act.date"
