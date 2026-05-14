@@ -1,12 +1,13 @@
 <script setup>
-import liff from '@line/liff'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
+import { useLiffStore } from '~/stores/liff'
 import { supabase } from '~/utils/supabase'
 
 const route = useRoute()
+const liffStore = useLiffStore()
 const activityData = ref(null)
 
 const activityType = computed(() => route.query.type || 'latest')
@@ -51,7 +52,6 @@ const summaryFeeAmount = computed(() => {
   return activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
 })
 
-const liffUser = ref(null)
 const registrations = ref([])
 const myRegistration = ref(null)
 
@@ -59,16 +59,10 @@ async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
   const date = resolvedDate.value
   if (!activityId || !date) return
-  const { data } = await supabase
-    .from('registrations')
-    .select('*')
-    .eq('activity_id', activityId)
-    .eq('activity_date', date)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
+  const { data } = await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('activity_date', date).eq('status', 'active').order('created_at', { ascending: true })
   if (data) {
     registrations.value = data
-    myRegistration.value = data.find(r => r.user_id === liffUser.value?.userId) || null
+    myRegistration.value = data.find(r => r.user_id === liffStore.userId) || null
   }
 }
 
@@ -76,11 +70,7 @@ onMounted(async () => {
   // 抓 activity 資料
   const id = route.query.id
   if (id) {
-    const { data } = await supabase
-      .from('activities')
-      .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
-      .eq('id', id)
-      .single()
+    const { data } = await supabase.from('activities').select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session').eq('id', id).single()
     if (data) activityData.value = data
   } else {
     const { data } = await supabase
@@ -92,25 +82,7 @@ onMounted(async () => {
     if (data) activityData.value = data
   }
 
-  // LIFF 登入
-  if (import.meta.env.DEV) {
-    liffUser.value = { userId: 'dev-user-001', displayName: 'Dev User', pictureUrl: null }
-  } else {
-    try {
-      await liff.init({ liffId: '2009808077-q6H0su3r' })
-      if (liff.isLoggedIn()) {
-        sessionStorage.removeItem('liff-login-attempted')
-        const profile = await liff.getProfile()
-        liffUser.value = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
-      } else if (!sessionStorage.getItem('liff-login-attempted')) {
-        sessionStorage.setItem('liff-login-attempted', '1')
-        liff.login({ redirectUri: window.location.href })
-        return
-      }
-    } catch (e) {
-      console.error('LIFF init failed', e)
-    }
-  }
+  await liffStore.initialize()
 
   await fetchRegistrations()
 })
@@ -262,9 +234,9 @@ async function submitSignup() {
   const payload = {
     activity_id: activityData.value?.id,
     activity_date: resolvedDate.value,
-    user_id: liffUser.value?.userId,
-    display_name: liffUser.value?.displayName,
-    picture_url: liffUser.value?.pictureUrl || null,
+    user_id: liffStore.userId,
+    display_name: liffStore.displayName,
+    picture_url: liffStore.pictureUrl || null,
     self_count: signupState.self,
     guest_count: signupState.guest,
     guests: signupState.guests.slice(0, signupState.guest),
@@ -332,19 +304,8 @@ function handleEscape() {
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
       <div class="footer-fade"></div>
-      <button
-        v-if="activityType === 'upcoming'"
-        class="cta cta-disabled"
-        type="button"
-        disabled
-      >尚未開放</button>
-      <button
-        v-else
-        ref="heroCtaButton"
-        class="cta"
-        type="button"
-        @click="setSignupOpen(true)"
-      >{{ heroCtaText }}</button>
+      <button v-if="activityType === 'upcoming'" class="cta cta-disabled" type="button" disabled>尚未開放</button>
+      <button v-else ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
