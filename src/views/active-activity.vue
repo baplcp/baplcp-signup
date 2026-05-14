@@ -139,6 +139,7 @@ const successDialog = reactive({
   title: '報名已送出',
   copy: '已送出報名 0 位，請稍候確認名單是否成功加入',
   buttonText: '確認',
+  onButtonClick: null,
 })
 
 const signupTotal = computed(() => signupState.self + signupState.guest)
@@ -196,6 +197,7 @@ function setSuccessDialogOpen(isOpen, options = {}) {
   if (options.title) successDialog.title = options.title
   if (options.copy) successDialog.copy = options.copy
   if (options.buttonText) successDialog.buttonText = options.buttonText
+  successDialog.onButtonClick = options.onButtonClick ?? null
 
   successDialog.open = isOpen
 
@@ -206,6 +208,12 @@ function setSuccessDialogOpen(isOpen, options = {}) {
   } else {
     focusElement(heroCtaButton)
   }
+}
+
+function handleDialogButtonClick() {
+  const cb = successDialog.onButtonClick
+  setSuccessDialogOpen(false)
+  if (cb) cb()
 }
 
 function setSegmentTab(tab) {
@@ -226,8 +234,16 @@ function adjustSignupCount(type, direction) {
 }
 
 async function submitSignup() {
+  // 等待 LIFF 完整初始化，避免 race condition 導致 userId 還沒就緒就被判斷為未登入
+  await liffStore.initialize()
+
   if (!liffStore.userId) {
-    liffStore.login()
+    setSuccessDialogOpen(true, {
+      title: '請先登入',
+      copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往登入。',
+      buttonText: '前往 LINE 登入',
+      onButtonClick: () => liffStore.login(),
+    })
     return
   }
 
@@ -429,7 +445,7 @@ function handleEscape() {
       <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
         <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ successDialog.title }}</h2>
         <p class="success-dialog-copy shared-dialog-copy">{{ successDialog.copy }}</p>
-        <button ref="successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="setSuccessDialogOpen(false)">{{ successDialog.buttonText }}</button>
+        <button ref="successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="handleDialogButtonClick">{{ successDialog.buttonText }}</button>
       </section>
     </div>
   </main>
