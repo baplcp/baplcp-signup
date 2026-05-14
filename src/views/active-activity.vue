@@ -103,12 +103,13 @@ const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
   const members = []
   registrations.value.forEach(reg => {
-    const time = formatRegistrationTime(reg.created_at)
     if (reg.self_count > 0) {
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time })
+      const selfTime = formatRegistrationTime(reg.self_added_at || reg.created_at)
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: selfTime })
     }
     ;(reg.guests || []).forEach(guest => {
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time })
+      const guestTime = formatRegistrationTime(guest.added_at || reg.created_at)
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: guestTime })
     })
   })
   return members.map((m, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
@@ -177,8 +178,8 @@ function setSignupOpen(isOpen, options = {}) {
     if (myRegistration.value) {
       signupState.self = myRegistration.value.self_count || 0
       signupState.guest = myRegistration.value.guest_count || 0
-      signupState.guests = (myRegistration.value.guests || []).map(g => ({ name: g.name || '', gender: g.gender || '' }))
-      while (signupState.guests.length < signupState.guest) signupState.guests.push({ name: '', gender: '' })
+      signupState.guests = (myRegistration.value.guests || []).map(g => ({ name: g.name || '', gender: g.gender || '', added_at: g.added_at || null }))
+      while (signupState.guests.length < signupState.guest) signupState.guests.push({ name: '', gender: '', added_at: new Date().toISOString() })
     } else {
       signupState.self = 0
       signupState.guest = 0
@@ -217,7 +218,7 @@ function adjustSignupCount(type, direction) {
   if (type !== 'guest') return
 
   while (signupState.guests.length < signupState.guest) {
-    signupState.guests.push({ name: '', gender: '' })
+    signupState.guests.push({ name: '', gender: '', added_at: new Date().toISOString() })
   }
 
   signupState.guests.splice(signupState.guest)
@@ -244,6 +245,11 @@ async function submitSignup() {
     return
   }
 
+  const prevSelfCount = myRegistration.value?.self_count ?? 0
+  const selfAddedAt = signupState.self === 1
+    ? (prevSelfCount === 0 ? new Date().toISOString() : (myRegistration.value?.self_added_at ?? new Date().toISOString()))
+    : null
+
   const payload = {
     activity_id: activityData.value?.id,
     activity_date: resolvedDate.value,
@@ -251,6 +257,7 @@ async function submitSignup() {
     display_name: liffStore.displayName,
     picture_url: liffStore.pictureUrl || null,
     self_count: signupState.self,
+    self_added_at: selfAddedAt,
     guest_count: signupState.guest,
     guests: signupState.guests.slice(0, signupState.guest),
     status: 'active',
