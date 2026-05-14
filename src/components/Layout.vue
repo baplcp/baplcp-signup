@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLiffStore } from '~/stores/liff'
 
 const route = useRoute()
 const router = useRouter()
+const liffStore = useLiffStore()
 const scrollBox = useTemplateRef('scrollBox')
 
 const isIndexPage = computed(() => route.name === 'index')
@@ -97,9 +99,9 @@ watch(
         <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
-            <img class="drawer-avatar" src="/images/cookie.png" alt="" />
+            <img class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
             <div class="drawer-user-stack">
-              <p class="drawer-user" id="drawer-user-name">吳佳穎</p>
+              <p class="drawer-user" id="drawer-user-name">{{ liffStore.displayName || '訪客' }}</p>
               <span class="drawer-role">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor" />
