@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
@@ -56,6 +56,13 @@ const registrations = ref([])
 const myRegistration = ref(null)
 const memberGenders = ref({})
 
+// 使用者在此頁設定完性別後，立即更新本地 memberGenders，不需重抓名單
+watch(() => liffStore.gender, (newGender) => {
+  if (liffStore.userId && newGender) {
+    memberGenders.value = { ...memberGenders.value, [liffStore.userId]: newGender }
+  }
+})
+
 async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
   const date = resolvedDate.value
@@ -78,6 +85,9 @@ async function fetchRegistrations() {
 }
 
 onMounted(async () => {
+  // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
+  await liffStore.initialize()
+
   const id = route.query.id
   if (id) {
     const { data } = await supabase.from('activities').select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session').eq('id', id).single()

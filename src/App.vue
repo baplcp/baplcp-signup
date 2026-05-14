@@ -5,15 +5,13 @@ import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
 
-const dismissed = ref(false)
 const selectedGender = ref('')
 const saving = ref(false)
 
 const showGenderPrompt = computed(() =>
   liffStore.initialized &&
   !!liffStore.userId &&
-  liffStore.gender === null &&
-  !dismissed.value
+  liffStore.gender === null
 )
 
 // 每次 prompt 出現時重置選擇
@@ -26,10 +24,6 @@ async function confirmGender() {
   saving.value = true
   await liffStore.updateGender(selectedGender.value)
   saving.value = false
-}
-
-function skipGender() {
-  dismissed.value = true
 }
 </script>
 
@@ -46,7 +40,7 @@ function skipGender() {
   >
     <section class="shared-dialog gender-prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="gender-prompt-title">
       <h2 class="shared-dialog-title" id="gender-prompt-title">請設定你的性別</h2>
-      <p class="shared-dialog-copy">性別資訊用於統計男女比，設定一次即可，之後可在報名名單查看。</p>
+      <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
       <div class="gender-options">
         <button
           v-for="opt in [{ value: 'female', label: '女' }, { value: 'male', label: '男' }, { value: 'other', label: '其他' }]"
@@ -63,7 +57,6 @@ function skipGender() {
         :disabled="!selectedGender || saving"
         @click="confirmGender"
       >確認</button>
-      <button class="gender-skip-btn" type="button" @click="skipGender">稍後再說</button>
     </section>
   </div>
 </template>
@@ -111,11 +104,4 @@ function skipGender() {
   cursor: default;
 }
 
-.gender-skip-btn {
-  margin-top: 12px;
-  color: #8f95b2;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
-}
 </style>
