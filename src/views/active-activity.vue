@@ -75,9 +75,14 @@ async function fetchRegistrations() {
     const userIds = [...new Set(data.map(r => r.user_id))]
     if (userIds.length) {
       const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
-      memberGenders.value = memberData
+      const genders = memberData
         ? Object.fromEntries(memberData.map(m => [m.user_id, m.gender || null]))
         : {}
+      // DB 尚未更新時（例如 RLS 尚未開放 UPDATE），優先保留本機已設定的性別
+      if (liffStore.userId && liffStore.gender) {
+        genders[liffStore.userId] = liffStore.gender
+      }
+      memberGenders.value = genders
     } else {
       memberGenders.value = {}
     }
@@ -120,22 +125,50 @@ function formatRegistrationTime(isoString) {
   return `${h}:${m}:${s}`
 }
 
+const isAdmin = computed(() => liffStore.role === 'organizer' || liffStore.role === 'engineer')
+
 const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
   const members = []
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null })
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null, _regId: reg.id, _memberType: 'self', _guestIndex: -1 })
     }
-    ;(reg.guests || []).forEach(guest => {
+    ;(reg.guests || []).forEach((guest, gIdx) => {
       const ts = guest.added_at || reg.created_at
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts, gender: guest.gender || null })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx })
     })
   })
   members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
   return members.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
 })
+
+async function removeRegistrationMember(member) {
+  const reg = registrations.value.find(r => r.id === member._regId)
+  if (!reg) return
+
+  try {
+    if (member._memberType === 'self') {
+      if ((reg.guest_count || 0) === 0) {
+        await supabase.from('registrations').delete().eq('id', reg.id)
+      } else {
+        await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
+      }
+    } else if (member._memberType === 'guest') {
+      const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
+      const newGuestCount = newGuests.length
+      if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
+        await supabase.from('registrations').delete().eq('id', reg.id)
+      } else {
+        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
+      }
+    }
+    await fetchRegistrations()
+  } catch {
+    // 靜默失敗，名單資料不變
+  }
+}
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const GENDER_OPTIONS = [
   { value: '', label: '性別', disabled: true },
@@ -383,7 +416,7 @@ function handleEscape() {
       :vacancy-value="vacancyCount"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" @change="setSegmentTab" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" :is-admin="isAdmin" @change="setSegmentTab" @remove="removeRegistrationMember" />
     <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
