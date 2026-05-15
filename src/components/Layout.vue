@@ -169,8 +169,8 @@ watch(
                   <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
                   <span>贊助胖貓貓</span>
                 </a>
-                <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
-                  <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
+                <RouterLink @click="closeMenu" class="drawer-link" to="/active-activity?type=season">
+                  <span class="drawer-icon is-warm"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
                 </RouterLink>
                 <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
