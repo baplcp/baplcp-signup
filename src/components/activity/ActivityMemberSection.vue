@@ -178,7 +178,9 @@ function handleRemove(member, index) {
           </div>
           <div class="name activity-member-name">
             <span>{{ member.name }}</span>
-            <span v-if="member.time" class="activity-member-time">{{ member.time }}</span>
+            <span v-if="member.time" class="activity-member-time">
+              {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
+            </span>
           </div>
           <div v-if="member.status" class="status-tag activity-member-status">{{ member.status }}</div>
         </div>

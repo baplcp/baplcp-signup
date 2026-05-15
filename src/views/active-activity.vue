@@ -224,7 +224,7 @@ const memberList = computed(() => {
     }
     ;(reg.guests || []).forEach((guest, gIdx) => {
       const ts = guest.added_at || reg.created_at
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx })
     })
   })
   members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
