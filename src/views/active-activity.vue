@@ -138,14 +138,14 @@ onMounted(async () => {
 
 // 每秒更新的現在時間，用於倒數計時
 const nowTick = ref(new Date())
-let _nowTickInterval: ReturnType<typeof setInterval> | null = null
+let _nowTickInterval = null
 
 onUnmounted(() => {
   if (_nowTickInterval) clearInterval(_nowTickInterval)
 })
 
 // 報名開放時間（台灣時間 UTC+8，無日光節約）
-const registrationOpenAt = computed<Date | null>(() => {
+const registrationOpenAt = computed(() => {
   const a = activityData.value
   if (!a) return null
   if (activityType.value === 'season') {
@@ -165,7 +165,7 @@ const isRegistrationOpen = computed(() => {
   return nowTick.value >= registrationOpenAt.value
 })
 
-const registrationCountdown = computed<string | null>(() => {
+const registrationCountdown = computed(() => {
   if (isRegistrationOpen.value || !registrationOpenAt.value) return null
   const diff = registrationOpenAt.value.getTime() - nowTick.value.getTime()
   const h = Math.floor(diff / 3600000)
