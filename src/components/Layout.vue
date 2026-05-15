@@ -450,6 +450,7 @@ watch(
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  overscroll-behavior-y: none;
 }
 
 .drawer-content::-webkit-scrollbar {
