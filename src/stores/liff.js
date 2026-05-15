@@ -33,7 +33,7 @@ export const useLiffStore = defineStore('liff', () => {
     try {
       const { data, error } = await supabase
         .from('members')
-        .select('role, gender')
+        .select('role, gender, is_season')
         .eq('user_id', uid)
         .maybeSingle()
 
@@ -46,6 +46,7 @@ export const useLiffStore = defineStore('liff', () => {
         // 已有記錄：直接讀取 role 與 gender，不覆蓋管理員設定
         role.value = data.role
         gender.value = data.gender || null
+        isSeason.value = data.is_season ?? false
       } else {
         // 第一次登入：自動新增，role 預設 guest
         const { error: insertError } = await supabase
