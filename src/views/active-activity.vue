@@ -16,6 +16,7 @@ const activityNotFound = ref(false)
 const activityType = computed(() => route.query.type || 'latest')
 
 const heroTitle = computed(() => {
+  if (activityType.value === 'season') return activityData.value?.title || '季打報名'
   if (activityType.value === 'upcoming') return '即將到來的球局'
   if (activityType.value === 'ended') return '已結束的球局'
   return '最新球局報名'
@@ -54,8 +55,18 @@ const isLoading = ref(true)
 const acEnabled = ref(false)
 const acFeePerSession = ref(0)
 
+// 季打報名
+const seasonRegistrations = ref([])
+const mySeasonRegistration = ref(null)
+const showAllDatesDialog = ref(false)
+
+const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
+
 const summaryFeeAmount = computed(() => {
   if (!activityData.value) return 255
+  if (activityType.value === 'season') {
+    return activityData.value.season_total_fee || 0
+  }
   const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
   return acEnabled.value ? base + acFeePerSession.value : base
 })
@@ -75,9 +86,50 @@ watch(() => liffStore.gender, (newGender) => {
 
 async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
+  if (!activityId) return
+
+  if (activityType.value === 'season') {
+    // 季打頁面：抓 activity_date IS NULL 的報名
+    const { data } = await supabase
+      .from('registrations')
+      .select('*')
+      .eq('activity_id', activityId)
+      .is('activity_date', null)
+      .in('status', ['active', 'cancelled'])
+      .order('created_at', { ascending: true })
+    if (data) {
+      const active = data.filter(r => r.status === 'active')
+      const cancelled = data.filter(r => r.status === 'cancelled')
+      registrations.value = active
+      cancelledRegistrations.value = cancelled
+      myRegistration.value = active.find(r => r.user_id === liffStore.userId) || null
+      seasonRegistrations.value = active
+      mySeasonRegistration.value = myRegistration.value
+
+      const userIds = [...new Set(active.map(r => r.user_id))]
+      if (userIds.length) {
+        const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
+        const genders = memberData ? Object.fromEntries(memberData.map(m => [m.user_id, m.gender || null])) : {}
+        if (liffStore.userId && liffStore.gender) genders[liffStore.userId] = liffStore.gender
+        memberGenders.value = genders
+      } else {
+        memberGenders.value = {}
+      }
+    }
+    return
+  }
+
+  // 臨打頁面：抓指定日期的報名
   const date = resolvedDate.value
-  if (!activityId || !date) return
-  const { data } = await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('activity_date', date).in('status', ['active', 'cancelled']).order('created_at', { ascending: true })
+  if (!date) return
+  const { data } = await supabase
+    .from('registrations')
+    .select('*')
+    .eq('activity_id', activityId)
+    .eq('activity_date', date)
+    .in('status', ['active', 'cancelled'])
+    .order('created_at', { ascending: true })
+
   if (data) {
     const active = data.filter(r => r.status === 'active')
     const cancelled = data.filter(r => r.status === 'cancelled')
@@ -86,24 +138,29 @@ async function fetchRegistrations() {
     myRegistration.value = active.find(r => r.user_id === liffStore.userId) || null
 
     const userIds = [...new Set(active.map(r => r.user_id))]
+    const genders = {}
     if (userIds.length) {
       const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
-      const genders = memberData
-        ? Object.fromEntries(memberData.map(m => [m.user_id, m.gender || null]))
-        : {}
-      // DB 尚未更新時（例如 RLS 尚未開放 UPDATE），優先保留本機已設定的性別
-      if (liffStore.userId && liffStore.gender) {
-        genders[liffStore.userId] = liffStore.gender
-      }
-      memberGenders.value = genders
-    } else {
-      memberGenders.value = {}
+      if (memberData) memberData.forEach(m => { genders[m.user_id] = m.gender || null })
     }
+    if (liffStore.userId && liffStore.gender) genders[liffStore.userId] = liffStore.gender
+    memberGenders.value = genders
   }
+
+  // 同步抓季打報名（供臨打頁面顯示季打成員）
+  const { data: seasonData } = await supabase
+    .from('registrations')
+    .select('*')
+    .eq('activity_id', activityId)
+    .is('activity_date', null)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+  seasonRegistrations.value = seasonData || []
+  mySeasonRegistration.value = seasonData?.find(r => r.user_id === liffStore.userId) || null
 }
 
 onMounted(async () => {
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
   const id = route.query.id
 
   // 預先啟動 activity 查詢，與 LIFF init 並行，縮短整體等待時間
@@ -172,6 +229,12 @@ const registrationOpenAt = computed(() => {
   return new Date(Date.UTC(y, mo - 1, d - a.pickup_open_days_before, h - 8, m, 0))
 })
 
+// 季打成員在臨打頁面是否為請假模式
+const isSeasonLeaveMode = computed(() => {
+  if (activityType.value === 'season') return false
+  return !!mySeasonRegistration.value
+})
+
 const isRegistrationOpen = computed(() => {
   if (!registrationOpenAt.value) return true
   return nowTick.value >= registrationOpenAt.value
@@ -189,10 +252,23 @@ const registrationCountdown = computed(() => {
 })
 
 const vacancyCount = computed(() => {
+  if (activityType.value === 'season') {
+    const cap = activityData.value?.season_capacity
+    if (!cap || cap === 'unlimited') return '∞'
+    const confirmed = memberList.value.filter(m => !m.status).length
+    return Math.max(0, Number(cap) - confirmed)
+  }
   const capacity = activityData.value?.single_capacity ?? 0
   const confirmed = memberList.value.filter(m => !m.status).length
   return Math.max(0, capacity - confirmed)
 })
+
+function formatAllDate(dateStr) {
+  if (!dateStr) return ''
+  const [, m, d] = dateStr.split('-')
+  const weekday = WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+  return `${Number(m)} 月 ${Number(d)} 日（${weekday}）`
+}
 
 function formatRegistrationTime(isoString) {
   if (!isoString) return ''
@@ -209,6 +285,32 @@ const adminMode = ref(false)
 const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
   const members = []
+
+  // 臨打頁面：先插入未請假的季打成員
+  if (activityType.value !== 'season') {
+    const date = resolvedDate.value
+    seasonRegistrations.value.forEach(reg => {
+      if ((reg.leave_dates || []).includes(date)) return
+      if (reg.self_count > 0) {
+        const ts = reg.created_at
+        members.push({
+          name: reg.display_name,
+          badge: reg.display_name.charAt(0),
+          image: reg.picture_url || null,
+          time: formatRegistrationTime(ts),
+          _ts: ts,
+          gender: memberGenders.value[reg.user_id] || null,
+          _regId: reg.id,
+          _memberType: 'season_self',
+          _guestIndex: -1,
+          isSeason: true,
+          paidCourt: reg.paid_court ?? false,
+          paidAc: reg.paid_ac ?? false,
+        })
+      }
+    })
+  }
+
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
@@ -358,14 +460,24 @@ async function updateAcEnabled(enabled) {
   }
 }
 
-const SEGMENT_TABS = ['全部', '臨打', '季打']
+const SEGMENT_TABS = computed(() => {
+  if (activityType.value === 'season') return ['全部']
+  if (seasonRegistrations.value.length > 0) return ['全部', '臨打', '季打']
+  return ['全部']
+})
+
+const filteredMemberList = computed(() => {
+  if (activeSegment.value === '臨打') return memberList.value.filter(m => !m.isSeason)
+  if (activeSegment.value === '季打') return memberList.value.filter(m => m.isSeason)
+  return memberList.value
+})
 const GENDER_OPTIONS = [
   { value: '', label: '性別', disabled: true },
   { value: 'female', label: '女' },
   { value: 'male', label: '男' },
 ]
 
-const activeSegment = ref(SEGMENT_TABS[0])
+const activeSegment = ref('全部')
 const signupOpen = ref(false)
 const isSubmitting = ref(false)
 const showGuestValidation = ref(false)
@@ -388,9 +500,29 @@ const successDialog = reactive({
 
 const signupTotal = computed(() => signupState.self + signupState.guest)
 const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.value.self_count || 0) + (myRegistration.value.guest_count || 0) : 0))
-const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
+
+// 臨打頁面：季打成員（非請假）也視為已報名
+const hasSubmittedSignup = computed(() => {
+  if (activityType.value === 'season') return submittedTotal.value > 0
+  if (submittedTotal.value > 0) return true
+  if (isSeasonLeaveMode.value) {
+    const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
+    return !isOnLeave
+  }
+  return false
+})
+
 const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
-const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `成功卡位 ${submittedTotal.value} 位` : '無報名'))
+const summaryStatusText = computed(() => {
+  if (activityType.value === 'season') {
+    return submittedTotal.value > 0 ? `已報名 ${submittedTotal.value} 位` : '未報名'
+  }
+  if (isSeasonLeaveMode.value && submittedTotal.value === 0) {
+    const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
+    return isOnLeave ? '已請假' : '季打成員'
+  }
+  return hasSubmittedSignup.value ? `成功卡位 ${submittedTotal.value} 位` : '無報名'
+})
 const summaryFeeLabel = computed(() => {
   if (hasSubmittedSignup.value) {
     const stateText = myFullyPaid.value ? '已繳' : '未繳'
@@ -398,7 +530,11 @@ const summaryFeeLabel = computed(() => {
   }
   return `費用 ${summaryFeeAmount.value} 元`
 })
-const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
+const heroCtaText = computed(() => {
+  if (activityType.value === 'season') return submittedTotal.value > 0 ? '管理報名' : '我要報名'
+  if (isSeasonLeaveMode.value) return '管理報名'
+  return hasSubmittedSignup.value ? '管理報名' : '我要報名'
+})
 const isSignupChanged = computed(() => {
   const prevSelf = myRegistration.value?.self_count ?? 0
   const prevGuest = myRegistration.value?.guest_count ?? 0
@@ -436,8 +572,14 @@ function setSignupOpen(isOpen, options = {}) {
 
   if (isOpen) {
     showGuestValidation.value = false
-    // 預填現有報名資料
-    if (myRegistration.value) {
+    if (isSeasonLeaveMode.value) {
+      // 臨打頁面的季打成員：預填請假狀態
+      const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
+      signupState.self = isOnLeave ? 0 : 1
+      signupState.guest = 0
+      signupState.guests = []
+    } else if (myRegistration.value) {
+      // 預填現有報名資料
       signupState.self = myRegistration.value.self_count || 0
       signupState.guest = myRegistration.value.guest_count || 0
       signupState.guests = (myRegistration.value.guests || []).map(g => ({ name: g.name || '', gender: g.gender || '', added_at: g.added_at || null }))
@@ -538,6 +680,38 @@ async function _doSubmitSignup() {
     return
   }
 
+  // 季打請假模式（臨打頁面的季打成員）
+  if (isSeasonLeaveMode.value) {
+    const seasonReg = mySeasonRegistration.value
+    const isCurrentlyOnLeave = (seasonReg?.leave_dates || []).includes(resolvedDate.value)
+    const newSelf = signupState.self
+
+    if ((newSelf === 0) === isCurrentlyOnLeave) {
+      setSignupOpen(false, { restoreFocus: false })
+      return
+    }
+
+    try {
+      let newLeaveDates
+      if (newSelf === 0) {
+        newLeaveDates = [...(seasonReg.leave_dates || []), resolvedDate.value]
+      } else {
+        newLeaveDates = (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
+      }
+      await supabase.from('registrations').update({ leave_dates: newLeaveDates }).eq('id', seasonReg.id)
+      await fetchRegistrations()
+      setSignupOpen(false, { restoreFocus: false })
+      setSuccessDialogOpen(true, {
+        title: newSelf === 0 ? '已請假' : '已取消請假',
+        copy: newSelf === 0 ? '已為此場次請假，名額將釋出給臨打。' : '已取消請假，你將重新加入此場次名單。',
+        buttonText: '確認',
+      })
+    } catch {
+      setSuccessDialogOpen(true, { title: '操作失敗', copy: '請稍後再試。', buttonText: '確認' })
+    }
+    return
+  }
+
   if (!isSignupChanged.value) return
 
   const total = signupTotal.value
@@ -604,7 +778,7 @@ async function _doSubmitSignup() {
 
   const payload = {
     activity_id: activityData.value?.id,
-    activity_date: resolvedDate.value,
+    activity_date: activityType.value === 'season' ? null : resolvedDate.value,
     user_id: liffStore.userId,
     display_name: liffStore.displayName,
     picture_url: liffStore.pictureUrl || null,
@@ -687,7 +861,7 @@ function handleEscape() {
       </button>
     </Teleport>
     <section class="hero">
-      <img v-if="activityType === 'latest'" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
+      <img v-if="activityType === 'latest' || activityType === 'season'" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
       <div class="hero-layout">
         <div class="hero-copy">
           <h1>{{ heroTitle }}</h1>
@@ -696,26 +870,29 @@ function handleEscape() {
     </section>
 
     <ActivitySummaryCard
-      :date="summaryDate"
-      :weekday="summaryWeekday"
+      :date="activityType === 'season' ? '' : summaryDate"
+      :weekday="activityType === 'season' ? '' : summaryWeekday"
       :time="summaryTime"
       :location="summaryLocation"
+      :session-count="activityType === 'season' ? activitySessionCount : 0"
       status-label="狀態"
       :status-value="summaryStatusText"
       :status-tone="hasSubmittedSignup ? 'success' : 'default'"
-      :fee-amount="hasSubmittedSignup ? summaryFee : summaryFeeAmount"
-      :fee-state="hasSubmittedSignup ? (myFullyPaid ? '已繳' : '未繳') : ''"
+      :fee-amount="activityType === 'season' ? summaryFeeAmount : (hasSubmittedSignup ? summaryFee : summaryFeeAmount)"
+      :fee-state="activityType !== 'season' && hasSubmittedSignup ? (myFullyPaid ? '已繳' : '未繳') : ''"
       :fee-state-tone="hasSubmittedSignup && myFullyPaid ? 'success' : 'default'"
       :fee-aria-label="summaryFeeLabel"
-      vacancy-label="臨打缺"
+      :vacancy-label="activityType === 'season' ? '季打缺' : '臨打缺'"
       :vacancy-value="vacancyCount"
+      :vacancy-tone="activityType === 'season' ? 'orange' : 'teal'"
       :is-admin="isAdmin"
       :ac-enabled="acEnabled"
       @update:ac-enabled="updateAcEnabled"
+      @view-dates="showAllDatesDialog = true"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="(isLoading || memberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
-    <div v-if="isLoading && memberList.length === 0" class="member-skeleton" aria-hidden="true">
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <div v-if="isLoading && filteredMemberList.length === 0" class="member-skeleton" aria-hidden="true">
       <div v-for="i in 7" :key="i" class="member-skeleton-row">
         <div class="skel skel-rank"></div>
         <div class="skel skel-avatar"></div>
@@ -725,7 +902,7 @@ function handleEscape() {
         </div>
       </div>
     </div>
-    <p v-else-if="!isLoading && memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
+    <p v-else-if="!isLoading && filteredMemberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
       <div class="cancelled-divider">
@@ -756,8 +933,9 @@ function handleEscape() {
       <button class="signup-backdrop" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)"></button>
       <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
         <div class="signup-sheet-header">
-          <h2 class="signup-sheet-title" id="signup-sheet-title">報名此球局</h2>
-          <span class="prefill-tag">可預填</span>
+          <h2 class="signup-sheet-title" id="signup-sheet-title">{{ isSeasonLeaveMode ? '季打出席管理' : '報名此球局' }}</h2>
+          <span v-if="!isSeasonLeaveMode" class="prefill-tag">可預填</span>
+          <span v-else class="prefill-tag" style="background: rgba(255,230,190,0.85); color: #c87416;">請假 = 0</span>
           <button ref="signupCloseButton" class="signup-close" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -784,7 +962,7 @@ function handleEscape() {
                 </div>
               </div>
             </div>
-            <div class="signup-field-card is-stack">
+            <div v-if="!isSeasonLeaveMode" class="signup-field-card is-stack">
               <div class="signup-field-row">
                 <div class="signup-field-label">群外</div>
                 <div class="signup-stepper">
@@ -842,6 +1020,25 @@ function handleEscape() {
         </div>
       </section>
     </div>
+
+    <!-- 查看所有日期 Dialog -->
+    <div class="all-dates-overlay phone-container modal-frame" :class="{ 'is-open': showAllDatesDialog }" :aria-hidden="String(!showAllDatesDialog)" :inert="!showAllDatesDialog" @click.self="showAllDatesDialog = false">
+      <section class="all-dates-sheet" role="dialog" aria-modal="true" aria-labelledby="all-dates-title">
+        <div class="all-dates-header">
+          <h2 id="all-dates-title" class="all-dates-title">所有場次日期</h2>
+          <span class="all-dates-count">共 {{ activitySessionCount }} 次</span>
+        </div>
+        <div class="all-dates-list">
+          <div v-for="(date, i) in (activityData?.dates || [])" :key="date" class="all-dates-row">
+            <span class="all-dates-index">{{ i + 1 }}</span>
+            <span class="all-dates-label">{{ formatAllDate(date) }}</span>
+          </div>
+        </div>
+        <div class="all-dates-actions">
+          <button class="all-dates-close-btn" type="button" @click="showAllDatesDialog = false">關閉</button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -857,6 +1054,10 @@ function handleEscape() {
 
 .active-activity-page.hero-ended {
   background: linear-gradient(180deg, #7b82a8 0%, #8b91b8 7%, #9ea4c6 13%, #c9cbd8 20%, #e6e6ef 27%, #fff 35%, #fff 100%);
+}
+
+.active-activity-page.hero-season {
+  background: linear-gradient(180deg, #c87416 0%, #d4820f 7%, #e09a3a 13%, #f0bf78 20%, #fae1b8 27%, #fff 35%, #fff 100%);
 }
 
 .hero {
@@ -1512,6 +1713,103 @@ function handleEscape() {
   color: #fff;
   font-size: 16px;
   font-weight: 600;
+}
+
+.all-dates-overlay {
+  position: fixed;
+  z-index: 10002;
+  overflow: hidden;
+  margin: auto;
+  display: none;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.all-dates-overlay.is-open {
+  display: flex;
+}
+
+.all-dates-sheet {
+  width: 100%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+}
+
+.all-dates-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #f0f1f7;
+}
+
+.all-dates-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.36;
+  font-weight: 600;
+  color: #101840;
+}
+
+.all-dates-count {
+  font-size: 14px;
+  color: #8f95b2;
+  font-weight: 400;
+}
+
+.all-dates-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.all-dates-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f4f6fa;
+}
+
+.all-dates-row:last-child {
+  border-bottom: none;
+}
+
+.all-dates-index {
+  width: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c87416;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.all-dates-label {
+  font-size: 15px;
+  color: #101840;
+  line-height: 1.4;
+}
+
+.all-dates-actions {
+  flex: 0 0 auto;
+  padding: 14px 20px 20px;
+  border-top: 1px solid #f0f1f7;
+}
+
+.all-dates-close-btn {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 10px;
+  background: #f4f6fa;
+  color: #474d66;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 @media (min-width: 768px) {

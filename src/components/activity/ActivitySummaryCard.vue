@@ -4,11 +4,11 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 defineProps({
   date: {
     type: String,
-    required: true,
+    default: '',
   },
   weekday: {
     type: String,
-    required: true,
+    default: '',
   },
   time: {
     type: String,
@@ -58,6 +58,14 @@ defineProps({
     type: [Number, String],
     default: '',
   },
+  vacancyTone: {
+    type: String,
+    default: 'teal',
+  },
+  sessionCount: {
+    type: Number,
+    default: 0,
+  },
   isAdmin: {
     type: Boolean,
     default: false,
@@ -68,7 +76,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['update:acEnabled'])
+const emit = defineEmits(['update:acEnabled', 'view-dates'])
 
 const showDropdown = ref(false)
 const acToggleRef = ref(null)
@@ -113,19 +121,23 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 <template>
   <section class="summary-card activity-summary-card" :class="`summary-card--${shadowTone}`" aria-label="活動摘要">
     <div class="summary-main activity-summary-main">
-      <div v-if="vacancyLabel" class="summary-vacancy">
+      <div v-if="vacancyLabel" class="summary-vacancy" :class="`summary-vacancy--${vacancyTone}`">
         <p class="summary-vacancy-label">{{ vacancyLabel }}</p>
         <p class="summary-vacancy-value">{{ vacancyValue }}</p>
       </div>
       <div class="summary-info activity-summary-info">
         <p class="summary-time activity-summary-time">
-          <span class="summary-date activity-summary-date"
-            >{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span
-          >
-          <span class="summary-separator activity-summary-separator">|</span>
+          <template v-if="date">
+            <span class="summary-date activity-summary-date">{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span>
+            <span class="summary-separator activity-summary-separator">|</span>
+          </template>
           <span>{{ time }}</span>
         </p>
         <p class="summary-location activity-summary-location">{{ location }}</p>
+        <div v-if="sessionCount > 0" class="summary-session-row">
+          <span class="summary-session-count">共 {{ sessionCount }} 次</span>
+          <button class="summary-view-dates-btn" type="button" @click="emit('view-dates')">查看所有日期</button>
+        </div>
       </div>
     </div>
     <div class="summary-status activity-summary-status">
@@ -180,6 +192,10 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   text-align: center;
 }
 
+.summary-vacancy--orange {
+  background: rgba(255, 230, 190, 0.75);
+}
+
 .summary-vacancy-label {
   margin: 0;
   font-size: 13px;
@@ -194,6 +210,34 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   line-height: 1.25;
   font-weight: 700;
   color: #17acba;
+}
+
+.summary-vacancy--orange .summary-vacancy-value {
+  color: #c87416;
+}
+
+.summary-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.summary-session-count {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #474d66;
+}
+
+.summary-view-dates-btn {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #1bc4bf;
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .summary-status-value {

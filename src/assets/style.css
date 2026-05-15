@@ -383,6 +383,11 @@
     text-align: center;
   }
 
+  .activity-member-status.is-season {
+    background: rgba(255, 230, 190, 0.85);
+    color: #c87416;
+  }
+
   .app-version-note {
     margin-top: 18px;
     color: #7a84a7;

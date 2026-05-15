@@ -193,7 +193,8 @@ function handleRemove(member, index) {
               {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
             </span>
           </div>
-          <div v-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
+          <div v-if="member.isSeason && !adminMode" class="status-tag activity-member-status is-season">季打</div>
+          <div v-else-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
           <div v-if="adminMode" class="payment-checks" @click.stop>
             <button
               class="pay-check-row"
