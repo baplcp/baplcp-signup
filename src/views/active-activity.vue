@@ -229,10 +229,10 @@ const cancelledMemberList = computed(() => {
   // Supabase 抓得到的整筆 cancelled 紀錄
   cancelledRegistrations.value.forEach(reg => {
     if (reg.self_count > 0) {
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) })
     }
     ;(reg.guests || []).forEach(guest => {
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(guest.added_at || reg.created_at), addedBy: reg.display_name })
     })
   })
 
@@ -318,12 +318,12 @@ async function confirmRemove() {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null }]
+          localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
         }
         return
       } else {
         // 有群外：只把本人移出，記入取消清單
-        localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null }]
+        localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
         await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
       }
     } else if (member._memberType === 'guest') {
@@ -334,11 +334,11 @@ async function confirmRemove() {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) }]
+          if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name }]
         }
         return
       } else {
-        if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) }]
+        if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name }]
         await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
       }
     }
@@ -571,7 +571,10 @@ async function _doSubmitSignup() {
       await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', cancellingReg.id)
       await fetchRegistrations()
       if (!cancelledRegistrations.value.find(r => r.id === cancellingReg.id)) {
-        localCancelledMembers.value = [...localCancelledMembers.value, { name: cancellingReg.display_name, badge: cancellingReg.display_name.charAt(0), image: cancellingReg.picture_url || null }]
+        localCancelledMembers.value = [...localCancelledMembers.value, { name: cancellingReg.display_name, badge: cancellingReg.display_name.charAt(0), image: cancellingReg.picture_url || null, time: formatRegistrationTime(cancellingReg.self_added_at || cancellingReg.created_at) }]
+        ;(cancellingReg.guests || []).forEach(g => {
+          localCancelledMembers.value = [...localCancelledMembers.value, { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at || cancellingReg.created_at), addedBy: cancellingReg.display_name }]
+        })
       }
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
@@ -621,7 +624,16 @@ async function _doSubmitSignup() {
     await fetchRegistrations()
     // 「我」從有報名變成沒報名（整筆未取消，例如還有群外），補進本地取消清單
     if (prevSelfCount > 0 && signupState.self === 0 && myRegistration.value) {
-      localCancelledMembers.value = [...localCancelledMembers.value, { name: myRegistration.value.display_name, badge: myRegistration.value.display_name.charAt(0), image: myRegistration.value.picture_url || null }]
+      const reg = myRegistration.value
+      localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
+    }
+    // 群外人數減少時，把被移除的群外朋友加進取消清單
+    if (!isNewRegistration && signupState.guest < prevGuests.length) {
+      const removedGuests = prevGuests.slice(signupState.guest)
+      const addedByName = myRegistration.value?.display_name || liffStore.displayName
+      removedGuests.forEach(g => {
+        localCancelledMembers.value = [...localCancelledMembers.value, { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at), addedBy: addedByName }]
+      })
     }
     setSignupOpen(false, { restoreFocus: false })
     setSuccessDialogOpen(true, {
@@ -725,7 +737,12 @@ function handleEscape() {
             <img v-if="member.image" :src="member.image" alt="" />
             <template v-else>{{ member.badge }}</template>
           </div>
-          <div class="cancelled-name">{{ member.name }}</div>
+          <div class="cancelled-info">
+            <span class="cancelled-name">{{ member.name }}</span>
+            <span v-if="member.time || member.addedBy" class="cancelled-meta">
+              {{ member.time }}<template v-if="member.time && member.addedBy"> · </template>{{ member.addedBy }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -1409,11 +1426,6 @@ function handleEscape() {
   align-items: center;
   gap: 12px;
   padding: 9px 0;
-  border-bottom: 1px solid #f4f5fa;
-}
-
-.cancelled-row:last-child {
-  border-bottom: none;
 }
 
 .cancelled-avatar {
@@ -1438,12 +1450,23 @@ function handleEscape() {
   object-fit: cover;
 }
 
+.cancelled-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .cancelled-name {
   font-size: 14px;
   color: #8f95b2;
   line-height: 1.4;
-  text-decoration: line-through;
-  text-decoration-color: #c1c4d6;
+}
+
+.cancelled-meta {
+  font-size: 12px;
+  color: #b0b5cc;
+  line-height: 1.4;
+  margin-top: 1px;
 }
 
 .not-found-page {
