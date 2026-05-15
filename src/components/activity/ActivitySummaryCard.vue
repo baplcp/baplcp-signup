@@ -133,9 +133,10 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
         {{ statusLabel }}：<span class="summary-status-value" :class="`summary-status-value--${statusTone}`">{{ statusValue }}</span>
       </p>
       <div class="summary-fee activity-summary-fee" :aria-label="feeAriaLabel">
-        <div v-if="isAdmin" class="ac-control">
+        <div v-if="isAdmin" class="ac-control" @click.stop="toggleDropdown">
           <img class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-          <button ref="acToggleRef" class="ac-toggle-btn" type="button" :aria-label="acEnabled ? '已開冷氣，點擊更改' : '未開冷氣，點擊更改'" @click.stop="toggleDropdown">
+          <img v-if="acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+          <button ref="acToggleRef" class="ac-toggle-btn" type="button" :aria-label="acEnabled ? '已開冷氣，點擊更改' : '未開冷氣，點擊更改'" aria-haspopup="menu" :aria-expanded="showDropdown">
             <svg class="ac-chevron" :class="{ 'is-open': showDropdown }" viewBox="0 0 12 8" fill="none" aria-hidden="true">
               <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
@@ -148,7 +149,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
           </Teleport>
         </div>
         <img v-else class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-        <img v-if="acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+        <img v-if="!isAdmin && acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
         <span class="summary-fee-amount activity-summary-fee-amount">${{ feeAmount }}</span>
         <span v-if="feeState" class="summary-fee-state activity-summary-fee-state" :class="`summary-fee-state--${feeStateTone}`">{{ feeState }}</span>
       </div>
@@ -214,17 +215,19 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 .ac-control {
   display: flex;
   align-items: center;
-  margin-right: -10px;
+  gap: 1px;
+  margin-right: 4px;
+  cursor: pointer;
 }
 
-.ac-control .summary-fee-money {
+.ac-control img {
   margin-right: 0;
 }
 
 .ac-toggle-btn {
   display: flex;
   align-items: center;
-  padding: 4px 3px;
+  padding: 4px 2px;
   color: #8f95b2;
 }
 

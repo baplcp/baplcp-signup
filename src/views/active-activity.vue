@@ -98,7 +98,7 @@ onMounted(async () => {
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee_per_session'
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee'
 
   const id = route.query.id
   if (id) {
@@ -106,7 +106,7 @@ onMounted(async () => {
     if (data) {
       activityData.value = data
       acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee_per_session ?? 0
+      acFeePerSession.value = data.ac_fee ?? 0
     }
   } else {
     const { data } = await supabase
@@ -118,7 +118,7 @@ onMounted(async () => {
     if (data) {
       activityData.value = data
       acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee_per_session ?? 0
+      acFeePerSession.value = data.ac_fee ?? 0
     }
   }
 
