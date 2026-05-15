@@ -148,6 +148,16 @@ watch(
                 </svg>
                 <span>請先登入</span>
               </span>
+              <!-- 季打身份 badge -->
+              <span v-if="liffStore.isSeason" class="drawer-role is-season">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M12 4C12 4 9 7 9 12C9 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M12 4C12 4 15 7 15 12C15 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M4 12H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>黃金季打</span>
+              </span>
               <!-- 已登入：顯示對應身份 badge -->
               <span v-else class="drawer-role" :class="roleConfig.modifier">
                 <!-- organizer: 皇冠 -->
@@ -451,6 +461,12 @@ watch(
   border-color: rgba(143, 149, 178, 0.25);
   background: rgba(237, 239, 245, 0.5);
   color: #a8b1cc;
+}
+
+.drawer-role.is-season {
+  border-color: rgba(27, 196, 191, 0.3);
+  background: rgba(27, 196, 191, 0.08);
+  color: #0e9b97;
 }
 
 .drawer-close {

@@ -384,8 +384,23 @@
   }
 
   .activity-member-status.is-season {
-    background: rgba(255, 230, 190, 0.85);
-    color: #c87416;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, #ffe566 0%, #f5a623 100%);
+    color: #7a4200;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    box-shadow: 0 1px 4px rgba(220, 140, 0, 0.28), inset 0 1px 0 rgba(255, 255, 200, 0.45);
+  }
+
+  .activity-member-status.is-season .season-crown {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    display: block;
   }
 
   .app-version-note {

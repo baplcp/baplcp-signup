@@ -15,6 +15,7 @@ export const useLiffStore = defineStore('liff', () => {
   const pictureUrl = ref(null)
   const role = ref('member')
   const gender = ref(null)
+  const isSeason = ref(false)
   const isExternalBrowser = ref(false)
   const pendingRedirect = ref(null)
 
@@ -199,6 +200,7 @@ export const useLiffStore = defineStore('liff', () => {
     pictureUrl,
     role,
     gender,
+    isSeason,
     isExternalBrowser,
     pendingRedirect,
     getUserProfile,
