@@ -1047,10 +1047,10 @@ function handleEscape() {
 
 .signup-countdown {
   margin: 13px 0 0;
-  color: #5768ff;
+  color: #8f95b2;
   font-size: 13px;
   line-height: 1.25;
-  font-weight: 600;
+  font-weight: 400;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

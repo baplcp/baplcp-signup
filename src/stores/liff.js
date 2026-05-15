@@ -128,9 +128,23 @@ export const useLiffStore = defineStore('liff', () => {
         displayName.value = profile.displayName
         pictureUrl.value = profile.pictureUrl
         await syncMember(profile.userId, profile.displayName)
+
+        // LIFF auth 後回到首頁時，還原 auth 前的 hash 路由
+        const savedHash = sessionStorage.getItem('liff-post-login-hash')
+        if (savedHash) {
+          sessionStorage.removeItem('liff-post-login-hash')
+          const path = savedHash.startsWith('#') ? savedHash.slice(1) : savedHash
+          pendingRedirect.value = path
+        }
+
         initialized.value = true
       } else if (!sessionStorage.getItem('liff-login-attempted')) {
         sessionStorage.setItem('liff-login-attempted', '1')
+        // 儲存目前的 hash 路由，讓 auth 回來後可以還原（OAuth redirect 不保留 hash fragment）
+        const currentHash = window.location.hash
+        if (currentHash && currentHash !== '#/' && currentHash !== '#') {
+          sessionStorage.setItem('liff-post-login-hash', currentHash)
+        }
         liff.login({ redirectUri: window.location.href })
       }
     } catch (e) {
