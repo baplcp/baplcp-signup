@@ -147,6 +147,9 @@ function handleRemove(member, index) {
         :key="`${member.name}-${index}`"
         class="swipe-row-container"
       >
+        <div v-if="member.status === '候補' && (index === 0 || !members[index - 1].status)" class="waitlist-divider">
+          <span class="waitlist-divider-label">候補</span>
+        </div>
         <button
           v-if="isAdmin && !adminMode"
           class="swipe-delete-btn"
@@ -163,7 +166,7 @@ function handleRemove(member, index) {
           @touchmove="onTouchMove(index, $event)"
           @touchend="onTouchEnd(index)"
         >
-          <div class="rank activity-member-rank">{{ index + 1 }}</div>
+          <div class="rank activity-member-rank" :class="{ 'is-waitlist': member.status === '候補' }">{{ index + 1 }}</div>
           <div class="activity-member-avatar-wrap">
             <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
               <img v-if="member.image" :src="member.image" alt="" />
@@ -184,7 +187,7 @@ function handleRemove(member, index) {
               </svg>
             </span>
           </div>
-          <div class="name activity-member-name">
+          <div class="name activity-member-name" :class="{ 'is-waitlist': member.status === '候補' }">
             <span>{{ member.name }}</span>
             <span v-if="member.time" class="activity-member-time">
               {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
@@ -228,6 +231,36 @@ function handleRemove(member, index) {
 <style scoped>
 .activity-member-list {
   overflow-x: hidden;
+}
+
+.waitlist-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 4px;
+}
+
+.waitlist-divider::before,
+.waitlist-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e4e7f0;
+}
+
+.waitlist-divider-label {
+  color: #b0b5cc;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.activity-member-rank.is-waitlist {
+  color: #c1c4d6;
+}
+
+.activity-member-name.is-waitlist span:first-child {
+  color: #8f95b2;
 }
 
 .swipe-row-container {
