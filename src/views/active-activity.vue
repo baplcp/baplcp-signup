@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
 import { useLiffStore } from '~/stores/liff'
@@ -8,8 +8,10 @@ import { supabase } from '~/utils/supabase'
 import { startLineOAuth } from '~/utils/lineOAuth'
 
 const route = useRoute()
+const router = useRouter()
 const liffStore = useLiffStore()
 const activityData = ref(null)
+const activityNotFound = ref(false)
 
 const activityType = computed(() => route.query.type || 'latest')
 
@@ -58,6 +60,7 @@ const summaryFeeAmount = computed(() => {
 })
 
 const registrations = ref([])
+const cancelledRegistrations = ref([])
 const myRegistration = ref(null)
 const memberGenders = ref({})
 
@@ -72,12 +75,15 @@ async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
   const date = resolvedDate.value
   if (!activityId || !date) return
-  const { data } = await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('activity_date', date).eq('status', 'active').order('created_at', { ascending: true })
+  const { data } = await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('activity_date', date).in('status', ['active', 'cancelled']).order('created_at', { ascending: true })
   if (data) {
-    registrations.value = data
-    myRegistration.value = data.find(r => r.user_id === liffStore.userId) || null
+    const active = data.filter(r => r.status === 'active')
+    const cancelled = data.filter(r => r.status === 'cancelled')
+    registrations.value = active
+    cancelledRegistrations.value = cancelled
+    myRegistration.value = active.find(r => r.user_id === liffStore.userId) || null
 
-    const userIds = [...new Set(data.map(r => r.user_id))]
+    const userIds = [...new Set(active.map(r => r.user_id))]
     if (userIds.length) {
       const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
       const genders = memberData
@@ -117,6 +123,9 @@ onMounted(async () => {
       activityData.value = data
       acEnabled.value = data.ac_enabled ?? false
       acFeePerSession.value = data.ac_fee ?? 0
+    } else {
+      activityNotFound.value = true
+      return
     }
   } else {
     const { data } = await supabase
@@ -222,6 +231,19 @@ const memberList = computed(() => {
   return members.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
 })
 
+const cancelledMemberList = computed(() => {
+  const members = []
+  cancelledRegistrations.value.forEach(reg => {
+    if (reg.self_count > 0) {
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
+    }
+    ;(reg.guests || []).forEach(guest => {
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
+    })
+  })
+  return members
+})
+
 const removeDialog = reactive({ open: false, member: null })
 const removeConfirmButton = ref(null)
 
@@ -247,7 +269,7 @@ async function confirmRemove() {
   try {
     if (member._memberType === 'self') {
       if ((reg.guest_count || 0) === 0) {
-        await supabase.from('registrations').delete().eq('id', reg.id)
+        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
       } else {
         await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
       }
@@ -255,7 +277,7 @@ async function confirmRemove() {
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
-        await supabase.from('registrations').delete().eq('id', reg.id)
+        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
       } else {
         await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
       }
@@ -477,10 +499,10 @@ async function _doSubmitSignup() {
     return
   }
 
-  // 取消報名：刪掉整筆 row，讓重報時 INSERT 新 row 取得新的 created_at 與排名
+  // 取消報名：標記為 cancelled，保留紀錄顯示於名單底部
   if (total <= 0 && myRegistration.value) {
     try {
-      await supabase.from('registrations').delete().eq('id', myRegistration.value.id)
+      await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', myRegistration.value.id)
       await fetchRegistrations()
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
@@ -557,7 +579,16 @@ function handleEscape() {
 </script>
 
 <template>
-  <main class="active-activity-page" :class="[{ 'signup-open': signupOpen }, `hero-${activityType}`]" @keydown.esc="handleEscape">
+  <div v-if="activityNotFound" class="not-found-page">
+    <div class="not-found-content">
+      <p class="not-found-icon" aria-hidden="true">🏐</p>
+      <h1 class="not-found-title">此球局已被移除</h1>
+      <p class="not-found-desc">你開啟的球局連結已不存在，可能已被主揪刪除。</p>
+      <button class="not-found-btn" type="button" @click="router.replace('/')">回到首頁</button>
+    </div>
+  </div>
+
+  <main v-else class="active-activity-page" :class="[{ 'signup-open': signupOpen }, `hero-${activityType}`]" @keydown.esc="handleEscape">
     <section class="hero">
       <img v-if="activityType === 'latest'" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
       <div class="hero-layout">
@@ -585,8 +616,23 @@ function handleEscape() {
       @update:ac-enabled="updateAcEnabled"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" :is-admin="isAdmin" @change="setSegmentTab" @remove="handleRemoveRequest" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" @change="setSegmentTab" @remove="handleRemoveRequest" />
     <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
+
+    <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
+      <div class="cancelled-divider">
+        <span class="cancelled-divider-label">已取消報名</span>
+      </div>
+      <div class="cancelled-list">
+        <div v-for="(member, index) in cancelledMemberList" :key="`cancelled-${member.name}-${index}`" class="cancelled-row">
+          <div class="cancelled-avatar">
+            <img v-if="member.image" :src="member.image" alt="" />
+            <template v-else>{{ member.badge }}</template>
+          </div>
+          <div class="cancelled-name">{{ member.name }}</div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
       <div class="footer-fade"></div>
@@ -1172,6 +1218,124 @@ function handleEscape() {
   font-size: 14px;
   line-height: 1.5;
   color: #8f95b2;
+}
+
+.cancelled-section {
+  padding: 0 16px 110px;
+}
+
+.cancelled-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cancelled-divider::before,
+.cancelled-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e4e7f0;
+}
+
+.cancelled-divider-label {
+  color: #8f95b2;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cancelled-list {
+  display: grid;
+}
+
+.cancelled-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f4f5fa;
+}
+
+.cancelled-row:last-child {
+  border-bottom: none;
+}
+
+.cancelled-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e4e7f0;
+  color: #8f95b2;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+  opacity: 0.6;
+}
+
+.cancelled-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cancelled-name {
+  font-size: 14px;
+  color: #8f95b2;
+  line-height: 1.4;
+  text-decoration: line-through;
+  text-decoration-color: #c1c4d6;
+}
+
+.not-found-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #e8e9f5 0%, #fff 40%, #fff 100%);
+  padding: 32px 24px;
+}
+
+.not-found-content {
+  text-align: center;
+  max-width: 280px;
+}
+
+.not-found-icon {
+  font-size: 52px;
+  margin: 0 0 20px;
+  line-height: 1;
+}
+
+.not-found-title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #101840;
+  line-height: 1.4;
+}
+
+.not-found-desc {
+  margin: 0 0 28px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #696f8c;
+}
+
+.not-found-btn {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  background: #5768ff;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 @media (min-width: 768px) {
