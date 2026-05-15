@@ -142,14 +142,14 @@ function handleRemove(member, index) {
       </button>
     </div>
     <div class="list activity-member-list">
-      <div
+      <template
         v-for="(member, index) in members"
         :key="`${member.name}-${index}`"
-        class="swipe-row-container"
       >
         <div v-if="member.status === '候補' && (index === 0 || !members[index - 1].status)" class="waitlist-divider">
           <span class="waitlist-divider-label">候補</span>
         </div>
+        <div class="swipe-row-container">
         <button
           v-if="isAdmin && !adminMode"
           class="swipe-delete-btn"
@@ -222,7 +222,8 @@ function handleRemove(member, index) {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </template>
     </div>
     <div class="version app-version-note">{{ version }}</div>
   </section>
@@ -237,7 +238,7 @@ function handleRemove(member, index) {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 4px 0 4px;
+  margin: 8px 0;
 }
 
 .waitlist-divider::before,
