@@ -98,6 +98,16 @@ onMounted(async () => {
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
+  // 未登入則立即導向登入，不等待按下報名按鈕
+  if (!liffStore.userId) {
+    if (liffStore.isExternalBrowser) {
+      startLineOAuth()
+    } else {
+      liffStore.login()
+    }
+    return
+  }
+
   const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
 
   const id = route.query.id
