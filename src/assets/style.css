@@ -281,7 +281,7 @@
   }
 
   .activity-segment-tabs {
-    display: none;
+    display: flex;
     align-items: center;
     gap: 10px;
     margin: 0 0 16px;

@@ -462,13 +462,13 @@ async function updateAcEnabled(enabled) {
 
 const SEGMENT_TABS = computed(() => {
   if (activityType.value === 'season') return ['全部']
-  if (seasonRegistrations.value.length > 0) return ['全部', '臨打', '季打']
-  return ['全部']
+  return ['臨打', '季打', '報名成功']
 })
 
 const filteredMemberList = computed(() => {
   if (activeSegment.value === '臨打') return memberList.value.filter(m => !m.isSeason)
   if (activeSegment.value === '季打') return memberList.value.filter(m => m.isSeason)
+  if (activeSegment.value === '報名成功') return memberList.value.filter(m => !m.status)
   return memberList.value
 })
 const GENDER_OPTIONS = [
@@ -477,7 +477,7 @@ const GENDER_OPTIONS = [
   { value: 'male', label: '男' },
 ]
 
-const activeSegment = ref('全部')
+const activeSegment = ref('臨打')
 const signupOpen = ref(false)
 const isSubmitting = ref(false)
 const showGuestValidation = ref(false)

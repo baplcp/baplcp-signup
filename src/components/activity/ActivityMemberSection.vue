@@ -127,7 +127,7 @@ function handleRemove(member, index) {
 
 <template>
   <section class="content" :style="{ padding: `24px 16px ${bottomSpacing}px` }">
-    <div class="segment-tabs activity-segment-tabs" role="tablist" aria-label="名單分類">
+    <div v-if="tabs.length > 1" class="segment-tabs activity-segment-tabs" role="tablist" aria-label="名單分類">
       <button
         v-for="tab in tabs"
         :key="tab"
@@ -193,17 +193,7 @@ function handleRemove(member, index) {
               {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
             </span>
           </div>
-          <div v-if="member.isSeason && !adminMode" class="status-tag activity-member-status is-season">
-            <svg class="season-crown" viewBox="0 0 14 12" fill="none" aria-hidden="true">
-              <path d="M1 9.5 L2.5 4.5 L5 7.5 L7 2 L9 7.5 L11.5 4.5 L13 9.5 Z" fill="#7a4200" opacity="0.85"/>
-              <rect x="1" y="10" width="12" height="1.5" rx="0.75" fill="#7a4200" opacity="0.7"/>
-              <circle cx="7" cy="2.2" r="1" fill="#7a4200" opacity="0.6"/>
-              <circle cx="1.8" cy="4.8" r="0.8" fill="#7a4200" opacity="0.6"/>
-              <circle cx="12.2" cy="4.8" r="0.8" fill="#7a4200" opacity="0.6"/>
-            </svg>
-            黃金季打
-          </div>
-          <div v-else-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
+          <div v-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
           <div v-if="adminMode" class="payment-checks" @click.stop>
             <button
               class="pay-check-row"
