@@ -238,12 +238,21 @@ const cancelledMemberList = computed(() => {
   return members
 })
 
-const myPaidCourt = computed(() => myRegistration.value?.paid_court ?? false)
-const myPaidAc = computed(() => myRegistration.value?.paid_ac ?? false)
 const myFullyPaid = computed(() => {
   if (!hasSubmittedSignup.value) return false
-  if (!myPaidCourt.value) return false
-  if (acEnabled.value && !myPaidAc.value) return false
+  const reg = myRegistration.value
+  if (!reg) return false
+
+  if ((reg.self_count || 0) > 0) {
+    if (!reg.paid_court) return false
+    if (acEnabled.value && !reg.paid_ac) return false
+  }
+
+  for (const guest of (reg.guests || [])) {
+    if (!guest.paid_court) return false
+    if (acEnabled.value && !guest.paid_ac) return false
+  }
+
   return true
 })
 
@@ -683,7 +692,7 @@ function handleEscape() {
       </div>
     </div>
 
-    <div v-if="activityType !== 'ended'" class="footer-bar">
+    <div v-if="activityType !== 'ended' && !adminMode" class="footer-bar">
       <div class="footer-fade"></div>
       <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
