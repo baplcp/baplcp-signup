@@ -134,14 +134,26 @@ onMounted(async () => {
 
   await fetchRegistrations()
   _nowTickInterval = setInterval(() => { nowTick.value = new Date() }, 1000)
+
+  const realtimeActivityId = route.query.id || activityData.value?.id
+  if (realtimeActivityId) {
+    _realtimeChannel = supabase
+      .channel(`registrations-${realtimeActivityId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${realtimeActivityId}` }, () => {
+        fetchRegistrations()
+      })
+      .subscribe()
+  }
 })
 
 // 每秒更新的現在時間，用於倒數計時
 const nowTick = ref(new Date())
 let _nowTickInterval = null
+let _realtimeChannel = null
 
 onUnmounted(() => {
   if (_nowTickInterval) clearInterval(_nowTickInterval)
+  if (_realtimeChannel) supabase.removeChannel(_realtimeChannel)
 })
 
 // 報名開放時間（台灣時間 UTC+8，無日光節約）
@@ -275,6 +287,7 @@ const GENDER_OPTIONS = [
 const activeSegment = ref(SEGMENT_TABS[0])
 const signupOpen = ref(false)
 const isSubmitting = ref(false)
+const showGuestValidation = ref(false)
 const heroCtaButton = ref(null)
 const signupCloseButton = ref(null)
 const confirmSignupButton = ref(null)
@@ -335,6 +348,7 @@ function setSignupOpen(isOpen, options = {}) {
   signupOpen.value = isOpen
 
   if (isOpen) {
+    showGuestValidation.value = false
     // 預填現有報名資料
     if (myRegistration.value) {
       signupState.self = myRegistration.value.self_count || 0
@@ -448,6 +462,17 @@ async function _doSubmitSignup() {
       title: '還沒有選擇人數',
       copy: '目前沒有任何人被加入報名，請先選擇「我」或「群外」人數後再送出。',
       buttonText: '回去選人',
+    })
+    return
+  }
+
+  const missingGender = signupState.guests.slice(0, signupState.guest).some(g => !g.gender)
+  if (missingGender) {
+    showGuestValidation.value = true
+    setSuccessDialogOpen(true, {
+      title: '請選擇性別',
+      copy: '每位群外朋友都需要選擇性別，請補齊後再送出。',
+      buttonText: '回去填寫',
     })
     return
   }
@@ -620,7 +645,7 @@ function handleEscape() {
               <div class="guest-fields" aria-live="polite">
                 <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
                   <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
-                  <select v-model="guest.gender" class="guest-select" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
+                  <select v-model="guest.gender" class="guest-select" :class="{ 'is-error': showGuestValidation && !guest.gender }" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
                     <option v-for="option in GENDER_OPTIONS" :key="option.value" :value="option.value" :disabled="option.disabled">
                       {{ option.label }}
                     </option>
@@ -997,6 +1022,11 @@ function handleEscape() {
 .guest-select:focus {
   border-color: rgba(87, 104, 255, 0.72);
   box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
+}
+
+.guest-select.is-error {
+  border-color: #d14343;
+  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
 }
 
 .guest-select {
