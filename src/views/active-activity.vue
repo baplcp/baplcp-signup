@@ -315,7 +315,13 @@ async function confirmRemove() {
   try {
     if (member._memberType === 'self') {
       if ((reg.guest_count || 0) === 0) {
+        const regToCancel = { ...reg, status: 'cancelled' }
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+        await fetchRegistrations()
+        if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
+          cancelledRegistrations.value = [...cancelledRegistrations.value, regToCancel]
+        }
+        return
       } else {
         // 整筆改為已取消，讓本人出現在取消區；guests 保留但另建一筆或保留原資料
         const cancelledGuests = (reg.cancelled_guests || [])
@@ -327,7 +333,13 @@ async function confirmRemove() {
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
+        const regToCancel = { ...reg, status: 'cancelled' }
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+        await fetchRegistrations()
+        if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
+          cancelledRegistrations.value = [...cancelledRegistrations.value, regToCancel]
+        }
+        return
       } else {
         const cancelledGuests = (reg.cancelled_guests || [])
         if (removedGuest) cancelledGuests.push({ name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) })
@@ -559,8 +571,13 @@ async function _doSubmitSignup() {
   // 取消報名：標記為 cancelled，保留紀錄顯示於名單底部
   if (total <= 0 && myRegistration.value) {
     try {
+      const regToCancel = { ...myRegistration.value, status: 'cancelled' }
       await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', myRegistration.value.id)
       await fetchRegistrations()
+      // RLS 若只開放 active 讀取，fetchRegistrations 抓不到取消的那筆，在此補回本地
+      if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
+        cancelledRegistrations.value = [...cancelledRegistrations.value, regToCancel]
+      }
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
         title: '報名已取消',
