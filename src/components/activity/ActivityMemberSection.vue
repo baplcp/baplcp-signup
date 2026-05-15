@@ -191,25 +191,32 @@ function handleRemove(member, index) {
             </span>
           </div>
           <div v-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
-          <div v-if="adminMode" class="payment-checks">
-            <label class="pay-check-label" @click.stop>
-              <input
-                type="checkbox"
-                class="pay-check-input"
-                :checked="member.paidCourt"
-                @change="emit('toggle-payment', member, 'paid_court')"
-              />
+          <div v-if="adminMode" class="payment-checks" @click.stop>
+            <button
+              class="pay-check-row"
+              type="button"
+              @click.stop="emit('toggle-payment', member, 'paid_court')"
+            >
+              <span class="pay-check-box" :class="{ 'is-checked': member.paidCourt }">
+                <svg v-if="member.paidCourt" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                  <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
               <span class="pay-check-text">場地費</span>
-            </label>
-            <label v-if="acEnabled" class="pay-check-label" @click.stop>
-              <input
-                type="checkbox"
-                class="pay-check-input"
-                :checked="member.paidAc"
-                @change="emit('toggle-payment', member, 'paid_ac')"
-              />
+            </button>
+            <button
+              v-if="acEnabled"
+              class="pay-check-row"
+              type="button"
+              @click.stop="emit('toggle-payment', member, 'paid_ac')"
+            >
+              <span class="pay-check-box" :class="{ 'is-checked': member.paidAc }">
+                <svg v-if="member.paidAc" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                  <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
               <span class="pay-check-text">冷氣費</span>
-            </label>
+            </button>
           </div>
         </div>
       </div>
@@ -282,20 +289,38 @@ function handleRemove(member, index) {
   margin-left: auto;
 }
 
-.pay-check-label {
+.pay-check-row {
   display: flex;
   align-items: center;
   gap: 5px;
+  padding: 0;
+  background: none;
+  border: none;
   cursor: pointer;
-  user-select: none;
 }
 
-.pay-check-input {
-  width: 17px;
-  height: 17px;
+.pay-check-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #d8dae5;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  accent-color: #1bc4bf;
-  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pay-check-box.is-checked {
+  background: #1bc4bf;
+  border-color: #1bc4bf;
+}
+
+.pay-check-box svg {
+  width: 11px;
+  height: 9px;
+  display: block;
 }
 
 .pay-check-text {

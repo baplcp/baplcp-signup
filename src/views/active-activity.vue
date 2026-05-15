@@ -50,6 +50,7 @@ const summaryTime = computed(() => {
 
 const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
 
+const isLoading = ref(true)
 const acEnabled = ref(false)
 const acFeePerSession = ref(0)
 
@@ -101,6 +102,14 @@ async function fetchRegistrations() {
 }
 
 onMounted(async () => {
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
+  const id = route.query.id
+
+  // 預先啟動 activity 查詢，與 LIFF init 並行，縮短整體等待時間
+  const activityFetchPromise = id
+    ? supabase.from('activities').select(AC_FIELDS).eq('id', id).single()
+    : supabase.from('activities').select(AC_FIELDS).order('created_at', { ascending: false }).limit(1).single()
+
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
@@ -114,34 +123,18 @@ onMounted(async () => {
     return
   }
 
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
-
-  const id = route.query.id
-  if (id) {
-    const { data } = await supabase.from('activities').select(AC_FIELDS).eq('id', id).single()
-    if (data) {
-      activityData.value = data
-      acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee ?? 0
-    } else {
-      activityNotFound.value = true
-      return
-    }
-  } else {
-    const { data } = await supabase
-      .from('activities')
-      .select(AC_FIELDS)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-    if (data) {
-      activityData.value = data
-      acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee ?? 0
-    }
+  const { data } = await activityFetchPromise
+  if (data) {
+    activityData.value = data
+    acEnabled.value = data.ac_enabled ?? false
+    acFeePerSession.value = data.ac_fee ?? 0
+  } else if (id) {
+    activityNotFound.value = true
+    return
   }
 
   await fetchRegistrations()
+  isLoading.value = false
   _nowTickInterval = setInterval(() => { nowTick.value = new Date() }, 1000)
 
   const realtimeActivityId = route.query.id || activityData.value?.id
@@ -331,7 +324,6 @@ const GENDER_OPTIONS = [
   { value: '', label: '性別', disabled: true },
   { value: 'female', label: '女' },
   { value: 'male', label: '男' },
-  { value: 'other', label: '其他' },
 ]
 
 const activeSegment = ref(SEGMENT_TABS[0])
@@ -663,8 +655,18 @@ function handleEscape() {
       @update:ac-enabled="updateAcEnabled"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
-    <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="(isLoading || memberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <div v-if="isLoading && memberList.length === 0" class="member-skeleton" aria-hidden="true">
+      <div v-for="i in 7" :key="i" class="member-skeleton-row">
+        <div class="skel skel-rank"></div>
+        <div class="skel skel-avatar"></div>
+        <div class="skel-text">
+          <div class="skel skel-name"></div>
+          <div class="skel skel-time"></div>
+        </div>
+      </div>
+    </div>
+    <p v-else-if="!isLoading && memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
       <div class="cancelled-divider">
@@ -1265,6 +1267,63 @@ function handleEscape() {
   font-size: 14px;
   line-height: 1.5;
   color: #8f95b2;
+}
+
+.member-skeleton {
+  padding: 0 16px 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+}
+
+.skel-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef0f6 25%, #e4e6ef 50%, #eef0f6 75%);
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s ease infinite;
+}
+
+.skel-rank {
+  width: 18px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+}
+
+.skel-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.skel-name {
+  height: 14px;
+  width: 55%;
+}
+
+.skel-time {
+  height: 12px;
+  width: 35%;
+}
+
+@keyframes skel-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .cancelled-section {
