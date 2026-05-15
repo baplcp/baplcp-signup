@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const LIFF_BASE_URL = 'https://baplcp.github.io/baplcp-signup/#/active-activity'
+const LIFF_ID = '2009808077-q6H0su3r'
 
 // Taiwan is UTC+8, no DST — all time arithmetic uses fixed +8 offset
 function getSeasonOpenAt(openDateStr: string, openTimeStr: string): Date {
@@ -116,7 +116,8 @@ serve(async (_req) => {
     }
 
     for (const n of notifications) {
-      const registrationUrl = `${LIFF_BASE_URL}?id=${n.id}&date=${n.activityDate}&type=${n.type}`
+      const liffState = encodeURIComponent(`#/active-activity?id=${n.id}&date=${n.activityDate}&type=${n.type}`)
+      const registrationUrl = `https://liff.line.me/${LIFF_ID}?liff.state=${liffState}`
       const typeLabel = n.type === 'season' ? '季打' : '臨打'
       const text =
         `🏐 ${typeLabel}報名即將開始！（5 分鐘後）\n\n` +
