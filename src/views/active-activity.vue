@@ -62,7 +62,7 @@ const summaryFeeAmount = computed(() => {
 
 const registrations = ref([])
 const cancelledRegistrations = ref([])
-const localCancelled = ref([]) // RLS 擋住 cancelled 讀取時的本地備援，不被 fetchRegistrations 覆蓋
+const localCancelledMembers = ref([]) // 本地取消清單（{ name, badge, image }），不被 fetchRegistrations 覆蓋
 const myRegistration = ref(null)
 const memberGenders = ref({})
 
@@ -225,11 +225,9 @@ const memberList = computed(() => {
 
 const cancelledMemberList = computed(() => {
   const members = []
-  const seenIds = new Set()
 
   // Supabase 抓得到的整筆 cancelled 紀錄
   cancelledRegistrations.value.forEach(reg => {
-    seenIds.add(reg.id)
     if (reg.self_count > 0) {
       members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
     }
@@ -238,23 +236,9 @@ const cancelledMemberList = computed(() => {
     })
   })
 
-  // RLS 擋住時的本地備援（不重複加入）
-  localCancelled.value.forEach(reg => {
-    if (seenIds.has(reg.id)) return
-    if (reg.self_count > 0) {
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
-    }
-    ;(reg.guests || []).forEach(guest => {
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
-    })
-  })
+  // 本地追蹤的取消成員（管理員個別移除 / 自己把「我」調回 0 但整筆未取消）
+  localCancelledMembers.value.forEach(m => members.push(m))
 
-  // active 紀錄裡被個別移除的成員（存在 cancelled_guests 欄位）
-  registrations.value.forEach(reg => {
-    ;(reg.cancelled_guests || []).forEach(g => {
-      members.push({ name: g.name || g.display_name || '群外', badge: g.badge || (g.name || '群').charAt(0), image: g.image || null })
-    })
-  })
   return members
 })
 
@@ -331,35 +315,31 @@ async function confirmRemove() {
   try {
     if (member._memberType === 'self') {
       if ((reg.guest_count || 0) === 0) {
-        const regToCancel = { ...reg, status: 'cancelled' }
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
-        if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
-          localCancelled.value = [...localCancelled.value.filter(r => r.id !== regToCancel.id), regToCancel]
+        if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
+          localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null }]
         }
         return
       } else {
-        // 整筆改為已取消，讓本人出現在取消區；guests 保留但另建一筆或保留原資料
-        const cancelledGuests = (reg.cancelled_guests || [])
-        cancelledGuests.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, _isSelf: true })
-        await supabase.from('registrations').update({ self_count: 0, self_added_at: null, cancelled_guests: cancelledGuests }).eq('id', reg.id)
+        // 有群外：只把本人移出，記入取消清單
+        localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null }]
+        await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
       }
     } else if (member._memberType === 'guest') {
       const removedGuest = (reg.guests || [])[member._guestIndex]
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
-        const regToCancel = { ...reg, status: 'cancelled' }
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
-        if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
-          localCancelled.value = [...localCancelled.value.filter(r => r.id !== regToCancel.id), regToCancel]
+        if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
+          if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) }]
         }
         return
       } else {
-        const cancelledGuests = (reg.cancelled_guests || [])
-        if (removedGuest) cancelledGuests.push({ name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) })
-        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount, cancelled_guests: cancelledGuests }).eq('id', reg.id)
+        if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) }]
+        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
       }
     }
     await fetchRegistrations()
@@ -587,12 +567,11 @@ async function _doSubmitSignup() {
   // 取消報名：標記為 cancelled，保留紀錄顯示於名單底部
   if (total <= 0 && myRegistration.value) {
     try {
-      const regToCancel = { ...myRegistration.value, status: 'cancelled' }
-      await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', myRegistration.value.id)
+      const cancellingReg = myRegistration.value
+      await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', cancellingReg.id)
       await fetchRegistrations()
-      // RLS 若只開放 active 讀取，fetchRegistrations 抓不到取消的那筆，存入 localCancelled 備援
-      if (!cancelledRegistrations.value.find(r => r.id === regToCancel.id)) {
-        localCancelled.value = [...localCancelled.value.filter(r => r.id !== regToCancel.id), regToCancel]
+      if (!cancelledRegistrations.value.find(r => r.id === cancellingReg.id)) {
+        localCancelledMembers.value = [...localCancelledMembers.value, { name: cancellingReg.display_name, badge: cancellingReg.display_name.charAt(0), image: cancellingReg.picture_url || null }]
       }
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
@@ -640,6 +619,10 @@ async function _doSubmitSignup() {
       await supabase.from('registrations').insert(payload)
     }
     await fetchRegistrations()
+    // 「我」從有報名變成沒報名（整筆未取消，例如還有群外），補進本地取消清單
+    if (prevSelfCount > 0 && signupState.self === 0 && myRegistration.value) {
+      localCancelledMembers.value = [...localCancelledMembers.value, { name: myRegistration.value.display_name, badge: myRegistration.value.display_name.charAt(0), image: myRegistration.value.picture_url || null }]
+    }
     setSignupOpen(false, { restoreFocus: false })
     setSuccessDialogOpen(true, {
       title: isUpdatingExistingSignup ? '報名已更新' : '報名已送出',
