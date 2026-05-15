@@ -820,17 +820,96 @@ async function _doSubmitSignup() {
   }
 }
 
+// 季打頁面一鍵報名（不開 Drawer）
+const seasonCancelOpen = ref(false)
+
+async function handleCtaClick() {
+  if (activityType.value === 'season') {
+    if (hasSubmittedSignup.value) {
+      seasonCancelOpen.value = true
+      return
+    }
+    await directSeasonRegister()
+    return
+  }
+  setSignupOpen(true)
+}
+
+async function directSeasonRegister() {
+  await liffStore.initialize()
+
+  if (!liffStore.userId) {
+    if (liffStore.isExternalBrowser) startLineOAuth()
+    else liffStore.login()
+    return
+  }
+
+  if (!isRegistrationOpen.value) {
+    const openTimeStr = registrationOpenAt.value
+      ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' })
+      : '—'
+    setSuccessDialogOpen(true, {
+      title: '報名尚未開放',
+      copy: `季打報名將於 ${openTimeStr} 開放。`,
+      buttonText: '知道了',
+    })
+    return
+  }
+
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+  try {
+    const submitTime = new Date().toISOString()
+    const payload = {
+      activity_id: activityData.value?.id,
+      activity_date: null,
+      user_id: liffStore.userId,
+      display_name: liffStore.displayName,
+      picture_url: liffStore.pictureUrl || null,
+      self_count: 1,
+      self_added_at: submitTime,
+      guest_count: 0,
+      guests: [],
+      status: 'active',
+    }
+    if (myRegistration.value) {
+      await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
+    } else {
+      await supabase.from('registrations').insert(payload)
+    }
+    await fetchRegistrations()
+  } catch {
+    setSuccessDialogOpen(true, { title: '報名失敗', copy: '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function confirmSeasonCancel() {
+  seasonCancelOpen.value = false
+  const reg = myRegistration.value
+  if (!reg) return
+  try {
+    await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+    await fetchRegistrations()
+  } catch {
+    setSuccessDialogOpen(true, { title: '取消失敗', copy: '請稍後再試。', buttonText: '確認' })
+  }
+}
+
 function handleEscape() {
+  if (seasonCancelOpen.value) {
+    seasonCancelOpen.value = false
+    return
+  }
   if (removeDialog.open) {
     cancelRemove()
     return
   }
-
   if (successDialog.open) {
     setSuccessDialogOpen(false)
     return
   }
-
   if (signupOpen.value) {
     setSignupOpen(false)
   }
@@ -926,7 +1005,7 @@ function handleEscape() {
 
     <div v-if="activityType !== 'ended' && !adminMode" class="footer-bar">
       <div class="footer-fade"></div>
-      <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
+      <button ref="heroCtaButton" class="cta" type="button" :disabled="isSubmitting" @click="handleCtaClick">{{ isSubmitting ? '處理中...' : heroCtaText }}</button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
@@ -1017,6 +1096,18 @@ function handleEscape() {
         <div class="remove-dialog-actions">
           <button type="button" class="remove-dialog-cancel" @click="cancelRemove">取消</button>
           <button ref="removeConfirmButton" type="button" class="remove-dialog-confirm" @click="confirmRemove">確認移除</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 取消季打報名確認 sheet -->
+    <div class="season-cancel-overlay phone-container modal-frame" :class="{ 'is-open': seasonCancelOpen }" :aria-hidden="String(!seasonCancelOpen)" :inert="!seasonCancelOpen" @click.self="seasonCancelOpen = false">
+      <section class="season-cancel-sheet" role="dialog" aria-modal="true">
+        <p class="season-cancel-title">確認取消季打報名？</p>
+        <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
+        <div class="season-cancel-actions">
+          <button class="season-cancel-btn is-muted" type="button" @click="seasonCancelOpen = false">保留報名</button>
+          <button class="season-cancel-btn is-danger" type="button" @click="confirmSeasonCancel">確認取消</button>
         </div>
       </section>
     </div>
@@ -1713,6 +1804,65 @@ function handleEscape() {
   color: #fff;
   font-size: 16px;
   font-weight: 600;
+}
+
+.season-cancel-overlay {
+  position: fixed;
+  z-index: 10002;
+  overflow: hidden;
+  margin: auto;
+  display: none;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.season-cancel-overlay.is-open {
+  display: flex;
+}
+
+.season-cancel-sheet {
+  width: 100%;
+  padding: 28px 20px 24px;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+}
+
+.season-cancel-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #101840;
+  line-height: 1.36;
+}
+
+.season-cancel-copy {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #474d66;
+  line-height: 1.6;
+}
+
+.season-cancel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.season-cancel-btn {
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.season-cancel-btn.is-muted {
+  background: #f4f6fa;
+  color: #474d66;
+}
+
+.season-cancel-btn.is-danger {
+  background: #d14343;
+  color: #fff;
 }
 
 .all-dates-overlay {
