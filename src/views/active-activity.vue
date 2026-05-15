@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
@@ -98,7 +98,7 @@ onMounted(async () => {
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee'
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
 
   const id = route.query.id
   if (id) {
@@ -123,6 +123,47 @@ onMounted(async () => {
   }
 
   await fetchRegistrations()
+  _nowTickInterval = setInterval(() => { nowTick.value = new Date() }, 1000)
+})
+
+// 每秒更新的現在時間，用於倒數計時
+const nowTick = ref(new Date())
+let _nowTickInterval: ReturnType<typeof setInterval> | null = null
+
+onUnmounted(() => {
+  if (_nowTickInterval) clearInterval(_nowTickInterval)
+})
+
+// 報名開放時間（台灣時間 UTC+8，無日光節約）
+const registrationOpenAt = computed<Date | null>(() => {
+  const a = activityData.value
+  if (!a) return null
+  if (activityType.value === 'season') {
+    if (!a.season_open_date || !a.season_open_time) return null
+    const [y, mo, d] = a.season_open_date.split('-').map(Number)
+    const [h, m] = a.season_open_time.split(':').map(Number)
+    return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
+  }
+  if (!resolvedDate.value || a.pickup_open_days_before == null || !a.pickup_open_time) return null
+  const [y, mo, d] = resolvedDate.value.split('-').map(Number)
+  const [h, m] = a.pickup_open_time.split(':').map(Number)
+  return new Date(Date.UTC(y, mo - 1, d - a.pickup_open_days_before, h - 8, m, 0))
+})
+
+const isRegistrationOpen = computed(() => {
+  if (!registrationOpenAt.value) return true
+  return nowTick.value >= registrationOpenAt.value
+})
+
+const registrationCountdown = computed<string | null>(() => {
+  if (isRegistrationOpen.value || !registrationOpenAt.value) return null
+  const diff = registrationOpenAt.value.getTime() - nowTick.value.getTime()
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} 後開放`
+    : `${m}:${String(s).padStart(2, '0')} 後開放`
 })
 
 const vacancyCount = computed(() => {
@@ -363,6 +404,18 @@ async function submitSignup() {
     return
   }
 
+  if (!isRegistrationOpen.value) {
+    const openTimeStr = registrationOpenAt.value
+      ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' })
+      : '—'
+    setSuccessDialogOpen(true, {
+      title: '報名尚未開放',
+      copy: `報名將於 ${openTimeStr} 開放，你可以先填好資料，時間到再送出。`,
+      buttonText: '知道了',
+    })
+    return
+  }
+
   if (!isSignupChanged.value) return
 
   const total = signupTotal.value
@@ -491,8 +544,7 @@ function handleEscape() {
 
     <div v-if="activityType !== 'ended'" class="footer-bar">
       <div class="footer-fade"></div>
-      <button v-if="activityType === 'upcoming'" class="cta cta-disabled" type="button" disabled>尚未開放</button>
-      <button v-else ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
+      <button ref="heroCtaButton" class="cta" type="button" @click="setSignupOpen(true)">{{ heroCtaText }}</button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
@@ -559,8 +611,9 @@ function handleEscape() {
         </div>
         <div class="signup-sheet-footer">
           <p class="signup-count">共報名 {{ signupTotal }} 位</p>
-          <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isSignupChanged" @click="submitSignup">確認報名</button>
-          <p class="signup-note">送出不代表報名成功，請以名單為準</p>
+          <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isSignupChanged && isRegistrationOpen" @click="submitSignup">確認報名</button>
+          <p v-if="registrationCountdown" class="signup-countdown">{{ registrationCountdown }}</p>
+          <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
         </div>
       </section>
     </div>
@@ -980,6 +1033,16 @@ function handleEscape() {
   font-size: 13px;
   line-height: 1.25;
   text-align: center;
+}
+
+.signup-countdown {
+  margin: 13px 0 0;
+  color: #5768ff;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .success-dialog-overlay {
