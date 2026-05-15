@@ -238,7 +238,7 @@ function handleRemove(member, index) {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 8px 0;
+  margin: 24px 0 8px;
 }
 
 .waitlist-divider::before,
@@ -250,7 +250,7 @@ function handleRemove(member, index) {
 }
 
 .waitlist-divider-label {
-  color: #b0b5cc;
+  color: #8f95b2;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
