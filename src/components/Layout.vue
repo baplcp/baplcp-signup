@@ -98,6 +98,7 @@ watch(
         </svg>
       </button>
       <RouterLink to="/" class="brand mr-auto" aria-label="回到首頁 BAPLCP"></RouterLink>
+      <span id="nav-extra"></span>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4.5 7H19.5M4.5 12H19.5M4.5 17H19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />

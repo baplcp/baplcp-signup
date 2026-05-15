@@ -213,6 +213,7 @@ function formatRegistrationTime(isoString) {
 }
 
 const isAdmin = computed(() => liffStore.role === 'organizer' || liffStore.role === 'engineer')
+const adminMode = ref(false)
 
 const memberList = computed(() => {
   const capacity = activityData.value?.single_capacity ?? Infinity
@@ -220,11 +221,11 @@ const memberList = computed(() => {
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null, _regId: reg.id, _memberType: 'self', _guestIndex: -1 })
+      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null, _regId: reg.id, _memberType: 'self', _guestIndex: -1, paidCourt: reg.paid_court ?? false, paidAc: reg.paid_ac ?? false })
     }
     ;(reg.guests || []).forEach((guest, gIdx) => {
       const ts = guest.added_at || reg.created_at
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx })
+      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx, paidCourt: guest.paid_court ?? false, paidAc: guest.paid_ac ?? false })
     })
   })
   members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
@@ -243,6 +244,33 @@ const cancelledMemberList = computed(() => {
   })
   return members
 })
+
+const myPaidCourt = computed(() => myRegistration.value?.paid_court ?? false)
+const myPaidAc = computed(() => myRegistration.value?.paid_ac ?? false)
+const myFullyPaid = computed(() => {
+  if (!hasSubmittedSignup.value) return false
+  if (!myPaidCourt.value) return false
+  if (acEnabled.value && !myPaidAc.value) return false
+  return true
+})
+
+async function togglePayment(member, field) {
+  const reg = registrations.value.find(r => r.id === member._regId)
+  if (!reg) return
+  try {
+    if (member._memberType === 'self') {
+      await supabase.from('registrations').update({ [field]: !(reg[field] ?? false) }).eq('id', reg.id)
+    } else if (member._memberType === 'guest') {
+      const newGuests = (reg.guests || []).map((g, i) =>
+        i === member._guestIndex ? { ...g, [field]: !(g[field] ?? false) } : g
+      )
+      await supabase.from('registrations').update({ guests: newGuests }).eq('id', reg.id)
+    }
+    await fetchRegistrations()
+  } catch {
+    // 靜默失敗，欄位可能尚未建立
+  }
+}
 
 const removeDialog = reactive({ open: false, member: null })
 const removeConfirmButton = ref(null)
@@ -332,7 +360,13 @@ const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.va
 const hasSubmittedSignup = computed(() => submittedTotal.value > 0)
 const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
 const summaryStatusText = computed(() => (hasSubmittedSignup.value ? `成功卡位 ${submittedTotal.value} 位` : '無報名'))
-const summaryFeeLabel = computed(() => (hasSubmittedSignup.value ? `費用 ${summaryFee.value} 元，未付` : `費用 ${summaryFeeAmount.value} 元`))
+const summaryFeeLabel = computed(() => {
+  if (hasSubmittedSignup.value) {
+    const stateText = myFullyPaid.value ? '已繳' : '未繳'
+    return `費用 ${summaryFee.value} 元，${stateText}`
+  }
+  return `費用 ${summaryFeeAmount.value} 元`
+})
 const heroCtaText = computed(() => (hasSubmittedSignup.value ? '管理報名' : '我要報名'))
 const isSignupChanged = computed(() => {
   const prevSelf = myRegistration.value?.self_count ?? 0
@@ -589,6 +623,18 @@ function handleEscape() {
   </div>
 
   <main v-else class="active-activity-page" :class="[{ 'signup-open': signupOpen }, `hero-${activityType}`]" @keydown.esc="handleEscape">
+    <Teleport v-if="isAdmin" to="#nav-extra">
+      <button
+        class="admin-mode-toggle"
+        :class="{ 'is-active': adminMode }"
+        type="button"
+        :aria-pressed="String(adminMode)"
+        @click="adminMode = !adminMode"
+      >
+        <span class="admin-mode-dot"></span>
+        管理
+      </button>
+    </Teleport>
     <section class="hero">
       <img v-if="activityType === 'latest'" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
       <div class="hero-layout">
@@ -607,7 +653,8 @@ function handleEscape() {
       :status-value="summaryStatusText"
       :status-tone="hasSubmittedSignup ? 'success' : 'default'"
       :fee-amount="hasSubmittedSignup ? summaryFee : summaryFeeAmount"
-      :fee-state="hasSubmittedSignup ? '未付' : ''"
+      :fee-state="hasSubmittedSignup ? (myFullyPaid ? '已繳' : '未繳') : ''"
+      :fee-state-tone="hasSubmittedSignup && myFullyPaid ? 'success' : 'default'"
       :fee-aria-label="summaryFeeLabel"
       vacancy-label="臨打缺"
       :vacancy-value="vacancyCount"
@@ -616,7 +663,7 @@ function handleEscape() {
       @update:ac-enabled="updateAcEnabled"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" @change="setSegmentTab" @remove="handleRemoveRequest" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
     <p v-if="memberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
     <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
@@ -1344,5 +1391,60 @@ function handleEscape() {
     border-radius: 0 0 1.5rem 1.5rem;
     overflow: hidden;
   }
+}
+</style>
+
+<style>
+.admin-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-mode-toggle.is-active {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: #fff;
+}
+
+.admin-mode-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  flex: 0 0 auto;
+  transition: background 0.2s ease;
+}
+
+.admin-mode-toggle.is-active .admin-mode-dot {
+  background: #1bc4bf;
+}
+
+.nav.is-scrolled .admin-mode-toggle {
+  border-color: rgba(87, 104, 255, 0.35);
+  color: #5768ff;
+}
+
+.nav.is-scrolled .admin-mode-toggle.is-active {
+  background: rgba(87, 104, 255, 0.08);
+  border-color: rgba(87, 104, 255, 0.6);
+  color: #5768ff;
+}
+
+.nav.is-scrolled .admin-mode-dot {
+  background: rgba(87, 104, 255, 0.3);
+}
+
+.nav.is-scrolled .admin-mode-toggle.is-active .admin-mode-dot {
+  background: #1bc4bf;
 }
 </style>

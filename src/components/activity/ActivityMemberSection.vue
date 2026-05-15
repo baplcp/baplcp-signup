@@ -26,9 +26,17 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  adminMode: {
+    type: Boolean,
+    default: false,
+  },
+  acEnabled: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['change', 'remove'])
+const emit = defineEmits(['change', 'remove', 'toggle-payment'])
 
 function setSegment(tab) {
   emit('change', tab)
@@ -62,7 +70,7 @@ function rowStyle(index) {
 }
 
 function onTouchStart(index, e) {
-  if (!props.isAdmin) return
+  if (!props.isAdmin || props.adminMode) return
   // 關閉其他已展開的列
   const newOffsets = {}
   Object.keys(rowOffsets.value).forEach(i => {
@@ -81,7 +89,7 @@ function onTouchStart(index, e) {
 
 function onTouchMove(index, e) {
   const drag = activeDrag.value
-  if (!props.isAdmin || drag.index !== index) return
+  if (!props.isAdmin || props.adminMode || drag.index !== index) return
 
   const dx = e.touches[0].clientX - drag.startX
   const dy = e.touches[0].clientY - drag.startY
@@ -100,7 +108,7 @@ function onTouchMove(index, e) {
 
 function onTouchEnd(index) {
   const drag = activeDrag.value
-  if (!props.isAdmin || drag.index !== index) return
+  if (!props.isAdmin || props.adminMode || drag.index !== index) return
 
   if (drag.direction === 'h') {
     const current = getOffset(index)
@@ -140,7 +148,7 @@ function handleRemove(member, index) {
         class="swipe-row-container"
       >
         <button
-          v-if="isAdmin"
+          v-if="isAdmin && !adminMode"
           class="swipe-delete-btn"
           type="button"
           aria-label="`移除 ${member.name}`"
@@ -150,7 +158,7 @@ function handleRemove(member, index) {
         </button>
         <div
           class="row activity-member-row"
-          :style="isAdmin ? rowStyle(index) : undefined"
+          :style="(isAdmin && !adminMode) ? rowStyle(index) : undefined"
           @touchstart="onTouchStart(index, $event)"
           @touchmove="onTouchMove(index, $event)"
           @touchend="onTouchEnd(index)"
@@ -182,7 +190,27 @@ function handleRemove(member, index) {
               {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
             </span>
           </div>
-          <div v-if="member.status" class="status-tag activity-member-status">{{ member.status }}</div>
+          <div v-if="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
+          <div v-if="adminMode" class="payment-checks">
+            <label class="pay-check-label" @click.stop>
+              <input
+                type="checkbox"
+                class="pay-check-input"
+                :checked="member.paidCourt"
+                @change="emit('toggle-payment', member, 'paid_court')"
+              />
+              <span class="pay-check-text">場地費</span>
+            </label>
+            <label v-if="acEnabled" class="pay-check-label" @click.stop>
+              <input
+                type="checkbox"
+                class="pay-check-input"
+                :checked="member.paidAc"
+                @change="emit('toggle-payment', member, 'paid_ac')"
+              />
+              <span class="pay-check-text">冷氣費</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -245,4 +273,35 @@ function handleRemove(member, index) {
 .gender-badge--male { background: #5768ff; }
 .gender-badge--female { background: #f06292; }
 .gender-badge--other { background: #8f95b2; }
+
+.payment-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.pay-check-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pay-check-input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  accent-color: #1bc4bf;
+  cursor: pointer;
+}
+
+.pay-check-text {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #696f8c;
+  white-space: nowrap;
+}
 </style>
