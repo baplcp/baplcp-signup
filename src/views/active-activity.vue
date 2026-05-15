@@ -632,9 +632,9 @@ function handleEscape() {
         </div>
         <div class="signup-sheet-footer">
           <p class="signup-count">共報名 {{ signupTotal }} 位</p>
-          <p v-if="registrationCountdown" class="signup-countdown">{{ registrationCountdown }}</p>
           <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isRegistrationOpen || isSubmitting || !isSignupChanged" @click="submitSignup">確認報名</button>
-          <p v-if="!registrationCountdown" class="signup-note">送出不代表報名成功，請以名單為準</p>
+          <p v-if="registrationCountdown" class="signup-countdown">{{ registrationCountdown }}</p>
+          <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
         </div>
       </section>
     </div>
