@@ -274,6 +274,7 @@ const GENDER_OPTIONS = [
 
 const activeSegment = ref(SEGMENT_TABS[0])
 const signupOpen = ref(false)
+const isSubmitting = ref(false)
 const heroCtaButton = ref(null)
 const signupCloseButton = ref(null)
 const confirmSignupButton = ref(null)
@@ -392,6 +393,16 @@ function adjustSignupCount(type, direction) {
 }
 
 async function submitSignup() {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+  try {
+    await _doSubmitSignup()
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function _doSubmitSignup() {
   // 等待 LIFF 完整初始化，避免 race condition 導致 userId 還沒就緒就被判斷為未登入
   await liffStore.initialize()
 
@@ -621,9 +632,9 @@ function handleEscape() {
         </div>
         <div class="signup-sheet-footer">
           <p class="signup-count">共報名 {{ signupTotal }} 位</p>
-          <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isSignupChanged && isRegistrationOpen" @click="submitSignup">確認報名</button>
           <p v-if="registrationCountdown" class="signup-countdown">{{ registrationCountdown }}</p>
-          <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
+          <button ref="confirmSignupButton" class="confirm-signup" type="button" :disabled="!isRegistrationOpen || isSubmitting || !isSignupChanged" @click="submitSignup">確認報名</button>
+          <p v-if="!registrationCountdown" class="signup-note">送出不代表報名成功，請以名單為準</p>
         </div>
       </section>
     </div>
