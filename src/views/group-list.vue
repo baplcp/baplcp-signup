@@ -127,7 +127,7 @@ onMounted(async () => {
       .from('registrations')
       .select('self_count, guest_count')
       .eq('activity_id', act.id)
-      .eq('activity_date', date)
+      .or(`activity_date.eq.${date},activity_date.is.null`)
       .eq('status', 'active')
     if (regs) {
       const totalPeople = regs.reduce((sum, r) => sum + (r.self_count || 0) + (r.guest_count || 0), 0)
