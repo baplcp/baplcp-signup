@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, watch, useTemplateRef } from 'vue'
+import { ref, computed, watch, useTemplateRef, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
+import { supabase } from '~/utils/supabase'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,6 +44,22 @@ function handleScroll(event) {
 function resetNavScrollState() {
   navScrollProgress.value = 0
 }
+
+const seasonEnabled = ref(false)
+const latestSeasonActivityId = ref(null)
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, season_enabled')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  if (data) {
+    seasonEnabled.value = data.season_enabled ?? false
+    latestSeasonActivityId.value = data.id
+  }
+})
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
@@ -169,8 +186,13 @@ watch(
                   <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
                   <span>贊助胖貓貓</span>
                 </a>
-                <RouterLink @click="closeMenu" class="drawer-link" to="/active-activity?type=season">
-                  <span class="drawer-icon is-warm"><img src="/images/ball.png" alt="" /></span>
+                <RouterLink
+                  @click="closeMenu"
+                  class="drawer-link"
+                  :class="{ 'is-pending': !seasonEnabled }"
+                  :to="seasonEnabled && latestSeasonActivityId ? `/active-activity?type=season&id=${latestSeasonActivityId}` : '/'"
+                >
+                  <span class="drawer-icon" :class="seasonEnabled ? 'is-warm' : 'is-muted'"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
                 </RouterLink>
                 <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
