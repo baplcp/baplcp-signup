@@ -149,6 +149,21 @@ export const useLiffStore = defineStore('liff', () => {
       }
     } catch (e) {
       console.error('LIFF init failed', e)
+
+      // liff.init() 在處理 liff.state 並呼叫 location.replace() 後會拋出錯誤（設計如此）。
+      // 若頁面 URL 仍帶有 liff.state，代表 LIFF 已觸發 redirect 但尚未完成；
+      // 此時等一小段時間讓 redirect 自然發生，若還沒跳走就手動補上 redirect，
+      // 避免 userId = null → 觸發多餘的 liff.login() → LINE WebView 白畫面。
+      const liffState = new URLSearchParams(window.location.search).get('liff.state')
+      if (liffState) {
+        await new Promise(resolve => setTimeout(resolve, 300))
+        if (new URLSearchParams(window.location.search).has('liff.state')) {
+          const targetHash = liffState.startsWith('#') ? liffState : '#' + liffState
+          window.location.replace(window.location.origin + window.location.pathname + targetHash)
+          return
+        }
+      }
+
       initialized.value = true
     }
   }
