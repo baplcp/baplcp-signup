@@ -714,7 +714,7 @@ function handleEscape() {
       @update:ac-enabled="updateAcEnabled"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="(isLoading || memberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 24 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="(isLoading || memberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
     <div v-if="isLoading && memberList.length === 0" class="member-skeleton" aria-hidden="true">
       <div v-for="i in 7" :key="i" class="member-skeleton-row">
         <div class="skel skel-rank"></div>
