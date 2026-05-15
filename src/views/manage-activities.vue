@@ -154,6 +154,15 @@ async function confirmDelete() {
       </div>
     </template>
 
+    <div class="fab-container">
+      <button class="fab-create-btn" type="button" @click="router.push('/create-activity')">
+        <svg class="fab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        建立新球局
+      </button>
+    </div>
+
     <div
       class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
       :class="{ 'is-open': deleteTarget !== null }"
@@ -176,7 +185,7 @@ async function confirmDelete() {
 .manage-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 0;
+  padding: 31px 16px 96px;
 }
 
 .page-header {
@@ -291,6 +300,40 @@ async function confirmDelete() {
   width: 20px;
   height: 20px;
   color: var(--muted-soft);
+  flex: 0 0 auto;
+}
+
+.fab-container {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  padding: 12px 16px 28px;
+  background: var(--surface);
+  border-top: 1px solid rgba(16, 24, 64, 0.08);
+  z-index: 100;
+}
+
+.fab-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.fab-icon {
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
 }
 </style>
