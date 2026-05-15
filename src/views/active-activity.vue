@@ -48,9 +48,13 @@ const summaryTime = computed(() => {
 
 const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
 
+const acEnabled = ref(false)
+const acFeePerSession = ref(0)
+
 const summaryFeeAmount = computed(() => {
   if (!activityData.value) return 255
-  return activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
+  const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
+  return acEnabled.value ? base + acFeePerSession.value : base
 })
 
 const registrations = ref([])
@@ -94,18 +98,28 @@ onMounted(async () => {
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, ac_enabled, ac_fee_per_session'
+
   const id = route.query.id
   if (id) {
-    const { data } = await supabase.from('activities').select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session').eq('id', id).single()
-    if (data) activityData.value = data
+    const { data } = await supabase.from('activities').select(AC_FIELDS).eq('id', id).single()
+    if (data) {
+      activityData.value = data
+      acEnabled.value = data.ac_enabled ?? false
+      acFeePerSession.value = data.ac_fee_per_session ?? 0
+    }
   } else {
     const { data } = await supabase
       .from('activities')
-      .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+      .select(AC_FIELDS)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    if (data) activityData.value = data
+    if (data) {
+      activityData.value = data
+      acEnabled.value = data.ac_enabled ?? false
+      acFeePerSession.value = data.ac_fee_per_session ?? 0
+    }
   }
 
   await fetchRegistrations()
@@ -188,6 +202,17 @@ async function confirmRemove() {
     // 靜默失敗，名單資料不變
   }
 }
+async function updateAcEnabled(enabled) {
+  acEnabled.value = enabled
+  const activityId = route.query.id || activityData.value?.id
+  if (!activityId) return
+  try {
+    await supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
+  } catch {
+    // 靜默失敗，欄位可能尚未建立
+  }
+}
+
 const SEGMENT_TABS = ['全部', '臨打', '季打']
 const GENDER_OPTIONS = [
   { value: '', label: '性別', disabled: true },
@@ -456,6 +481,9 @@ function handleEscape() {
       :fee-aria-label="summaryFeeLabel"
       vacancy-label="臨打缺"
       :vacancy-value="vacancyCount"
+      :is-admin="isAdmin"
+      :ac-enabled="acEnabled"
+      @update:ac-enabled="updateAcEnabled"
     />
 
     <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="memberList" :bottom-spacing="memberList.length === 0 ? 0 : 100" :is-admin="isAdmin" @change="setSegmentTab" @remove="handleRemoveRequest" />
