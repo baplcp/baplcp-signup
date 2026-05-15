@@ -536,6 +536,20 @@ const heroCtaText = computed(() => {
   return hasSubmittedSignup.value ? '管理報名' : '我要報名'
 })
 const isSignupChanged = computed(() => {
+  if (isSeasonLeaveMode.value) {
+    const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
+    const selfChanged = (signupState.self === 0) !== isOnLeave
+    const prevGuest = myRegistration.value?.guest_count ?? 0
+    const prevGuests = myRegistration.value?.guests ?? []
+    if (selfChanged || signupState.guest !== prevGuest) return true
+    for (let i = 0; i < signupState.guest; i++) {
+      const cur = signupState.guests[i] || { name: '', gender: '' }
+      const prev = prevGuests[i] || { name: '', gender: '' }
+      if ((cur.name || '') !== (prev.name || '') || (cur.gender || '') !== (prev.gender || '')) return true
+    }
+    return false
+  }
+
   const prevSelf = myRegistration.value?.self_count ?? 0
   const prevGuest = myRegistration.value?.guest_count ?? 0
   const prevGuests = myRegistration.value?.guests ?? []
@@ -573,11 +587,12 @@ function setSignupOpen(isOpen, options = {}) {
   if (isOpen) {
     showGuestValidation.value = false
     if (isSeasonLeaveMode.value) {
-      // 臨打頁面的季打成員：預填請假狀態
+      // 臨打頁面的季打成員：預填請假狀態，同時載入已有的群外資料
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       signupState.self = isOnLeave ? 0 : 1
-      signupState.guest = 0
-      signupState.guests = []
+      signupState.guest = myRegistration.value?.guest_count || 0
+      signupState.guests = (myRegistration.value?.guests || []).map(g => ({ name: g.name || '', gender: g.gender || '', added_at: g.added_at || null }))
+      while (signupState.guests.length < signupState.guest) signupState.guests.push({ name: '', gender: '', added_at: new Date().toISOString() })
     } else if (myRegistration.value) {
       // 預填現有報名資料
       signupState.self = myRegistration.value.self_count || 0
@@ -680,32 +695,79 @@ async function _doSubmitSignup() {
     return
   }
 
-  // 季打請假模式（臨打頁面的季打成員）
+  // 季打請假模式（臨打頁面的季打成員）：同時處理請假狀態與群外臨打報名
   if (isSeasonLeaveMode.value) {
     const seasonReg = mySeasonRegistration.value
     const isCurrentlyOnLeave = (seasonReg?.leave_dates || []).includes(resolvedDate.value)
     const newSelf = signupState.self
 
-    if ((newSelf === 0) === isCurrentlyOnLeave) {
-      setSignupOpen(false, { restoreFocus: false })
+    const missingGender = signupState.guests.slice(0, signupState.guest).some(g => !g.gender)
+    if (missingGender) {
+      showGuestValidation.value = true
+      setSuccessDialogOpen(true, {
+        title: '請選擇性別',
+        copy: '每位群外朋友都需要選擇性別，請補齊後再送出。',
+        buttonText: '回去填寫',
+      })
       return
     }
 
     try {
-      let newLeaveDates
-      if (newSelf === 0) {
-        newLeaveDates = [...(seasonReg.leave_dates || []), resolvedDate.value]
-      } else {
-        newLeaveDates = (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
+      const leaveStatusChanged = (newSelf === 0) !== isCurrentlyOnLeave
+
+      // 更新請假狀態
+      if (leaveStatusChanged) {
+        const newLeaveDates = newSelf === 0
+          ? [...(seasonReg.leave_dates || []), resolvedDate.value]
+          : (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
+        await supabase.from('registrations').update({ leave_dates: newLeaveDates }).eq('id', seasonReg.id)
       }
-      await supabase.from('registrations').update({ leave_dates: newLeaveDates }).eq('id', seasonReg.id)
+
+      // 處理群外臨打報名
+      const guestTotal = signupState.guest
+      const prevGuestTotal = myRegistration.value?.guest_count ?? 0
+      const prevGuests = myRegistration.value?.guests ?? []
+      const submitTime = new Date().toISOString()
+
+      if (guestTotal > 0) {
+        const guestsWithTime = signupState.guests.slice(0, guestTotal).map((g, i) => ({
+          ...g,
+          added_at: i < prevGuests.length ? (prevGuests[i].added_at || submitTime) : submitTime,
+        }))
+        const payload = {
+          activity_id: activityData.value?.id,
+          activity_date: resolvedDate.value,
+          user_id: liffStore.userId,
+          display_name: liffStore.displayName,
+          picture_url: liffStore.pictureUrl || null,
+          self_count: 0,
+          self_added_at: null,
+          guest_count: guestTotal,
+          guests: guestsWithTime,
+          status: 'active',
+        }
+        if (myRegistration.value) {
+          await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
+        } else {
+          await supabase.from('registrations').insert(payload)
+        }
+      } else if (myRegistration.value && prevGuestTotal > 0) {
+        // 群外全部清空，取消那筆臨打報名
+        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', myRegistration.value.id)
+      }
+
       await fetchRegistrations()
       setSignupOpen(false, { restoreFocus: false })
-      setSuccessDialogOpen(true, {
-        title: newSelf === 0 ? '已請假' : '已取消請假',
-        copy: newSelf === 0 ? '已為此場次請假，名額將釋出給臨打。' : '已取消請假，你將重新加入此場次名單。',
-        buttonText: '確認',
-      })
+
+      let title, copy
+      if (leaveStatusChanged && guestTotal === 0) {
+        title = newSelf === 0 ? '已請假' : '已取消請假'
+        copy = newSelf === 0 ? '已為此場次請假，名額將釋出給臨打。' : '已取消請假，你將重新加入此場次名單。'
+      } else {
+        title = '已更新'
+        copy = '出席狀態與群外報名已更新。'
+      }
+      setSuccessDialogOpen(true, { title, copy, buttonText: '確認' })
     } catch {
       setSuccessDialogOpen(true, { title: '操作失敗', copy: '請稍後再試。', buttonText: '確認' })
     }
@@ -1041,7 +1103,7 @@ function handleEscape() {
                 </div>
               </div>
             </div>
-            <div v-if="!isSeasonLeaveMode" class="signup-field-card is-stack">
+            <div class="signup-field-card is-stack">
               <div class="signup-field-row">
                 <div class="signup-field-label">群外</div>
                 <div class="signup-stepper">
