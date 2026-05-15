@@ -1398,7 +1398,7 @@ function handleEscape() {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  margin: 20px 0;
 }
 
 .cancelled-divider::before,

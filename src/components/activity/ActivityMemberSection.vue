@@ -238,7 +238,7 @@ function handleRemove(member, index) {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 24px 0 8px;
+  margin: 20px 0;
 }
 
 .waitlist-divider::before,
