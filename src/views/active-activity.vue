@@ -261,20 +261,32 @@ const myFullyPaid = computed(() => {
 })
 
 async function togglePayment(member, field) {
-  const reg = registrations.value.find(r => r.id === member._regId)
-  if (!reg) return
+  const regIdx = registrations.value.findIndex(r => r.id === member._regId)
+  if (regIdx === -1) return
+  const reg = registrations.value[regIdx]
+
+  // 樂觀更新：立即反映 UI，不等 DB
+  let updatedReg
+  if (member._memberType === 'self') {
+    updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
+  } else {
+    const newGuests = (reg.guests || []).map((g, i) =>
+      i === member._guestIndex ? { ...g, [field]: !(g[field] ?? false) } : g
+    )
+    updatedReg = { ...reg, guests: newGuests }
+  }
+  registrations.value = registrations.value.map((r, i) => i === regIdx ? updatedReg : r)
+
+  // 背景寫入 DB，完成後再同步一次確保一致
   try {
     if (member._memberType === 'self') {
-      await supabase.from('registrations').update({ [field]: !(reg[field] ?? false) }).eq('id', reg.id)
-    } else if (member._memberType === 'guest') {
-      const newGuests = (reg.guests || []).map((g, i) =>
-        i === member._guestIndex ? { ...g, [field]: !(g[field] ?? false) } : g
-      )
-      await supabase.from('registrations').update({ guests: newGuests }).eq('id', reg.id)
+      await supabase.from('registrations').update({ [field]: updatedReg[field] }).eq('id', reg.id)
+    } else {
+      await supabase.from('registrations').update({ guests: updatedReg.guests }).eq('id', reg.id)
     }
     await fetchRegistrations()
   } catch {
-    // 靜默失敗，欄位可能尚未建立
+    await fetchRegistrations()
   }
 }
 

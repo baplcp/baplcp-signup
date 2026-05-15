@@ -293,7 +293,8 @@ function handleRemove(member, index) {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0;
+  padding: 5px 8px;
+  margin: 0 -8px;
   background: none;
   border: none;
   cursor: pointer;
