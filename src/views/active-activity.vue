@@ -137,15 +137,12 @@ onMounted(async () => {
   isLoading.value = false
   _nowTickInterval = setInterval(() => { nowTick.value = new Date() }, 1000)
 
-  const realtimeActivityId = route.query.id || activityData.value?.id
-  if (realtimeActivityId) {
-    _realtimeChannel = supabase
-      .channel(`registrations-${realtimeActivityId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${realtimeActivityId}` }, () => {
-        fetchRegistrations()
-      })
-      .subscribe()
-  }
+  _realtimeChannel = supabase
+    .channel('registrations-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+      fetchRegistrations()
+    })
+    .subscribe()
 })
 
 // 每秒更新的現在時間，用於倒數計時
@@ -227,12 +224,19 @@ const memberList = computed(() => {
 
 const cancelledMemberList = computed(() => {
   const members = []
+  // 整筆 cancelled 的紀錄
   cancelledRegistrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null })
     }
     ;(reg.guests || []).forEach(guest => {
       members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0) })
+    })
+  })
+  // active 紀錄裡被個別移除的成員（存在 cancelled_guests 欄位）
+  registrations.value.forEach(reg => {
+    ;(reg.cancelled_guests || []).forEach(g => {
+      members.push({ name: g.name || g.display_name || '群外', badge: g.badge || (g.name || '群').charAt(0), image: g.image || null })
     })
   })
   return members
@@ -301,15 +305,21 @@ async function confirmRemove() {
       if ((reg.guest_count || 0) === 0) {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
       } else {
-        await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
+        // 整筆改為已取消，讓本人出現在取消區；guests 保留但另建一筆或保留原資料
+        const cancelledGuests = (reg.cancelled_guests || [])
+        cancelledGuests.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, _isSelf: true })
+        await supabase.from('registrations').update({ self_count: 0, self_added_at: null, cancelled_guests: cancelledGuests }).eq('id', reg.id)
       }
     } else if (member._memberType === 'guest') {
+      const removedGuest = (reg.guests || [])[member._guestIndex]
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
       } else {
-        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
+        const cancelledGuests = (reg.cancelled_guests || [])
+        if (removedGuest) cancelledGuests.push({ name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0) })
+        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount, cancelled_guests: cancelledGuests }).eq('id', reg.id)
       }
     }
     await fetchRegistrations()
@@ -679,7 +689,7 @@ function handleEscape() {
 
     <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
       <div class="cancelled-divider">
-        <span class="cancelled-divider-label">已取消報名</span>
+        <span class="cancelled-divider-label">已取消或請假</span>
       </div>
       <div class="cancelled-list">
         <div v-for="(member, index) in cancelledMemberList" :key="`cancelled-${member.name}-${index}`" class="cancelled-row">

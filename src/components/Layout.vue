@@ -198,6 +198,7 @@ watch(
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   overflow-anchor: none;
+  overscroll-behavior-y: none;
 }
 
 .layout::-webkit-scrollbar {
