@@ -1165,7 +1165,7 @@ function handleEscape() {
                 </div>
               </div>
               <div class="guest-fields" aria-live="polite">
-                <p v-if="signupState.guest > 2" class="guest-over-limit-notice">每人限帶 2 位優先報名，超過 2 位將依序遞補</p>
+                <p v-if="!isAdmin && signupState.guest > 2" class="guest-over-limit-notice">每人限帶 2 位優先報名，超過 2 位將依序遞補</p>
                 <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
                   <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
                   <select v-model="guest.gender" class="guest-select" :class="{ 'is-error': showGuestValidation && !guest.gender }" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
