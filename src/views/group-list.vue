@@ -34,13 +34,21 @@ function formatDateRow(dateStr, startTime, endTime) {
   return `${formatDateLabel(dateStr)}｜${formatTimeRange(startTime, endTime)}`
 }
 
-const today = new Date().toISOString().split('T')[0]
+const now = new Date()
+
+// 球局結束後一小時才視為已結束
+function isDateExpired(dateStr, endTime) {
+  const [hours, minutes] = (endTime || '00:00').split(':').map(Number)
+  const end = new Date(dateStr + 'T00:00:00')
+  end.setHours(hours + 1, minutes, 0, 0)
+  return now > end
+}
 
 const latestInfo = computed(() => {
   const futureDates = []
   for (const act of activities.value) {
     const sorted = (act.dates || []).slice().sort()
-    const nearestDate = sorted.find(d => d >= today)
+    const nearestDate = sorted.find(d => !isDateExpired(d, act.end_time))
     if (nearestDate) futureDates.push({ act, date: nearestDate })
   }
   if (futureDates.length === 0) return null
@@ -69,7 +77,7 @@ const upcomingActivities = computed(() => {
   for (const act of activities.value) {
     const sorted = (act.dates || []).slice().sort()
     for (const dateStr of sorted) {
-      if (dateStr >= today && !(act.id === latestAct.id && dateStr === latestDate)) {
+      if (!isDateExpired(dateStr, act.end_time) && !(act.id === latestAct.id && dateStr === latestDate)) {
         rows.push({ act, dateStr })
       }
     }
@@ -89,7 +97,7 @@ const endedActivities = computed(() => {
   for (const act of activities.value) {
     const sorted = (act.dates || []).slice().sort()
     for (const dateStr of sorted) {
-      if (dateStr < today) rows.push({ act, dateStr })
+      if (isDateExpired(dateStr, act.end_time)) rows.push({ act, dateStr })
     }
   }
   rows.sort((a, b) => b.dateStr.localeCompare(a.dateStr))
@@ -113,11 +121,10 @@ onMounted(async () => {
   isLoading.value = false
 
   // 查最新球局的報名人數，計算臨打缺幾
-  const todayStr = new Date().toISOString().split('T')[0]
   const futureDates = []
   for (const act of (data || [])) {
     const sorted = (act.dates || []).slice().sort()
-    const nearestDate = sorted.find(d => d >= todayStr)
+    const nearestDate = sorted.find(d => !isDateExpired(d, act.end_time))
     if (nearestDate) futureDates.push({ act, date: nearestDate })
   }
   if (futureDates.length > 0) {

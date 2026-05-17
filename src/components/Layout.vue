@@ -539,7 +539,6 @@ watch(
   width: 32px;
   height: 32px;
   object-fit: contain;
-  filter: drop-shadow(3.2px 3.2px 12px rgba(87, 104, 255, 0.55));
 }
 
 .drawer-icon.is-warm {
@@ -547,7 +546,6 @@ watch(
 }
 
 .drawer-icon.is-warm img {
-  filter: drop-shadow(3.8px 3.8px 14px rgba(148, 77, 27, 0.45));
 }
 
 .drawer-icon.is-muted {
