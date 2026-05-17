@@ -1,35 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
-import { supabase } from '~/utils/supabase'
-
-const activities = ref([])
-
-const heroCta = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  const futureDates = []
-  for (const act of activities.value) {
-    const sorted = (act.dates || []).slice().sort()
-    const nearestDate = sorted.find(d => d >= today)
-    if (nearestDate) futureDates.push({ act, date: nearestDate })
-  }
-  if (futureDates.length === 0) return '/active-activity'
-  futureDates.sort((a, b) => a.date.localeCompare(b.date))
-  const { act, date } = futureDates[0]
-  return `/active-activity?id=${act.id}&date=${date}&type=latest`
-})
-
-onMounted(async () => {
-  const { data } = await supabase
-    .from('activities')
-    .select('id, dates')
-    .order('created_at', { ascending: false })
-  if (data) activities.value = data
-})
 
 const faqs = [
   {
@@ -104,7 +78,7 @@ const utilityItems = [
 
 <template>
   <div class="index-page">
-    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="heroCta" />
+    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" cta-to="/group-list" />
 
     <section class="content">
       <div class="top-cards">

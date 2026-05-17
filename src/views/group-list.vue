@@ -36,9 +36,13 @@ function formatDateRow(dateStr, startTime, endTime) {
 
 const now = new Date()
 
-// 球局結束後一小時才視為已結束
+// 球局結束後一小時才視為已結束；若無 end_time 則以日期當天結束為準
 function isDateExpired(dateStr, endTime) {
-  const [hours, minutes] = (endTime || '00:00').split(':').map(Number)
+  if (!endTime) {
+    const todayStr = now.toISOString().split('T')[0]
+    return dateStr < todayStr
+  }
+  const [hours, minutes] = endTime.split(':').map(Number)
   const end = new Date(dateStr + 'T00:00:00')
   end.setHours(hours + 1, minutes, 0, 0)
   return now > end

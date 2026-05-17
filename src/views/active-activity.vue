@@ -1050,7 +1050,7 @@ function handleEscape() {
       @view-dates="showAllDatesDialog = true"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (cancelledMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (cancelledMemberList.length > 0 || leaveMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
     <div v-if="isLoading && filteredMemberList.length === 0" class="member-skeleton" aria-hidden="true">
       <div v-for="i in 7" :key="i" class="member-skeleton-row">
         <div class="skel skel-rank"></div>
