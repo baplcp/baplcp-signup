@@ -313,6 +313,8 @@ const memberList = computed(() => {
     })
   }
 
+  const overflowGuests = []
+
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
@@ -320,11 +322,18 @@ const memberList = computed(() => {
     }
     ;(reg.guests || []).forEach((guest, gIdx) => {
       const ts = guest.added_at || reg.created_at
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx, paidCourt: guest.paid_court ?? false, paidAc: guest.paid_ac ?? false })
+      const entry = { name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx, paidCourt: guest.paid_court ?? false, paidAc: guest.paid_ac ?? false }
+      if (gIdx >= 2) {
+        overflowGuests.push(entry)
+      } else {
+        members.push(entry)
+      }
     })
   })
   members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-  return members.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
+  overflowGuests.sort((a, b) => new Date(a._ts) - new Date(b._ts))
+  const all = [...members, ...overflowGuests]
+  return all.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
 })
 
 const cancelledMemberList = computed(() => {
@@ -1156,6 +1165,7 @@ function handleEscape() {
                 </div>
               </div>
               <div class="guest-fields" aria-live="polite">
+                <p v-if="signupState.guest > 2" class="guest-over-limit-notice">每人限帶 2 位優先報名，超過 2 位將依序遞補</p>
                 <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
                   <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
                   <select v-model="guest.gender" class="guest-select" :class="{ 'is-error': showGuestValidation && !guest.gender }" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
@@ -1540,6 +1550,17 @@ function handleEscape() {
 
 .guest-fields:empty {
   display: none;
+}
+
+.guest-over-limit-notice {
+  margin: 0;
+  padding: 8px 10px;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ad6800;
+  line-height: 1.5;
 }
 
 .guest-row {
