@@ -58,6 +58,7 @@ const acFeePerSession = ref(0)
 // 季打報名
 const seasonRegistrations = ref([])
 const mySeasonRegistration = ref(null)
+const myCancelledSeasonRegistration = ref(null)
 const showAllDatesDialog = ref(false)
 
 const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
@@ -105,6 +106,7 @@ async function fetchRegistrations() {
       myRegistration.value = active.find(r => r.user_id === liffStore.userId) || null
       seasonRegistrations.value = active
       mySeasonRegistration.value = myRegistration.value
+      myCancelledSeasonRegistration.value = cancelled.find(r => r.user_id === liffStore.userId) || null
 
       const userIds = [...new Set(active.map(r => r.user_id))]
       if (userIds.length) {
@@ -936,6 +938,9 @@ async function directSeasonRegister() {
     }
     if (myRegistration.value) {
       await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
+    } else if (myCancelledSeasonRegistration.value) {
+      // 重新加回已取消的季打報名
+      await supabase.from('registrations').update(payload).eq('id', myCancelledSeasonRegistration.value.id)
     } else {
       await supabase.from('registrations').insert(payload)
     }
@@ -1047,7 +1052,7 @@ function handleEscape() {
 
     <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
       <div class="cancelled-divider">
-        <span class="cancelled-divider-label">已取消或請假</span>
+        <span class="cancelled-divider-label">{{ activityType === 'season' ? '已取消季打' : '已取消或請假' }}</span>
       </div>
       <div class="cancelled-list">
         <div v-for="(member, index) in cancelledMemberList" :key="`cancelled-${member.name}-${index}`" class="cancelled-row">
