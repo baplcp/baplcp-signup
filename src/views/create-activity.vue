@@ -245,7 +245,16 @@ const isEditMode = computed(() => !!editId.value)
 const isPopulatingForm = ref(false)
 
 function goToCreatedActivityList() {
-  router.push('/group-list')
+  const inAppFrom = window.history.state?.__inAppFrom
+  const inAppFallbackFrom = window.history.state?.__inAppFallbackFrom
+  router.replace({
+    path: '/group-list',
+    state: {
+      __inAppFrom: typeof inAppFrom === 'string' && inAppFrom.startsWith('/') ? inAppFrom : '/',
+      __inAppFallbackFrom: typeof inAppFallbackFrom === 'string' && inAppFallbackFrom.startsWith('/') ? inAppFallbackFrom : '/',
+      __skipInAppFromUpdate: true,
+    },
+  })
 }
 
 function openCreateDialog(options = {}) {
