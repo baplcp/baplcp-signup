@@ -83,7 +83,7 @@ function toggleFaq(index) {
   max-height: 0;
   overflow: hidden;
   padding: 0 12px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--muted);
   opacity: 0;
