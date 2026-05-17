@@ -346,6 +346,19 @@ const cancelledMemberList = computed(() => {
   return members
 })
 
+const leaveMemberList = computed(() => {
+  if (activityType.value === 'season') return []
+  const date = resolvedDate.value
+  if (!date) return []
+  return seasonRegistrations.value
+    .filter(reg => (reg.leave_dates || []).includes(date))
+    .map(reg => ({
+      name: reg.display_name,
+      badge: reg.display_name.charAt(0),
+      image: reg.picture_url || null,
+    }))
+})
+
 const myFullyPaid = computed(() => {
   if (!hasSubmittedSignup.value) return false
   const reg = myRegistration.value
@@ -1050,9 +1063,9 @@ function handleEscape() {
     </div>
     <p v-else-if="!isLoading && filteredMemberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
-    <div v-if="cancelledMemberList.length > 0" class="cancelled-section">
+    <div v-if="cancelledMemberList.length > 0 && (activityType === 'season' || activeSegment === '臨打')" class="cancelled-section">
       <div class="cancelled-divider">
-        <span class="cancelled-divider-label">{{ activityType === 'season' ? '已取消季打' : '已取消或請假' }}</span>
+        <span class="cancelled-divider-label">{{ activityType === 'season' ? '已取消季打' : '已取消報名' }}</span>
       </div>
       <div class="cancelled-list">
         <div v-for="(member, index) in cancelledMemberList" :key="`cancelled-${member.name}-${index}`" class="cancelled-row">
@@ -1065,6 +1078,23 @@ function handleEscape() {
             <span v-if="member.time || member.addedBy" class="cancelled-meta">
               {{ member.time }}<template v-if="member.time && member.addedBy"> · </template>{{ member.addedBy }}
             </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="leaveMemberList.length > 0 && activeSegment === '季打'" class="cancelled-section">
+      <div class="cancelled-divider">
+        <span class="cancelled-divider-label">已請假</span>
+      </div>
+      <div class="cancelled-list">
+        <div v-for="(member, index) in leaveMemberList" :key="`leave-${member.name}-${index}`" class="cancelled-row">
+          <div class="cancelled-avatar">
+            <img v-if="member.image" :src="member.image" alt="" />
+            <template v-else>{{ member.badge }}</template>
+          </div>
+          <div class="cancelled-info">
+            <span class="cancelled-name">{{ member.name }}</span>
           </div>
         </div>
       </div>
