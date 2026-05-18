@@ -52,6 +52,9 @@ const form = reactive({
   deadlineType: 'unlimited',
   pickupCloseDate: '前 1 天',
   pickupCloseTime: '20:00',
+  reminderEnabled: 'disabled',
+  reminderDaysBefore: '前 3 天',
+  reminderTime: '09:00',
 })
 
 const submitButton = ref(null)
@@ -181,6 +184,9 @@ onMounted(async () => {
       form.deadlineType = data.pickup_deadline_type || 'unlimited'
       form.pickupCloseDate = data.pickup_close_days_before ? `前 ${data.pickup_close_days_before} 天` : '前 1 天'
       form.pickupCloseTime = data.pickup_close_time || ''
+      form.reminderEnabled = data.reminder_enabled ? 'enabled' : 'disabled'
+      form.reminderDaysBefore = data.reminder_days_before ? `前 ${data.reminder_days_before} 天` : '前 3 天'
+      form.reminderTime = data.reminder_time ? data.reminder_time.slice(0, 5) : '09:00'
 
       const firstDate = selectedDates.value[0]
       if (firstDate) {
@@ -386,6 +392,11 @@ function openPickupCloseTimePicker() {
   openTimePicker('pickupCloseTime')
 }
 
+function openReminderTimePicker() {
+  setChoice('reminderEnabled', 'enabled')
+  openTimePicker('reminderTime')
+}
+
 function closeTimePicker() {
   timePicker.isOpen = false
   timePicker.activeField = ''
@@ -482,6 +493,10 @@ function validate() {
     checks.push({ field: 'pickupCloseDate', ok: form.pickupCloseDate !== '' }, { field: 'pickupCloseTime', ok: form.pickupCloseTime !== '' })
   }
 
+  if (form.reminderEnabled === 'enabled') {
+    checks.push({ field: 'reminderDaysBefore', ok: form.reminderDaysBefore !== '' }, { field: 'reminderTime', ok: form.reminderTime !== '' })
+  }
+
   errorFields.value = new Set(checks.filter(({ ok }) => !ok).map(({ field }) => field))
 
   if (errorFields.value.size > 0) {
@@ -524,6 +539,9 @@ function buildActivityPayload() {
     pickup_deadline_type: form.deadlineType || 'unlimited',
     pickup_close_days_before: parseDaysBefore(form.pickupCloseDate),
     pickup_close_time: form.pickupCloseTime || null,
+    reminder_enabled: form.reminderEnabled === 'enabled',
+    reminder_days_before: form.reminderEnabled === 'enabled' ? parseDaysBefore(form.reminderDaysBefore) : null,
+    reminder_time: form.reminderEnabled === 'enabled' ? form.reminderTime : null,
   }
 }
 
@@ -886,6 +904,51 @@ async function handleSubmitActivity() {
                 </CreateActivityChoiceCard>
               </div>
               <input v-model="form.deadlineType" name="deadlineType" type="hidden" />
+            </div>
+
+            <div class="field">
+              <p class="field-label">活動前提醒</p>
+              <div class="choice-stack">
+                <CreateActivityChoiceCard
+                  :active="isChoiceActive('reminderEnabled', 'disabled')"
+                  :condensed="form.reminderEnabled === 'disabled'"
+                  title="不提醒"
+                  copy="活動前不發送報名成功提醒"
+                  @select="setChoice('reminderEnabled', 'disabled')"
+                />
+                <CreateActivityChoiceCard
+                  :active="isChoiceActive('reminderEnabled', 'enabled')"
+                  :condensed="false"
+                  title="發送提醒"
+                  @select="setChoice('reminderEnabled', 'enabled')"
+                >
+                  <span class="choice-rule">
+                    <span>每次活動</span>
+                    <span class="select-wrap" @click.stop="setChoice('reminderEnabled', 'enabled')">
+                      <select
+                        v-model="form.reminderDaysBefore"
+                        name="reminderDaysBefore"
+                        :class="{ 'is-placeholder': form.reminderDaysBefore === '', 'is-error': isError('reminderDaysBefore') }"
+                        @change="clearError('reminderDaysBefore')"
+                      >
+                        <option value="">幾天前</option>
+                        <option v-for="option in dayBeforeOptions" :key="`reminder-date-${option}`" :value="option">{{ option }}</option>
+                      </select>
+                    </span>
+                    <span>的</span>
+                    <CreateActivityTimeSelect
+                      v-model="form.reminderTime"
+                      name="reminderTime"
+                      placeholder="幾點"
+                      :options="timeOptions"
+                      :has-error="isError('reminderTime')"
+                      @open="openReminderTimePicker"
+                      @clear-error="clearError('reminderTime')"
+                    />
+                    <span>發送</span>
+                  </span>
+                </CreateActivityChoiceCard>
+              </div>
             </div>
           </section>
         </form>
