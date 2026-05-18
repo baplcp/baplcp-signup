@@ -32,6 +32,7 @@ const api = {
 const form = reactive({
   gameType: 'season',
   activityTitle: '',
+  pickupLabel: '',
   location: '',
   activityStartTime: '',
   activityEndTime: '',
@@ -112,6 +113,17 @@ const currentCalendarSelectedValues = computed(() => {
 })
 
 watch(
+  () => form.activityStartTime,
+  startTime => {
+    if (isPopulatingForm.value || !startTime || form.activityEndTime) return
+    const [h, m] = startTime.split(':').map(Number)
+    const endH = (h + 3) % 24
+    form.activityEndTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    clearError('activityEndTime')
+  }
+)
+
+watch(
   selectedDates,
   dates => {
     if (isPopulatingForm.value) return
@@ -163,6 +175,7 @@ onMounted(async () => {
       form.seasonDeadlineType = data.season_deadline_type || 'unlimited'
       form.seasonCloseDate = data.season_close_date || ''
       form.seasonCloseTime = data.season_close_time || ''
+      form.pickupLabel = data.pickup_label || ''
       form.pickupOpenDate = data.pickup_open_days_before ? `前 ${data.pickup_open_days_before} 天` : '前 7 天'
       form.pickupOpenTime = data.pickup_open_time || '20:00'
       form.deadlineType = data.pickup_deadline_type || 'unlimited'
@@ -505,6 +518,7 @@ function buildActivityPayload() {
     season_deadline_type: form.seasonDeadlineType || 'unlimited',
     season_close_date: form.seasonCloseDate || null,
     season_close_time: form.seasonCloseTime || null,
+    pickup_label: form.pickupLabel.trim() || null,
     pickup_open_days_before: parseDaysBefore(form.pickupOpenDate),
     pickup_open_time: form.pickupOpenTime || null,
     pickup_deadline_type: form.deadlineType || 'unlimited',
@@ -795,6 +809,12 @@ async function handleSubmitActivity() {
 
           <section class="section" aria-labelledby="pickup-title">
             <h2 id="pickup-title" class="section-title">臨打報名</h2>
+
+            <label class="field">
+              <span class="field-label">通知標題</span>
+              <input v-model="form.pickupLabel" name="pickupLabel" type="text" autocomplete="off" placeholder="例：週日臨打報名" />
+            </label>
+
             <div class="field">
               <p class="field-label">開放時間</p>
               <div class="time-row is-rule">

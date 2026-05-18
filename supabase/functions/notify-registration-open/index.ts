@@ -59,7 +59,7 @@ serve(async (_req) => {
     const { data: activities, error } = await supabase
       .from('activities')
       .select(
-        'id, title, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time'
+        'id, title, pickup_label, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time'
       )
 
     if (error) throw error
@@ -67,6 +67,7 @@ serve(async (_req) => {
     type Notification = {
       id: number
       title: string
+      pickupLabel: string | null
       location: string
       startTime: string
       activityDate: string
@@ -89,6 +90,7 @@ serve(async (_req) => {
           notifications.push({
             id: activity.id,
             title: activity.title,
+            pickupLabel: activity.pickup_label ?? null,
             location: activity.location ?? '',
             startTime: activity.start_time ?? '',
             activityDate: dates[0] ?? '',
@@ -105,6 +107,7 @@ serve(async (_req) => {
             notifications.push({
               id: activity.id,
               title: activity.title,
+              pickupLabel: activity.pickup_label ?? null,
               location: activity.location ?? '',
               startTime: activity.start_time ?? '',
               activityDate: dateStr,
@@ -119,9 +122,10 @@ serve(async (_req) => {
       const liffState = encodeURIComponent(`#/active-activity?id=${n.id}&date=${n.activityDate}&type=${n.type}`)
       const registrationUrl = `https://liff.line.me/${LIFF_ID}?liff.state=${liffState}`
       const typeLabel = n.type === 'season' ? '季打' : '臨打'
+      const notifyTitle = n.type === 'pickup' && n.pickupLabel ? n.pickupLabel : n.title
       const text =
         `🏐 ${typeLabel}報名即將開始！（5 分鐘後）\n\n` +
-        `【${n.title}】\n` +
+        `【${notifyTitle}】\n` +
         `📅 ${n.activityDate} ${n.startTime}\n` +
         `📍 ${n.location}\n\n` +
         `👉 立即報名：\n${registrationUrl}`
