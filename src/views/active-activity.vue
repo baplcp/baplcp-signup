@@ -184,16 +184,6 @@ onMounted(async () => {
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
 
-  // 未登入則立即導向登入，不等待按下報名按鈕
-  if (!liffStore.userId) {
-    if (liffStore.isExternalBrowser) {
-      startLineOAuth()
-    } else {
-      liffStore.login()
-    }
-    return
-  }
-
   const { data } = await activityFetchPromise
   if (data) {
     activityData.value = data
