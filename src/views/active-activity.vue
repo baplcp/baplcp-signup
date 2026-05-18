@@ -388,6 +388,22 @@ const myFullyPaid = computed(() => {
 })
 
 async function togglePayment(member, field) {
+  // 臨打頁面的季打成員：regId 存在 seasonRegistrations，需分開處理
+  if (member._memberType === 'season_self') {
+    const regIdx = seasonRegistrations.value.findIndex(r => r.id === member._regId)
+    if (regIdx === -1) return
+    const reg = seasonRegistrations.value[regIdx]
+    const updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
+    seasonRegistrations.value = seasonRegistrations.value.map((r, i) => i === regIdx ? updatedReg : r)
+    try {
+      await supabase.from('registrations').update({ [field]: updatedReg[field] }).eq('id', reg.id)
+      await fetchRegistrations()
+    } catch {
+      await fetchRegistrations()
+    }
+    return
+  }
+
   const regIdx = registrations.value.findIndex(r => r.id === member._regId)
   if (regIdx === -1) return
   const reg = registrations.value[regIdx]
