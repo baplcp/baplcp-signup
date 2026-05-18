@@ -1,9 +1,27 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
+import { supabase } from '~/utils/supabase'
+
+const seasonEnabled = ref(false)
+const latestSeasonActivityId = ref(null)
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, season_enabled')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  if (data) {
+    seasonEnabled.value = data.season_enabled ?? false
+    latestSeasonActivityId.value = data.id
+  }
+})
 
 const faqs = [
   {
@@ -47,7 +65,13 @@ const infoCards = [
   },
 ]
 
-const utilityItems = [
+const seasonSignupTo = computed(() =>
+  seasonEnabled.value && latestSeasonActivityId.value
+    ? `/active-activity?type=season&id=${latestSeasonActivityId.value}`
+    : '/'
+)
+
+const utilityItems = computed(() => [
   {
     label: '贊助胖貓貓',
     imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
@@ -56,15 +80,15 @@ const utilityItems = [
     warm: true,
   },
   {
+    label: '季打報名',
+    imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
+    to: seasonSignupTo.value,
+    pending: !seasonEnabled.value,
+  },
+  {
     label: '臨打名單',
     imageSrc: import.meta.env.BASE_URL + '/images/Registration list.png',
     to: '/group-list',
-    pending: true,
-  },
-  {
-    label: '球隊公約',
-    imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
-    href: '#',
     pending: true,
   },
   {
@@ -73,7 +97,7 @@ const utilityItems = [
     href: '#',
     pending: true,
   },
-]
+])
 </script>
 
 <template>
