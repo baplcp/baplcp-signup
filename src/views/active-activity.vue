@@ -159,6 +159,17 @@ async function fetchRegistrations() {
     .order('created_at', { ascending: true })
   seasonRegistrations.value = seasonData || []
   mySeasonRegistration.value = seasonData?.find(r => r.user_id === liffStore.userId) || null
+
+  // 補查季打成員的性別（尚未在 memberGenders 中的）
+  const seasonUserIds = [...new Set((seasonData || []).map(r => r.user_id))].filter(id => !(id in memberGenders.value))
+  if (seasonUserIds.length) {
+    const { data: seasonMemberData } = await supabase.from('members').select('user_id, gender').in('user_id', seasonUserIds)
+    if (seasonMemberData) {
+      const updated = { ...memberGenders.value }
+      seasonMemberData.forEach(m => { updated[m.user_id] = m.gender || null })
+      memberGenders.value = updated
+    }
+  }
 }
 
 onMounted(async () => {
