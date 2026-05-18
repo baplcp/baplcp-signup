@@ -9,17 +9,37 @@ import { supabase } from '~/utils/supabase'
 
 const seasonEnabled = ref(false)
 const latestSeasonActivityId = ref(null)
+const latestActivityTo = ref('/group-list')
+
+const now = new Date()
+
+function isDateExpired(dateStr, endTime) {
+  if (!endTime) {
+    const todayStr = now.toISOString().split('T')[0]
+    return dateStr < todayStr
+  }
+  const [hours, minutes] = endTime.split(':').map(Number)
+  const end = new Date(dateStr + 'T00:00:00')
+  end.setHours(hours + 1, minutes, 0, 0)
+  return now > end
+}
 
 onMounted(async () => {
   const { data } = await supabase
     .from('activities')
-    .select('id, season_enabled')
+    .select('id, season_enabled, dates, end_time')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
   if (data) {
     seasonEnabled.value = data.season_enabled ?? false
     latestSeasonActivityId.value = data.id
+
+    const sorted = (data.dates || []).slice().sort()
+    const nearestDate = sorted.find(d => !isDateExpired(d, data.end_time))
+    if (nearestDate) {
+      latestActivityTo.value = `/active-activity?id=${data.id}&date=${nearestDate}&type=latest`
+    }
   }
 })
 
@@ -102,7 +122,7 @@ const utilityItems = computed(() => [
 
 <template>
   <div class="index-page">
-    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" cta-to="/group-list" />
+    <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="latestActivityTo" />
 
     <section class="content">
       <div class="top-cards">
