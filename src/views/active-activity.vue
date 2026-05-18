@@ -173,7 +173,7 @@ async function fetchRegistrations() {
 }
 
 onMounted(async () => {
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time'
+  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
   const id = route.query.id
 
   // 預先啟動 activity 查詢，與 LIFF init 並行，縮短整體等待時間
@@ -230,6 +230,21 @@ const registrationOpenAt = computed(() => {
   const [y, mo, d] = resolvedDate.value.split('-').map(Number)
   const [h, m] = a.pickup_open_time.split(':').map(Number)
   return new Date(Date.UTC(y, mo - 1, d - a.pickup_open_days_before, h - 8, m, 0))
+})
+
+// 季打截止時間（只適用季打頁面）
+const registrationCloseAt = computed(() => {
+  const a = activityData.value
+  if (!a || activityType.value !== 'season') return null
+  if (!a.season_close_date || !a.season_close_time) return null
+  const [y, mo, d] = a.season_close_date.split('-').map(Number)
+  const [h, m] = a.season_close_time.split(':').map(Number)
+  return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
+})
+
+const isSeasonRegistrationClosed = computed(() => {
+  if (!registrationCloseAt.value) return false
+  return nowTick.value >= registrationCloseAt.value
 })
 
 // 季打成員在臨打頁面是否為請假模式
@@ -572,7 +587,10 @@ const summaryFeeLabel = computed(() => {
   return `費用 ${summaryFeeAmount.value} 元`
 })
 const heroCtaText = computed(() => {
-  if (activityType.value === 'season') return submittedTotal.value > 0 ? '管理報名' : '我要報名'
+  if (activityType.value === 'season') {
+    if (isSeasonRegistrationClosed.value && !hasSubmittedSignup.value) return '已截止報名'
+    return submittedTotal.value > 0 ? '管理報名' : '我要報名'
+  }
   if (isSeasonLeaveMode.value) return '管理報名'
   return hasSubmittedSignup.value ? '管理報名' : '我要報名'
 })
@@ -928,6 +946,7 @@ const seasonCancelOpen = ref(false)
 
 async function handleCtaClick() {
   if (activityType.value === 'season') {
+    if (isSeasonRegistrationClosed.value && !hasSubmittedSignup.value) return
     if (hasSubmittedSignup.value) {
       seasonCancelOpen.value = true
       return
@@ -1128,7 +1147,7 @@ function handleEscape() {
 
     <div v-if="activityType !== 'ended' && !adminMode" class="footer-bar">
       <div class="footer-fade"></div>
-      <button ref="heroCtaButton" class="cta" type="button" :disabled="isSubmitting" @click="handleCtaClick">{{ isSubmitting ? '處理中...' : heroCtaText }}</button>
+      <button ref="heroCtaButton" class="cta" :class="{ 'cta-disabled': isSeasonRegistrationClosed && !hasSubmittedSignup }" type="button" :disabled="isSubmitting || (isSeasonRegistrationClosed && !hasSubmittedSignup)" @click="handleCtaClick">{{ isSubmitting ? '處理中...' : heroCtaText }}</button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
