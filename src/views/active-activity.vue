@@ -1108,7 +1108,7 @@ function handleEscape() {
     </div>
     <p v-else-if="!isLoading && filteredMemberList.length === 0" class="empty-member-hint">目前尚無報名資料</p>
 
-    <div v-if="cancelledMemberList.length > 0 && (activityType === 'season' || activeSegment === '臨打')" class="cancelled-section">
+    <div v-if="cancelledMemberList.length > 0 && isRegistrationOpen && (activityType === 'season' || activeSegment === '臨打')" class="cancelled-section">
       <div class="cancelled-divider">
         <span class="cancelled-divider-label">{{ activityType === 'season' ? '已取消季打' : '已取消報名' }}</span>
       </div>

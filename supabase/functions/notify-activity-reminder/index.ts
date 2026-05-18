@@ -25,21 +25,39 @@ async function pushMessage(token: string, groupId: string, message: Record<strin
   if (!res.ok) throw new Error(`LINE push failed: ${await res.text()}`)
 }
 
-async function sendWithFallback(
-  token: string, groupId: string,
-  textV2: Record<string, unknown>, plainText: string
+// 逐一找出不在群組的 key，換成純文字後重試，其餘人維持 @mention
+async function sendWithGranularFallback(
+  token: string,
+  groupId: string,
+  text: string,
+  substitution: Record<string, unknown>,
+  fallbackNames: Record<string, string>
 ): Promise<void> {
-  try {
-    await pushMessage(token, groupId, textV2)
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes('not found in the group')) {
-      console.warn('Some users not in group, falling back to plain text')
-      await pushMessage(token, groupId, { type: 'text', text: plainText })
-    } else {
-      throw e
+  let currentText = text
+  const sub = { ...substitution }
+  const maxRetries = Object.keys(substitution).length + 1
+
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      await pushMessage(token, groupId, { type: 'textV2', text: currentText, substitution: sub })
+      return
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (!msg.includes('not found in the group')) throw e
+
+      // 從錯誤訊息找出哪個 key 失敗，例如 substitution["m3"].mentionee
+      const match = msg.match(/substitution\[(?:\\?")?([^"\\[\]]+)/)
+      if (!match) throw e
+      const failedKey = match[1].replace(/\\?"/g, '')
+      const plainName = fallbackNames[failedKey]
+      if (plainName === undefined) throw e
+
+      console.warn(`User key ${failedKey} not in group, replacing with plain text: ${plainName}`)
+      currentText = currentText.replace(`{${failedKey}}`, plainName)
+      delete sub[failedKey]
     }
   }
+  throw new Error('Too many retries replacing group mentions')
 }
 
 type ConfirmedUser = { userId: string; displayName: string; guestCount: number; guests: Array<{ gender?: string }> }
@@ -142,49 +160,48 @@ serve(async (_req) => {
         // ── 組訊息 ────────────────────────────────────────────────
         const activityLabel = activity.pickup_label ?? activity.title
         const substitution: Record<string, unknown> = {}
+        const fallbackNames: Record<string, string> = {}
         let mentionIdx = 0
 
-        const buildMentionLine = (users: ConfirmedUser[]): { mention: string; plain: string } => {
-          const mp: string[] = [], pp: string[] = []
+        const buildMentionLine = (users: ConfirmedUser[]): string => {
+          const parts: string[] = []
           for (const u of users) {
             const key = `m${mentionIdx++}`
             substitution[key] = { type: 'mention', mentionee: { type: 'user', userId: u.userId } }
+            fallbackNames[key] = u.displayName
             const suffix = u.guestCount > 0 ? `（含群外+${u.guestCount}）` : ''
-            mp.push(`{${key}}${suffix}`)
-            pp.push(`${u.displayName}${suffix}`)
+            parts.push(`{${key}}${suffix}`)
           }
-          return { mention: mp.join(' '), plain: pp.join(' ') }
+          return parts.join(' ')
         }
 
-        const pickupMention = confirmedPickup.length > 0 ? buildMentionLine(confirmedPickup) : null
-        const seasonMention = confirmedSeason.length > 0 ? buildMentionLine(confirmedSeason) : null
+        const pickupLine = confirmedPickup.length > 0 ? buildMentionLine(confirmedPickup) : null
+        const seasonLine = confirmedSeason.length > 0 ? buildMentionLine(confirmedSeason) : null
 
         const genderLine = (maleCount > 0 || femaleCount > 0)
           ? `男生：${maleCount}男 ／ 女生：${femaleCount}女\n` : ''
 
-        const orgMentionParts: string[] = [], orgPlainParts: string[] = []
+        const orgParts: string[] = []
         for (const org of organizers ?? []) {
           const key = `org${mentionIdx++}`
           substitution[key] = { type: 'mention', mentionee: { type: 'user', userId: org.user_id } }
-          orgMentionParts.push(`{${key}}`)
-          orgPlainParts.push(org.display_name ?? org.user_id)
+          fallbackNames[key] = org.display_name ?? org.user_id
+          orgParts.push(`{${key}}`)
         }
         const baseFee = activity.pickup_fee_per_session ?? 0
         const fee = baseFee + (activity.ac_enabled ? (activity.ac_fee ?? 0) : 0) || null
         const feeStr = fee ? ` $${fee}💰` : ''
-        const footerMention = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgMentionParts.join('、') || '管理員'}${feeStr}`
-        const footerPlain  = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgPlainParts.join('、') || '管理員'}${feeStr}`
+        const footer = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgParts.join('、') || '管理員'}${feeStr}`
 
         const header = `🏐 活動前 ${activity.reminder_days_before} 天提醒！\n\n【${activityLabel}】\n📅 ${targetDate} ${activity.start_time ?? ''}\n📍 ${activity.location ?? ''}\n\n`
-        const buildBody = (pickup: string | null, season: string | null, footer: string) =>
-          (pickup ? `本週臨打\n${pickup}\n\n` : '') +
-          (season ? `本週季打\n${season}\n\n` : '') +
+        const messageText = (
+          header +
+          (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') +
+          (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') +
           genderLine + footer
+        ).trimEnd()
 
-        const mentionText = (header + buildBody(pickupMention?.mention ?? null, seasonMention?.mention ?? null, footerMention)).trimEnd()
-        const plainText   = (header + buildBody(pickupMention?.plain ?? null,   seasonMention?.plain ?? null,   footerPlain)).trimEnd()
-
-        await sendWithFallback(lineToken, lineGroupId, { type: 'textV2', text: mentionText, substitution }, plainText)
+        await sendWithGranularFallback(lineToken, lineGroupId, messageText, substitution, fallbackNames)
         console.log(`Reminded: activity ${activity.id} (${targetDate}), pickup: ${confirmedPickup.length}, season: ${confirmedSeason.length}`)
         notified++
       }
