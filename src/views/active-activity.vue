@@ -1020,6 +1020,8 @@ async function directSeasonRegister() {
     } else {
       await supabase.from('registrations').insert(payload)
     }
+    await supabase.from('members').update({ is_season: true }).eq('user_id', liffStore.userId)
+    liffStore.isSeason = true
     await fetchRegistrations()
   } catch {
     setSuccessDialogOpen(true, { title: '報名失敗', copy: '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
@@ -1034,6 +1036,8 @@ async function confirmSeasonCancel() {
   if (!reg) return
   try {
     await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+    await supabase.from('members').update({ is_season: false }).eq('user_id', liffStore.userId)
+    liffStore.isSeason = false
     await fetchRegistrations()
   } catch {
     setSuccessDialogOpen(true, { title: '取消失敗', copy: '請稍後再試。', buttonText: '確認' })
