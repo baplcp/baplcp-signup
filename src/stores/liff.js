@@ -46,7 +46,33 @@ export const useLiffStore = defineStore('liff', () => {
         // 已有記錄：直接讀取 role 與 gender，不覆蓋管理員設定
         role.value = data.role
         gender.value = data.gender || null
-        isSeason.value = data.is_season ?? false
+
+        // 自動同步 is_season：依據使用者是否在最新季打 activity 有 active 報名
+        const { data: latestSeason } = await supabase
+          .from('activities')
+          .select('id')
+          .eq('season_enabled', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (latestSeason) {
+          const { data: seasonReg } = await supabase
+            .from('registrations')
+            .select('id')
+            .eq('activity_id', latestSeason.id)
+            .eq('user_id', uid)
+            .is('activity_date', null)
+            .eq('status', 'active')
+            .maybeSingle()
+          const newIsSeason = !!seasonReg
+          if (newIsSeason !== data.is_season) {
+            await supabase.from('members').update({ is_season: newIsSeason }).eq('user_id', uid)
+          }
+          isSeason.value = newIsSeason
+        } else {
+          isSeason.value = data.is_season ?? false
+        }
       } else {
         // 第一次登入：自動新增，role 預設 guest
         const { error: insertError } = await supabase
