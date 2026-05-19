@@ -297,7 +297,7 @@ function formatRegistrationTime(isoString) {
   return `${h}:${m}:${s}`
 }
 
-const isAdmin = computed(() => liffStore.role === 'organizer' || liffStore.role === 'engineer')
+const isAdmin = computed(() => liffStore.role === 'organizer')
 const adminMode = ref(false)
 
 const memberList = computed(() => {

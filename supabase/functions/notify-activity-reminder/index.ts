@@ -60,7 +60,7 @@ async function sendWithGranularFallback(
   throw new Error('Too many retries replacing group mentions')
 }
 
-type ConfirmedUser = { userId: string; displayName: string; guestCount: number; guests: Array<{ gender?: string }> }
+type ConfirmedUser = { userId: string; displayName: string; guestCount: number; guests: Array<{ gender?: string }>; selfInPickup?: boolean }
 
 serve(async (_req) => {
   try {
@@ -101,41 +101,51 @@ serve(async (_req) => {
       if (targetDates.length === 0) continue
 
       for (const targetDate of targetDates) {
-        // ── 臨打報名 ──────────────────────────────────────────────
-        const { data: pickupRegs, error: pErr } = await supabase
-          .from('registrations')
-          .select('user_id, display_name, guests, self_added_at')
-          .eq('activity_id', activity.id).eq('activity_date', targetDate).eq('status', 'active')
-          .order('self_added_at', { ascending: true, nullsFirst: false })
-        if (pErr) throw pErr
-
-        const pickupCapacity = Number(activity.single_capacity) || 0
-        const confirmedPickup: ConfirmedUser[] = []
-        let slotCount = 0
-        for (const reg of pickupRegs ?? []) {
-          if (pickupCapacity > 0 && slotCount >= pickupCapacity) break
-          const allGuests = (reg.guests as Array<{ gender?: string }>) ?? []
-          const confirmedGuestCount = pickupCapacity > 0
-            ? Math.min(allGuests.length, Math.max(0, pickupCapacity - slotCount - 1))
-            : allGuests.length
-          confirmedPickup.push({ userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, guestCount: confirmedGuestCount, guests: allGuests.slice(0, confirmedGuestCount) })
-          slotCount += 1 + confirmedGuestCount
-        }
-
-        // ── 季打報名（排除請假）────────────────────────────────────
+        // ── 季打報名（排除請假，需先算出佔用名額）────────────────
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('user_id, display_name, guests, leave_dates')
+          .select('user_id, display_name, guests, leave_dates, self_count')
           .eq('activity_id', activity.id).is('activity_date', null).eq('status', 'active')
           .order('created_at', { ascending: true })
         if (sErr) throw sErr
 
+        // 只算有本人出席的季打（self_count > 0 且未請假）
         const confirmedSeason: ConfirmedUser[] = (seasonRegs ?? [])
-          .filter(r => !(r.leave_dates || []).includes(targetDate))
+          .filter(r => !(r.leave_dates || []).includes(targetDate) && (r.self_count ?? 0) > 0)
           .map(r => {
             const allGuests = (r.guests as Array<{ gender?: string }>) ?? []
-            return { userId: r.user_id, displayName: r.display_name ?? r.user_id, guestCount: allGuests.length, guests: allGuests }
+            return { userId: r.user_id, displayName: r.display_name ?? r.user_id, guestCount: allGuests.length, guests: allGuests, selfInPickup: true }
           })
+
+        // 季打確認本人出席的人數（佔用 single_capacity 的名額）
+        const confirmedSeasonCount = confirmedSeason.length
+
+        // ── 臨打報名 ──────────────────────────────────────────────
+        const { data: pickupRegs, error: pErr } = await supabase
+          .from('registrations')
+          .select('user_id, display_name, guests, self_added_at, self_count')
+          .eq('activity_id', activity.id).eq('activity_date', targetDate).eq('status', 'active')
+          .order('self_added_at', { ascending: true, nullsFirst: false })
+        if (pErr) throw pErr
+
+        const totalCapacity = Number(activity.single_capacity) || 0
+        // 扣除季打已佔用名額，剩餘才是臨打可用名額
+        const pickupAvailable = totalCapacity > 0 ? Math.max(0, totalCapacity - confirmedSeasonCount) : 0
+        const confirmedPickup: ConfirmedUser[] = []
+        let slotCount = 0
+        for (const reg of pickupRegs ?? []) {
+          if (pickupAvailable > 0 && slotCount >= pickupAvailable) break
+          // self_count > 0 表示本人有報名臨打；= 0 代表季打請假後只帶群外
+          const selfSlots = (reg.self_count ?? 0) > 0 ? 1 : 0
+          const allGuests = (reg.guests as Array<{ gender?: string }>) ?? []
+          const confirmedGuestCount = pickupAvailable > 0
+            ? Math.min(allGuests.length, Math.max(0, pickupAvailable - slotCount - selfSlots))
+            : allGuests.length
+          // 本人不在臨打且無群外確認，跳過
+          if (selfSlots === 0 && confirmedGuestCount === 0) continue
+          confirmedPickup.push({ userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, guestCount: confirmedGuestCount, guests: allGuests.slice(0, confirmedGuestCount), selfInPickup: selfSlots > 0 })
+          slotCount += selfSlots + confirmedGuestCount
+        }
 
         if (confirmedPickup.length === 0 && confirmedSeason.length === 0) continue
 
@@ -148,8 +158,11 @@ serve(async (_req) => {
         }
         let maleCount = 0, femaleCount = 0
         const countUser = (u: ConfirmedUser) => {
-          const g = genderMap[u.userId]
-          if (g === 'male') maleCount++; else if (g === 'female') femaleCount++
+          // selfInPickup === false 表示本人是季打請假只帶群外，不計本人性別
+          if (u.selfInPickup !== false) {
+            const g = genderMap[u.userId]
+            if (g === 'male') maleCount++; else if (g === 'female') femaleCount++
+          }
           for (const guest of u.guests) {
             if (guest.gender === 'male') maleCount++; else if (guest.gender === 'female') femaleCount++
           }
@@ -169,7 +182,9 @@ serve(async (_req) => {
             const key = `m${mentionIdx++}`
             substitution[key] = { type: 'mention', mentionee: { type: 'user', userId: u.userId } }
             fallbackNames[key] = u.displayName
-            const suffix = u.guestCount > 0 ? `（含群外+${u.guestCount}）` : ''
+            const suffix = u.guestCount > 0
+              ? (u.selfInPickup !== false ? `（含群外+${u.guestCount}）` : `（群外+${u.guestCount}）`)
+              : ''
             parts.push(`{${key}}${suffix}`)
           }
           return parts.join(' ')
@@ -179,7 +194,7 @@ serve(async (_req) => {
         const seasonLine = confirmedSeason.length > 0 ? buildMentionLine(confirmedSeason) : null
 
         const genderLine = (maleCount > 0 || femaleCount > 0)
-          ? `男生：${maleCount}男 ／ 女生：${femaleCount}女\n` : ''
+          ? `男生：${maleCount}男 ／ 女生：${femaleCount}女\n\n` : ''
 
         const orgParts: string[] = []
         for (const org of organizers ?? []) {

@@ -185,7 +185,7 @@ onMounted(async () => {
       form.pickupCloseDate = data.pickup_close_days_before ? `前 ${data.pickup_close_days_before} 天` : '前 1 天'
       form.pickupCloseTime = data.pickup_close_time || ''
       form.reminderEnabled = data.reminder_enabled ? 'enabled' : 'disabled'
-      form.reminderDaysBefore = data.reminder_days_before ? `前 ${data.reminder_days_before} 天` : '前 3 天'
+      form.reminderDaysBefore = data.reminder_days_before != null ? `前 ${data.reminder_days_before} 天` : '前 3 天'
       form.reminderTime = data.reminder_time ? data.reminder_time.slice(0, 5) : '09:00'
 
       const firstDate = selectedDates.value[0]
@@ -932,6 +932,7 @@ async function handleSubmitActivity() {
                         @change="clearError('reminderDaysBefore')"
                       >
                         <option value="">幾天前</option>
+                        <option value="前 0 天">當天（前 0 天）</option>
                         <option v-for="option in dayBeforeOptions" :key="`reminder-date-${option}`" :value="option">{{ option }}</option>
                       </select>
                     </span>
