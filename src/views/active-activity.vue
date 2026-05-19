@@ -310,7 +310,8 @@ const memberList = computed(() => {
     seasonRegistrations.value.forEach(reg => {
       if ((reg.leave_dates || []).includes(date)) return
       if (reg.self_count > 0) {
-        const ts = reg.created_at
+        // 若曾請假後取消請假（rejoin），以回歸時間排序，避免佔住早期的確認名額
+        const ts = reg.rejoin_times?.[date] || reg.created_at
         members.push({
           name: reg.display_name,
           badge: reg.display_name.charAt(0),
@@ -353,10 +354,13 @@ const memberList = computed(() => {
 })
 
 const cancelledMemberList = computed(() => {
+  // 有 active 報名的 user_id：表示取消後又重新報名，不該出現在取消清單
+  const activeUserIds = new Set(registrations.value.map(r => r.user_id))
   const members = []
 
   // Supabase 抓得到的整筆 cancelled 紀錄
   cancelledRegistrations.value.forEach(reg => {
+    if (activeUserIds.has(reg.user_id)) return  // 已重新報名，略過
     if (reg.self_count > 0) {
       members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) })
     }
@@ -366,7 +370,9 @@ const cancelledMemberList = computed(() => {
   })
 
   // 本地追蹤的取消成員（管理員個別移除 / 自己把「我」調回 0 但整筆未取消）
-  localCancelledMembers.value.forEach(m => members.push(m))
+  // 過濾掉已重新出現在 active 名單中的人（同 session 內取消又報名）
+  const activeMemberNames = new Set(memberList.value.map(m => m.name))
+  localCancelledMembers.value.filter(m => !activeMemberNames.has(m.name)).forEach(m => members.push(m))
 
   return members
 })
@@ -382,6 +388,13 @@ const leaveMemberList = computed(() => {
       badge: reg.display_name.charAt(0),
       image: reg.picture_url || null,
     }))
+})
+
+// 目前 tab 下方是否有可見的取消/請假區塊（決定名單底部是否需要額外間距）
+const hasVisibleSectionBelow = computed(() => {
+  const showCancelled = cancelledMemberList.value.length > 0 && isRegistrationOpen.value && (activityType.value === 'season' || activeSegment.value === '臨打')
+  const showLeave = leaveMemberList.value.length > 0 && activeSegment.value === '季打'
+  return showCancelled || showLeave
 })
 
 const myFullyPaid = computed(() => {
@@ -779,7 +792,12 @@ async function _doSubmitSignup() {
         const newLeaveDates = newSelf === 0
           ? [...(seasonReg.leave_dates || []), resolvedDate.value]
           : (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
-        await supabase.from('registrations').update({ leave_dates: newLeaveDates }).eq('id', seasonReg.id)
+        const updatePayload = { leave_dates: newLeaveDates }
+        // 取消請假（加回來）時記錄回歸時間，下次名單排序將以此為準，不保留原本的早期名次
+        if (newSelf !== 0) {
+          updatePayload.rejoin_times = { ...(seasonReg.rejoin_times || {}), [resolvedDate.value]: new Date().toISOString() }
+        }
+        await supabase.from('registrations').update(updatePayload).eq('id', seasonReg.id)
       }
 
       // 處理群外臨打報名
@@ -1095,7 +1113,7 @@ function handleEscape() {
       @view-dates="showAllDatesDialog = true"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (cancelledMemberList.length > 0 || leaveMemberList.length > 0 ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (hasVisibleSectionBelow ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
     <div v-if="isLoading && filteredMemberList.length === 0" class="member-skeleton" aria-hidden="true">
       <div v-for="i in 7" :key="i" class="member-skeleton-row">
         <div class="skel skel-rank"></div>
@@ -1144,6 +1162,8 @@ function handleEscape() {
         </div>
       </div>
     </div>
+
+    <div class="page-end-pad"></div>
 
     <div v-if="activityType !== 'ended' && !adminMode" class="footer-bar">
       <div class="footer-fade"></div>
@@ -1353,6 +1373,10 @@ function handleEscape() {
   font-size: 13px;
   line-height: 1.4;
   font-weight: 400;
+}
+
+.page-end-pad {
+  height: 100px;
 }
 
 .footer-bar {
