@@ -5,6 +5,7 @@ import EndedActivity from '~/views/ended-activity.vue'
 import GroupList from '~/views/group-list.vue'
 import Index from '~/views/index.vue'
 import ManageActivities from '~/views/manage-activities.vue'
+import SeasonList from '~/views/season-list.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -18,6 +19,11 @@ const router = createRouter({
       path: '/group-list',
       name: 'group-list',
       component: GroupList,
+    },
+    {
+      path: '/season-list',
+      name: 'season-list',
+      component: SeasonList,
     },
     {
       path: '/active-activity',

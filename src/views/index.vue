@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
@@ -7,8 +7,6 @@ import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { supabase } from '~/utils/supabase'
 
-const seasonEnabled = ref(false)
-const latestSeasonActivityId = ref(null)
 const latestActivityTo = ref('/group-list')
 
 const now = new Date()
@@ -27,18 +25,25 @@ function isDateExpired(dateStr, endTime) {
 onMounted(async () => {
   const { data } = await supabase
     .from('activities')
-    .select('id, season_enabled, dates, end_time')
+    .select('id, dates, end_time')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-  if (data) {
-    seasonEnabled.value = data.season_enabled ?? false
-    latestSeasonActivityId.value = data.id
+    .limit(20)
 
-    const sorted = (data.dates || []).slice().sort()
-    const nearestDate = sorted.find(d => !isDateExpired(d, data.end_time))
-    if (nearestDate) {
-      latestActivityTo.value = `/active-activity?id=${data.id}&date=${nearestDate}&type=latest`
+  if (data && data.length > 0) {
+    let nearestDate = null
+    let nearestActivity = null
+
+    for (const activity of data) {
+      const sorted = (activity.dates || []).slice().sort()
+      const candidate = sorted.find(d => !isDateExpired(d, activity.end_time))
+      if (candidate && (!nearestDate || candidate < nearestDate)) {
+        nearestDate = candidate
+        nearestActivity = activity
+      }
+    }
+
+    if (nearestDate && nearestActivity) {
+      latestActivityTo.value = `/active-activity?id=${nearestActivity.id}&date=${nearestDate}&type=latest`
     }
   }
 })
@@ -85,13 +90,7 @@ const infoCards = [
   },
 ]
 
-const seasonSignupTo = computed(() =>
-  seasonEnabled.value && latestSeasonActivityId.value
-    ? `/active-activity?type=season&id=${latestSeasonActivityId.value}`
-    : '/'
-)
-
-const utilityItems = computed(() => [
+const utilityItems = [
   {
     label: '贊助胖貓貓',
     imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
@@ -102,8 +101,7 @@ const utilityItems = computed(() => [
   {
     label: '季打報名',
     imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
-    to: seasonSignupTo.value,
-    pending: !seasonEnabled.value,
+    to: '/season-list',
   },
   {
     label: '臨打名單',
@@ -117,7 +115,7 @@ const utilityItems = computed(() => [
     href: '#',
     pending: true,
   },
-])
+]
 </script>
 
 <template>

@@ -123,6 +123,11 @@ defineProps({
   color: var(--muted-soft);
 }
 
+.badge-ended {
+  background: #fdecea;
+  color: #c0392b;
+}
+
 .chevron {
   width: 24px;
   height: 24px;
