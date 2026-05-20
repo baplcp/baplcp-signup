@@ -96,7 +96,6 @@ function registrationPayload(
   activityDate: string | null,
   profile: LineProfile,
   selfCount: number,
-  guestCount: number,
   guests: Array<{ name: string; gender: string }>,
   existing: Record<string, any> | null | undefined,
   submitTime: string
@@ -109,7 +108,7 @@ function registrationPayload(
     picture_url: profile.pictureUrl ?? null,
     self_count: selfCount,
     self_added_at: selfCount === 1 ? (existing?.self_count ? existing.self_added_at || submitTime : submitTime) : null,
-    guest_count: guestCount,
+    guest_count: guests.length,
     guests: withPreservedGuestTimes(guests, existing?.guests, submitTime),
     status: 'active',
   }
@@ -238,7 +237,7 @@ serve(async req => {
       }
 
       assertRegistrationWindow(activity, activityDate, now)
-      const payload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, existing, submitTime)
+      const payload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, existing, submitTime)
       if (existing) {
         const removedMembers = []
         if ((existing.self_count || 0) > 0 && selfCount === 0) removedMembers.push(cancellationEntryFromSelf(existing))
@@ -259,7 +258,7 @@ serve(async req => {
             activityDate === null ? await retryQuery.is('activity_date', null).maybeSingle() : await retryQuery.eq('activity_date', activityDate).maybeSingle()
           if (retryReadError) throw retryReadError
           if (!retryExisting) throw error
-          const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, retryExisting, submitTime)
+          const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, retryExisting, submitTime)
           const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryExisting.id)
           if (retryWriteError) throw retryWriteError
         }
@@ -311,7 +310,7 @@ serve(async req => {
       if (pickupError) throw pickupError
 
       if (guestCount > 0) {
-        const payload = registrationPayload(activityId, activityDate, profile, 0, guestCount, normalizedGuests, pickupReg, submitTime)
+        const payload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, pickupReg, submitTime)
         if (pickupReg) {
           const previousGuests = Array.isArray(pickupReg.guests) ? pickupReg.guests : []
           const removedGuests = previousGuests.slice(guestCount).map((guest: Record<string, any>) => cancellationEntryFromGuest(guest, pickupReg))
@@ -334,7 +333,7 @@ serve(async req => {
               .maybeSingle()
             if (retryReadError) throw retryReadError
             if (!retryPickupReg) throw error
-            const retryPayload = registrationPayload(activityId, activityDate, profile, 0, guestCount, normalizedGuests, retryPickupReg, submitTime)
+            const retryPayload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, retryPickupReg, submitTime)
             const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryPickupReg.id)
             if (retryWriteError) throw retryWriteError
           }
@@ -366,7 +365,7 @@ serve(async req => {
       if (cancelledError) throw cancelledError
 
       const existingSeasonReg = activeReg || cancelledReg
-      const payload = registrationPayload(activityId, null, profile, 1, 0, [], existingSeasonReg, submitTime)
+      const payload = registrationPayload(activityId, null, profile, 1, [], existingSeasonReg, submitTime)
       const { error } = activeReg
         ? await supabase.from('registrations').update(payload).eq('id', activeReg.id)
         : cancelledReg
@@ -384,7 +383,7 @@ serve(async req => {
           .maybeSingle()
         if (retryReadError) throw retryReadError
         if (!retryActiveReg) throw error
-        const retryPayload = registrationPayload(activityId, null, profile, 1, 0, [], retryActiveReg, submitTime)
+        const retryPayload = registrationPayload(activityId, null, profile, 1, [], retryActiveReg, submitTime)
         const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryActiveReg.id)
         if (retryWriteError) throw retryWriteError
       }
