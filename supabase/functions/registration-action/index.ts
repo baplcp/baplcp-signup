@@ -40,6 +40,18 @@ function isDateString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
 
+function parseTaiwanDateTime(dateStr: string, timeStr: string): Date {
+  const [y, mo, d] = dateStr.split('-').map(Number)
+  const [h, m] = timeStr.split(':').map(Number)
+  return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
+}
+
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + days))
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
+}
+
 function normalizeGuests(value: unknown, count: number): Array<{ name: string; gender: string; added_at?: string }> {
   if (!Array.isArray(value)) throw new Error('invalid_guests')
   if (!Number.isInteger(count) || count < 0 || count > 6) throw new Error('invalid_guest_count')
@@ -109,6 +121,45 @@ async function requireOrganizer(supabase: any, userId: string) {
   if (data?.role !== 'organizer') throw new Error('forbidden')
 }
 
+async function getActivityForRegistration(supabase: any, activityId: string | number) {
+  const { data, error } = await supabase
+    .from('activities')
+    .select(
+      'id, season_open_date, season_open_time, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
+    )
+    .eq('id', activityId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('activity_not_found')
+  return data
+}
+
+function assertRegistrationWindow(activity: Record<string, any>, activityDate: string | null, now: Date) {
+  if (activityDate === null) {
+    if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) {
+      throw new Error('registration_not_open')
+    }
+    if (activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)) {
+      throw new Error('registration_closed')
+    }
+    return
+  }
+
+  if (activity.pickup_open_days_before != null && activity.pickup_open_time) {
+    const openDate = addDays(activityDate, -Number(activity.pickup_open_days_before))
+    if (now < parseTaiwanDateTime(openDate, activity.pickup_open_time)) {
+      throw new Error('registration_not_open')
+    }
+  }
+
+  if (activity.pickup_deadline_type === 'custom' && activity.pickup_close_days_before != null && activity.pickup_close_time) {
+    const closeDate = addDays(activityDate, -Number(activity.pickup_close_days_before))
+    if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) {
+      throw new Error('registration_closed')
+    }
+  }
+}
+
 serve(async req => {
   const origin = req.headers.get('origin') ?? ''
 
@@ -136,6 +187,7 @@ serve(async req => {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
     const submitTime = new Date().toISOString()
+    const now = new Date()
 
     if (action === 'save-registration') {
       const activityDate = body.activityDate === null ? null : body.activityDate
@@ -145,6 +197,7 @@ serve(async req => {
       const guestCount = Number(body.guestCount ?? 0)
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
       const normalizedGuests = normalizeGuests(body.guests, guestCount)
+      const activity = await getActivityForRegistration(supabase, activityId)
 
       const existingQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
       const { data: existing, error: existingError } =
@@ -159,6 +212,7 @@ serve(async req => {
         return jsonResponse({ ok: true }, 200, origin)
       }
 
+      assertRegistrationWindow(activity, activityDate, now)
       const payload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, existing, submitTime)
 
       if (existing) {
@@ -188,6 +242,8 @@ serve(async req => {
       const guestCount = Number(body.guestCount ?? 0)
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
       const normalizedGuests = normalizeGuests(body.guests, guestCount)
+      const activity = await getActivityForRegistration(supabase, activityId)
+      assertRegistrationWindow(activity, activityDate, now)
 
       const { data: seasonReg, error: seasonError } = await supabase
         .from('registrations')
@@ -255,6 +311,9 @@ serve(async req => {
     }
 
     if (action === 'direct-season-register') {
+      const activity = await getActivityForRegistration(supabase, activityId)
+      assertRegistrationWindow(activity, null, now)
+
       const { data: activeReg, error: activeError } = await supabase
         .from('registrations')
         .select('*')
@@ -393,9 +452,11 @@ serve(async req => {
       ? 401
       : message === 'forbidden'
         ? 403
-        : message.includes('capacity_exceeded') || message.includes('duplicate key')
-          ? 409
-          : 400
+        : message === 'registration_not_open' || message === 'registration_closed'
+          ? 403
+          : message.includes('capacity_exceeded') || message.includes('duplicate key')
+            ? 409
+            : 400
     console.error('registration-action error', message)
     return jsonResponse({ error: message }, status, origin)
   }
