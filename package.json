@@ -30,5 +30,8 @@
     "vite": "^8.0.8",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "vite-plugin-vue-devtools": "^8.1.2"
   }
 }
