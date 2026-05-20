@@ -12,6 +12,7 @@ const activities = ref([])
 const isLoading = ref(true)
 
 onMounted(async () => {
+  await liffStore.initialize()
   if (!isOrganizer.value) {
     router.replace('/')
     return
@@ -111,13 +112,24 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   isDeleting.value = true
   try {
-    await supabase.from('activities').delete().eq('id', deleteTarget.value.act.id)
+    await invokeActivityAdmin({ action: 'delete', id: deleteTarget.value.act.id })
     activities.value = activities.value.filter(a => a.id !== deleteTarget.value.act.id)
     rowOffsets.value = {}
   } finally {
     isDeleting.value = false
     deleteTarget.value = null
   }
+}
+
+async function invokeActivityAdmin(body) {
+  const lineAccessToken = await liffStore.getLineAccessToken()
+  if (!lineAccessToken) throw new Error('missing_line_access_token')
+
+  const { error } = await supabase.functions.invoke('activity-admin', {
+    body,
+    headers: { 'x-line-access-token': lineAccessToken },
+  })
+  if (error) throw error
 }
 </script>
 

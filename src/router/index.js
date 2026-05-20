@@ -6,6 +6,7 @@ import GroupList from '~/views/group-list.vue'
 import Index from '~/views/index.vue'
 import ManageActivities from '~/views/manage-activities.vue'
 import SeasonList from '~/views/season-list.vue'
+import { useLiffStore } from '~/stores/liff'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -34,6 +35,7 @@ const router = createRouter({
       path: '/create-activity',
       name: 'create-activity',
       component: CreateActivity,
+      meta: { requiresOrganizer: true },
     },
     {
       path: '/ended-activity',
@@ -44,6 +46,7 @@ const router = createRouter({
       path: '/manage-activities',
       name: 'manage-activities',
       component: ManageActivities,
+      meta: { requiresOrganizer: true },
     },
   ],
 })
@@ -54,7 +57,13 @@ function getRouteFallback(path) {
   return typeof path === 'string' && path.startsWith('/') ? path : '/'
 }
 
-router.beforeEach((to, from) => {
+router.beforeEach(async (to, from) => {
+  if (to.meta.requiresOrganizer) {
+    const liffStore = useLiffStore()
+    await liffStore.initialize()
+    if (liffStore.role !== 'organizer') return '/'
+  }
+
   if (from === START_LOCATION) {
     pendingInAppFrom = null
     return

@@ -1,30 +1,24 @@
 <script setup>
-import { createClient } from '@supabase/supabase-js'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLiffStore } from '~/stores/liff'
+import { supabase } from '~/utils/supabase'
 import CreateActivityChoiceCard from '../components/create-activity/CreateActivityChoiceCard.vue'
 import CreateActivityMoneyField from '../components/create-activity/CreateActivityMoneyField.vue'
 import CreateActivityTimeSelect from '../components/create-activity/CreateActivityTimeSelect.vue'
 
-const SUPABASE_URL = 'https://rkmxoqopptyuqhbeswqo.supabase.co'
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrbXhvcW9wcHR5dXFoYmVzd3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODU1NzMsImV4cCI6MjA5MjA2MTU3M30.r_Mows0iPF_FULtFJGCQctxERy8E5JCIndyD-llDbIA'
-const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
 const api = {
   async createActivity(payload) {
-    const { data, error } = await client.from('activities').insert(payload).select().single()
-    if (error) throw error
+    const data = await invokeActivityAdmin({ action: 'create', payload })
     return data
   },
   async getActivity(id) {
-    const { data, error } = await client.from('activities').select('*').eq('id', id).single()
+    const { data, error } = await supabase.from('activities').select('*').eq('id', id).single()
     if (error) throw error
     return data
   },
   async updateActivity(id, payload) {
-    const { data, error } = await client.from('activities').update(payload).eq('id', id).select().single()
-    if (error) throw error
+    const data = await invokeActivityAdmin({ action: 'update', id, payload })
     return data
   },
 }
@@ -153,6 +147,11 @@ watch(visibleMonth, () => {
 
 onMounted(async () => {
   calendarDays.value = buildCalendarDays(visibleMonth.value)
+  await liffStore.initialize()
+  if (!isOrganizer.value) {
+    router.replace('/')
+    return
+  }
 
   const idParam = route.query.id
   if (idParam) {
@@ -258,10 +257,24 @@ function returnToPreviousPage() {
 
 const route = useRoute()
 const router = useRouter()
+const liffStore = useLiffStore()
+const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const editId = ref(null)
 const isEditMode = computed(() => !!editId.value)
 const isPopulatingForm = ref(false)
+
+async function invokeActivityAdmin(body) {
+  const lineAccessToken = await liffStore.getLineAccessToken()
+  if (!lineAccessToken) throw new Error('missing_line_access_token')
+
+  const { data, error } = await supabase.functions.invoke('activity-admin', {
+    body,
+    headers: { 'x-line-access-token': lineAccessToken },
+  })
+  if (error) throw error
+  return data?.data ?? data
+}
 
 function goToCreatedActivityList() {
   const inAppFrom = window.history.state?.__inAppFrom
