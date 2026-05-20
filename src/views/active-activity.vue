@@ -74,7 +74,6 @@ const summaryFeeAmount = computed(() => {
 
 const registrations = ref([])
 const cancelledRegistrations = ref([])
-const localCancelledMembers = ref([]) // 本地取消清單（{ name, badge, image }），不被 fetchRegistrations 覆蓋
 const myRegistration = ref(null)
 const memberGenders = ref({})
 
@@ -406,11 +405,17 @@ const cancelledMemberList = computed(() => {
       members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(guest.added_at || reg.created_at), addedBy: reg.display_name })
     })
   })
-
-  // 本地追蹤的取消成員（管理員個別移除 / 自己把「我」調回 0 但整筆未取消）
-  // 過濾掉已重新出現在 active 名單中的人（同 session 內取消又報名）
-  const activeMemberNames = new Set(memberList.value.map(m => m.name))
-  localCancelledMembers.value.filter(m => !activeMemberNames.has(m.name)).forEach(m => members.push(m))
+  ;[...registrations.value, ...cancelledRegistrations.value.filter(reg => !activeUserIds.has(reg.user_id))].forEach(reg => {
+    ;(reg.cancelled_members || []).forEach(member => {
+      members.push({
+        name: member.name || '群外',
+        badge: member.badge || (member.name || '群').charAt(0),
+        image: member.image || null,
+        time: formatRegistrationTime(member.time),
+        addedBy: member.addedBy || null,
+      })
+    })
+  })
 
   return members
 })
@@ -540,19 +545,8 @@ async function confirmRemove() {
           guestIndex: member._guestIndex,
         })
         await fetchRegistrations()
-        if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          localCancelledMembers.value = [
-            ...localCancelledMembers.value,
-            { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
-          ]
-        }
         return
       } else {
-        // 有群外：只把本人移出，記入取消清單
-        localCancelledMembers.value = [
-          ...localCancelledMembers.value,
-          { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
-        ]
         await invokeRegistrationAction({
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
@@ -562,7 +556,6 @@ async function confirmRemove() {
         })
       }
     } else if (member._memberType === 'guest') {
-      const removedGuest = (reg.guests || [])[member._guestIndex]
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
@@ -574,20 +567,8 @@ async function confirmRemove() {
           guestIndex: member._guestIndex,
         })
         await fetchRegistrations()
-        if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          if (removedGuest)
-            localCancelledMembers.value = [
-              ...localCancelledMembers.value,
-              { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name },
-            ]
-        }
         return
       } else {
-        if (removedGuest)
-          localCancelledMembers.value = [
-            ...localCancelledMembers.value,
-            { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name },
-          ]
         await invokeRegistrationAction({
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
@@ -931,7 +912,6 @@ async function _doSubmitSignup() {
   // 取消報名：標記為 cancelled，保留紀錄顯示於名單底部
   if (total <= 0 && myRegistration.value) {
     try {
-      const cancellingReg = myRegistration.value
       await invokeRegistrationAction({
         action: 'save-registration',
         activityId: activityData.value?.id,
@@ -941,23 +921,6 @@ async function _doSubmitSignup() {
         guests: [],
       })
       await fetchRegistrations()
-      if (!cancelledRegistrations.value.find(r => r.id === cancellingReg.id)) {
-        localCancelledMembers.value = [
-          ...localCancelledMembers.value,
-          {
-            name: cancellingReg.display_name,
-            badge: cancellingReg.display_name.charAt(0),
-            image: cancellingReg.picture_url || null,
-            time: formatRegistrationTime(cancellingReg.self_added_at || cancellingReg.created_at),
-          },
-        ]
-        ;(cancellingReg.guests || []).forEach(g => {
-          localCancelledMembers.value = [
-            ...localCancelledMembers.value,
-            { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at || cancellingReg.created_at), addedBy: cancellingReg.display_name },
-          ]
-        })
-      }
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
         title: '報名已取消',
@@ -970,10 +933,6 @@ async function _doSubmitSignup() {
     return
   }
 
-  const isNewRegistration = !myRegistration.value
-  const prevSelfCount = myRegistration.value?.self_count ?? 0
-  const prevGuests = myRegistration.value?.guests ?? []
-
   try {
     await invokeRegistrationAction({
       action: 'save-registration',
@@ -984,22 +943,6 @@ async function _doSubmitSignup() {
       guests: signupState.guests.slice(0, signupState.guest),
     })
     await fetchRegistrations()
-    // 「我」從有報名變成沒報名（整筆未取消，例如還有群外），補進本地取消清單
-    if (prevSelfCount > 0 && signupState.self === 0 && myRegistration.value) {
-      const reg = myRegistration.value
-      localCancelledMembers.value = [
-        ...localCancelledMembers.value,
-        { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
-      ]
-    }
-    // 群外人數減少時，把被移除的群外朋友加進取消清單
-    if (!isNewRegistration && signupState.guest < prevGuests.length) {
-      const removedGuests = prevGuests.slice(signupState.guest)
-      const addedByName = myRegistration.value?.display_name || liffStore.displayName
-      removedGuests.forEach(g => {
-        localCancelledMembers.value = [...localCancelledMembers.value, { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at), addedBy: addedByName }]
-      })
-    }
     setSignupOpen(false, { restoreFocus: false })
     setSuccessDialogOpen(true, {
       title: isUpdatingExistingSignup ? '報名已更新' : '報名已送出',

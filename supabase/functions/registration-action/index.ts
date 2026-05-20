@@ -115,6 +115,31 @@ function registrationPayload(
   }
 }
 
+function cancellationEntryFromSelf(reg: Record<string, any>) {
+  const name = reg.display_name || '未命名'
+  return {
+    name,
+    badge: name.charAt(0),
+    image: reg.picture_url ?? null,
+    time: reg.self_added_at || reg.created_at || new Date().toISOString(),
+  }
+}
+
+function cancellationEntryFromGuest(guest: Record<string, any>, reg: Record<string, any>) {
+  const name = guest.name || '群外'
+  return {
+    name,
+    badge: name.charAt(0),
+    time: guest.added_at || reg.created_at || new Date().toISOString(),
+    addedBy: reg.display_name || null,
+  }
+}
+
+function appendCancelledMembers(reg: Record<string, any>, entries: Array<Record<string, any>>) {
+  const existing = Array.isArray(reg.cancelled_members) ? reg.cancelled_members : []
+  return [...existing, ...entries]
+}
+
 async function requireOrganizer(supabase: any, userId: string) {
   const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
   if (error) throw error
@@ -214,6 +239,13 @@ serve(async req => {
 
       assertRegistrationWindow(activity, activityDate, now)
       const payload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, existing, submitTime)
+      if (existing) {
+        const removedMembers = []
+        if ((existing.self_count || 0) > 0 && selfCount === 0) removedMembers.push(cancellationEntryFromSelf(existing))
+        const previousGuests = Array.isArray(existing.guests) ? existing.guests : []
+        previousGuests.slice(guestCount).forEach((guest: Record<string, any>) => removedMembers.push(cancellationEntryFromGuest(guest, existing)))
+        if (removedMembers.length) payload.cancelled_members = appendCancelledMembers(existing, removedMembers)
+      }
 
       if (existing) {
         const { error } = await supabase.from('registrations').update(payload).eq('id', existing.id)
@@ -280,6 +312,11 @@ serve(async req => {
 
       if (guestCount > 0) {
         const payload = registrationPayload(activityId, activityDate, profile, 0, guestCount, normalizedGuests, pickupReg, submitTime)
+        if (pickupReg) {
+          const previousGuests = Array.isArray(pickupReg.guests) ? pickupReg.guests : []
+          const removedGuests = previousGuests.slice(guestCount).map((guest: Record<string, any>) => cancellationEntryFromGuest(guest, pickupReg))
+          if (removedGuests.length) payload.cancelled_members = appendCancelledMembers(pickupReg, removedGuests)
+        }
         if (pickupReg) {
           const { error } = await supabase.from('registrations').update(payload).eq('id', pickupReg.id)
           if (error) throw error
@@ -418,17 +455,20 @@ serve(async req => {
       if (!reg) return jsonResponse({ error: 'registration_not_found' }, 404, origin)
 
       if (memberType === 'self') {
-        const { error } =
-          (reg.guest_count || 0) === 0
-            ? await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
-            : await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
+        const removedSelf = (reg.self_count || 0) > 0 ? [cancellationEntryFromSelf(reg)] : []
+        const updatePayload = (reg.guest_count || 0) === 0 ? { status: 'cancelled' } : { self_count: 0, self_added_at: null, cancelled_members: appendCancelledMembers(reg, removedSelf) }
+        const { error } = await supabase.from('registrations').update(updatePayload).eq('id', reg.id)
         if (error) throw error
       } else {
         if (!Number.isInteger(guestIndex) || guestIndex < 0) return jsonResponse({ error: 'invalid_guest_index' }, 400, origin)
         const guests = Array.isArray(reg.guests) ? reg.guests : []
         if (!guests[guestIndex]) return jsonResponse({ error: 'guest_not_found' }, 404, origin)
+        const removedGuest = cancellationEntryFromGuest(guests[guestIndex], reg)
         const nextGuests = guests.filter((_: unknown, index: number) => index !== guestIndex)
-        const payload = (reg.self_count || 0) === 0 && nextGuests.length === 0 ? { status: 'cancelled' } : { guests: nextGuests, guest_count: nextGuests.length }
+        const payload =
+          (reg.self_count || 0) === 0 && nextGuests.length === 0
+            ? { status: 'cancelled' }
+            : { guests: nextGuests, guest_count: nextGuests.length, cancelled_members: appendCancelledMembers(reg, [removedGuest]) }
         const { error } = await supabase.from('registrations').update(payload).eq('id', reg.id)
         if (error) throw error
       }
