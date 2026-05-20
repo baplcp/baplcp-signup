@@ -75,6 +75,34 @@ function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>
   }))
 }
 
+function isUniqueViolation(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === '23505'
+}
+
+function registrationPayload(
+  activityId: string | number,
+  activityDate: string | null,
+  profile: LineProfile,
+  selfCount: number,
+  guestCount: number,
+  guests: Array<{ name: string; gender: string }>,
+  existing: Record<string, any> | null | undefined,
+  submitTime: string
+) {
+  return {
+    activity_id: activityId,
+    activity_date: activityDate,
+    user_id: profile.userId,
+    display_name: profile.displayName,
+    picture_url: profile.pictureUrl ?? null,
+    self_count: selfCount,
+    self_added_at: selfCount === 1 ? (existing?.self_count ? existing.self_added_at || submitTime : submitTime) : null,
+    guest_count: guestCount,
+    guests: withPreservedGuestTimes(guests, existing?.guests, submitTime),
+    status: 'active',
+  }
+}
+
 async function requireOrganizer(supabase: any, userId: string) {
   const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
   if (error) throw error
@@ -131,22 +159,25 @@ serve(async req => {
         return jsonResponse({ ok: true }, 200, origin)
       }
 
-      const guests = withPreservedGuestTimes(normalizedGuests, existing?.guests, submitTime)
-      const payload = {
-        activity_id: activityId,
-        activity_date: activityDate,
-        user_id: profile.userId,
-        display_name: profile.displayName,
-        picture_url: profile.pictureUrl ?? null,
-        self_count: selfCount,
-        self_added_at: selfCount === 1 ? (existing?.self_count ? existing.self_added_at || submitTime : submitTime) : null,
-        guest_count: guestCount,
-        guests,
-        status: 'active',
-      }
+      const payload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, existing, submitTime)
 
-      const { error } = existing ? await supabase.from('registrations').update(payload).eq('id', existing.id) : await supabase.from('registrations').insert(payload)
-      if (error) throw error
+      if (existing) {
+        const { error } = await supabase.from('registrations').update(payload).eq('id', existing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('registrations').insert(payload)
+        if (error) {
+          if (!isUniqueViolation(error)) throw error
+          const retryQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
+          const { data: retryExisting, error: retryReadError } =
+            activityDate === null ? await retryQuery.is('activity_date', null).maybeSingle() : await retryQuery.eq('activity_date', activityDate).maybeSingle()
+          if (retryReadError) throw retryReadError
+          if (!retryExisting) throw error
+          const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, guestCount, normalizedGuests, retryExisting, submitTime)
+          const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryExisting.id)
+          if (retryWriteError) throw retryWriteError
+        }
+      }
       return jsonResponse({ ok: true }, 200, origin)
     }
 
@@ -192,20 +223,29 @@ serve(async req => {
       if (pickupError) throw pickupError
 
       if (guestCount > 0) {
-        const payload = {
-          activity_id: activityId,
-          activity_date: activityDate,
-          user_id: profile.userId,
-          display_name: profile.displayName,
-          picture_url: profile.pictureUrl ?? null,
-          self_count: 0,
-          self_added_at: null,
-          guest_count: guestCount,
-          guests: withPreservedGuestTimes(normalizedGuests, pickupReg?.guests, submitTime),
-          status: 'active',
+        const payload = registrationPayload(activityId, activityDate, profile, 0, guestCount, normalizedGuests, pickupReg, submitTime)
+        if (pickupReg) {
+          const { error } = await supabase.from('registrations').update(payload).eq('id', pickupReg.id)
+          if (error) throw error
+        } else {
+          const { error } = await supabase.from('registrations').insert(payload)
+          if (error) {
+            if (!isUniqueViolation(error)) throw error
+            const { data: retryPickupReg, error: retryReadError } = await supabase
+              .from('registrations')
+              .select('*')
+              .eq('activity_id', activityId)
+              .eq('user_id', profile.userId)
+              .eq('activity_date', activityDate)
+              .eq('status', 'active')
+              .maybeSingle()
+            if (retryReadError) throw retryReadError
+            if (!retryPickupReg) throw error
+            const retryPayload = registrationPayload(activityId, activityDate, profile, 0, guestCount, normalizedGuests, retryPickupReg, submitTime)
+            const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryPickupReg.id)
+            if (retryWriteError) throw retryWriteError
+          }
         }
-        const { error } = pickupReg ? await supabase.from('registrations').update(payload).eq('id', pickupReg.id) : await supabase.from('registrations').insert(payload)
-        if (error) throw error
       } else if (pickupReg && (pickupReg.guest_count || 0) > 0) {
         const { error } = await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', pickupReg.id)
         if (error) throw error
@@ -215,21 +255,9 @@ serve(async req => {
     }
 
     if (action === 'direct-season-register') {
-      const payload = {
-        activity_id: activityId,
-        activity_date: null,
-        user_id: profile.userId,
-        display_name: profile.displayName,
-        picture_url: profile.pictureUrl ?? null,
-        self_count: 1,
-        self_added_at: submitTime,
-        guest_count: 0,
-        guests: [],
-        status: 'active',
-      }
       const { data: activeReg, error: activeError } = await supabase
         .from('registrations')
-        .select('id')
+        .select('*')
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
         .is('activity_date', null)
@@ -238,15 +266,32 @@ serve(async req => {
       if (activeError) throw activeError
       const { data: cancelledReg, error: cancelledError } = activeReg
         ? { data: null, error: null }
-        : await supabase.from('registrations').select('id').eq('activity_id', activityId).eq('user_id', profile.userId).is('activity_date', null).eq('status', 'cancelled').maybeSingle()
+        : await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).is('activity_date', null).eq('status', 'cancelled').maybeSingle()
       if (cancelledError) throw cancelledError
 
+      const existingSeasonReg = activeReg || cancelledReg
+      const payload = registrationPayload(activityId, null, profile, 1, 0, [], existingSeasonReg, submitTime)
       const { error } = activeReg
         ? await supabase.from('registrations').update(payload).eq('id', activeReg.id)
         : cancelledReg
           ? await supabase.from('registrations').update(payload).eq('id', cancelledReg.id)
           : await supabase.from('registrations').insert(payload)
-      if (error) throw error
+      if (error) {
+        if (!isUniqueViolation(error)) throw error
+        const { data: retryActiveReg, error: retryReadError } = await supabase
+          .from('registrations')
+          .select('*')
+          .eq('activity_id', activityId)
+          .eq('user_id', profile.userId)
+          .is('activity_date', null)
+          .eq('status', 'active')
+          .maybeSingle()
+        if (retryReadError) throw retryReadError
+        if (!retryActiveReg) throw error
+        const retryPayload = registrationPayload(activityId, null, profile, 1, 0, [], retryActiveReg, submitTime)
+        const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryActiveReg.id)
+        if (retryWriteError) throw retryWriteError
+      }
       await supabase.from('members').update({ is_season: true }).eq('user_id', profile.userId)
       return jsonResponse({ ok: true }, 200, origin)
     }
@@ -344,7 +389,13 @@ serve(async req => {
     return jsonResponse({ error: 'unknown_action' }, 400, origin)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'internal_error'
-    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message) ? 401 : message === 'forbidden' ? 403 : 400
+    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message)
+      ? 401
+      : message === 'forbidden'
+        ? 403
+        : message.includes('capacity_exceeded') || message.includes('duplicate key')
+          ? 409
+          : 400
     console.error('registration-action error', message)
     return jsonResponse({ error: message }, status, origin)
   }
