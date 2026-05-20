@@ -222,12 +222,14 @@ onUnmounted(() => {
 
 async function invokeRegistrationAction(body) {
   const lineAccessToken = await liffStore.getLineAccessToken()
-  if (!lineAccessToken) throw new Error('missing_line_access_token')
+  if (!lineAccessToken && !import.meta.env.DEV) throw new Error('missing_line_access_token')
 
-  const { error } = await supabase.functions.invoke('registration-action', {
-    body,
-    headers: { 'x-line-access-token': lineAccessToken },
-  })
+  const options = { body }
+  if (lineAccessToken) {
+    options.headers = { 'x-line-access-token': lineAccessToken }
+  }
+
+  const { error } = await supabase.functions.invoke('registration-action', options)
   if (error) throw error
 }
 

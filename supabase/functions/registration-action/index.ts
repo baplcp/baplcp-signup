@@ -16,6 +16,14 @@ type LineProfile = {
   userId: string
   displayName: string
   pictureUrl?: string | null
+  isDevAdmin?: boolean
+}
+
+const DEV_PROFILE: LineProfile = {
+  userId: 'dev-user-001',
+  displayName: 'Dev Admin',
+  pictureUrl: null,
+  isDevAdmin: true,
 }
 
 type GuestInput = {
@@ -78,6 +86,21 @@ async function getLineProfile(accessToken: string): Promise<LineProfile> {
     displayName: profile.displayName,
     pictureUrl: profile.pictureUrl ?? null,
   }
+}
+
+function isLocalDevAdminRequest(origin: string) {
+  return Deno.env.get('ALLOW_DEV_ADMIN') === 'true' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
+}
+
+async function resolveProfile(req: Request, origin: string): Promise<LineProfile> {
+  const lineAccessToken = req.headers.get('x-line-access-token')
+  if (lineAccessToken) return getLineProfile(lineAccessToken)
+
+  if (isLocalDevAdminRequest(origin)) {
+    return DEV_PROFILE
+  }
+
+  throw new Error('missing_line_token')
 }
 
 function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>, previousGuests: Array<{ added_at?: string }> | null | undefined, submitTime: string) {
@@ -145,6 +168,11 @@ async function requireOrganizer(supabase: any, userId: string) {
   if (data?.role !== 'organizer') throw new Error('forbidden')
 }
 
+async function requireAdmin(supabase: any, profile: LineProfile) {
+  if (profile.isDevAdmin) return
+  await requireOrganizer(supabase, profile.userId)
+}
+
 async function getActivityForRegistration(supabase: any, activityId: string | number) {
   const { data, error } = await supabase
     .from('activities')
@@ -196,14 +224,11 @@ serve(async req => {
   }
 
   try {
-    const lineAccessToken = req.headers.get('x-line-access-token')
-    if (!lineAccessToken) return jsonResponse({ error: 'missing_line_token' }, 401, origin)
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !supabaseKey) return jsonResponse({ error: 'server_misconfigured' }, 500, origin)
 
-    const profile = await getLineProfile(lineAccessToken)
+    const profile = await resolveProfile(req, origin)
     const body = await req.json()
     const action = body?.action
     const activityId = normalizeId(body?.activityId)
@@ -410,7 +435,7 @@ serve(async req => {
     }
 
     if (action === 'admin-toggle-payment') {
-      await requireOrganizer(supabase, profile.userId)
+      await requireAdmin(supabase, profile)
       const registrationId = normalizeId(body?.registrationId)
       const memberType = body?.memberType
       const guestIndex = Number(body?.guestIndex)
@@ -442,7 +467,7 @@ serve(async req => {
     }
 
     if (action === 'admin-remove-member') {
-      await requireOrganizer(supabase, profile.userId)
+      await requireAdmin(supabase, profile)
       const registrationId = normalizeId(body?.registrationId)
       const memberType = body?.memberType
       const guestIndex = Number(body?.guestIndex)
@@ -476,7 +501,7 @@ serve(async req => {
     }
 
     if (action === 'admin-update-ac') {
-      await requireOrganizer(supabase, profile.userId)
+      await requireAdmin(supabase, profile)
       const enabled = body?.enabled
       if (typeof enabled !== 'boolean') return jsonResponse({ error: 'invalid_enabled' }, 400, origin)
       const { error } = await supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
@@ -487,7 +512,7 @@ serve(async req => {
     return jsonResponse({ error: 'unknown_action' }, 400, origin)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'internal_error'
-    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message)
+    const status = ['missing_line_token', 'invalid_line_token', 'invalid_line_profile'].includes(message)
       ? 401
       : message === 'forbidden'
         ? 403

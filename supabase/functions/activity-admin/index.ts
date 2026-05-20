@@ -144,6 +144,24 @@ async function getLineProfile(accessToken: string) {
   return profile
 }
 
+function isLocalDevAdminRequest(origin: string) {
+  return Deno.env.get('ALLOW_DEV_ADMIN') === 'true' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
+}
+
+async function resolveOrganizerIdentity(req: Request, origin: string) {
+  const lineAccessToken = req.headers.get('x-line-access-token')
+  if (lineAccessToken) {
+    const profile = await getLineProfile(lineAccessToken)
+    return { userId: profile.userId, isDevAdmin: false }
+  }
+
+  if (isLocalDevAdminRequest(origin)) {
+    return { userId: null, isDevAdmin: true }
+  }
+
+  throw new Error('missing_line_token')
+}
+
 async function requireOrganizer(supabase: any, userId: string) {
   const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
   if (error) throw error
@@ -162,18 +180,15 @@ serve(async req => {
   }
 
   try {
-    const lineAccessToken = req.headers.get('x-line-access-token')
-    if (!lineAccessToken) return jsonResponse({ error: 'missing_line_token' }, 401, origin)
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !supabaseKey) return jsonResponse({ error: 'server_misconfigured' }, 500, origin)
 
-    const profile = await getLineProfile(lineAccessToken)
+    const organizerIdentity = await resolveOrganizerIdentity(req, origin)
     const body = await req.json()
     const action = body?.action
     const supabase = createClient(supabaseUrl, supabaseKey)
-    await requireOrganizer(supabase, profile.userId)
+    if (!organizerIdentity.isDevAdmin) await requireOrganizer(supabase, organizerIdentity.userId)
 
     if (action === 'create') {
       const payload = cleanActivityPayload(body?.payload)
@@ -202,7 +217,7 @@ serve(async req => {
     return jsonResponse({ error: 'unknown_action' }, 400, origin)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'internal_error'
-    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message) ? 401 : message === 'forbidden' ? 403 : 400
+    const status = ['missing_line_token', 'invalid_line_token', 'invalid_line_profile'].includes(message) ? 401 : message === 'forbidden' ? 403 : 400
     console.error('activity-admin error', message)
     return jsonResponse({ error: message }, status, origin)
   }

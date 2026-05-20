@@ -17,6 +17,19 @@ under `supabase/migrations/`.
 - Public read RLS policies are versioned in
   `20260520005000_version_public_rls_policies.sql`.
 
+## Local Dev Admin
+
+When serving Edge Functions locally, admin actions can use a local dev identity
+instead of a LINE access token. Set these only in the local function env file:
+
+```env
+ALLOW_DEV_ADMIN=true
+```
+
+The dev bypass is limited to localhost origins and does not check
+`members.role`. LINE-token requests still require `role = organizer` for
+admin operations.
+
 ## Tables
 
 ### `activities`
