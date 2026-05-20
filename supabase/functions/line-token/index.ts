@@ -84,6 +84,7 @@ serve(async req => {
         userId: profile.userId,
         displayName: profile.displayName,
         pictureUrl: profile.pictureUrl ?? null,
+        accessToken,
       }),
       {
         status: 200,

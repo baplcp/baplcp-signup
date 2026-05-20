@@ -221,6 +221,17 @@ onUnmounted(() => {
   if (_realtimeChannel) supabase.removeChannel(_realtimeChannel)
 })
 
+async function invokeRegistrationAction(body) {
+  const lineAccessToken = await liffStore.getLineAccessToken()
+  if (!lineAccessToken) throw new Error('missing_line_access_token')
+
+  const { error } = await supabase.functions.invoke('registration-action', {
+    body,
+    headers: { 'x-line-access-token': lineAccessToken },
+  })
+  if (error) throw error
+}
+
 // 報名開放時間（台灣時間 UTC+8，無日光節約）
 const registrationOpenAt = computed(() => {
   const a = activityData.value
@@ -451,10 +462,14 @@ async function togglePayment(member, field) {
     const updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
     seasonRegistrations.value = seasonRegistrations.value.map((r, i) => (i === regIdx ? updatedReg : r))
     try {
-      await supabase
-        .from('registrations')
-        .update({ [field]: updatedReg[field] })
-        .eq('id', reg.id)
+      await invokeRegistrationAction({
+        action: 'admin-toggle-payment',
+        activityId: activityData.value?.id,
+        registrationId: reg.id,
+        memberType: member._memberType,
+        guestIndex: member._guestIndex,
+        field,
+      })
       await fetchRegistrations()
     } catch {
       await fetchRegistrations()
@@ -478,14 +493,14 @@ async function togglePayment(member, field) {
 
   // 背景寫入 DB，完成後再同步一次確保一致
   try {
-    if (member._memberType === 'self') {
-      await supabase
-        .from('registrations')
-        .update({ [field]: updatedReg[field] })
-        .eq('id', reg.id)
-    } else {
-      await supabase.from('registrations').update({ guests: updatedReg.guests }).eq('id', reg.id)
-    }
+    await invokeRegistrationAction({
+      action: 'admin-toggle-payment',
+      activityId: activityData.value?.id,
+      registrationId: reg.id,
+      memberType: member._memberType,
+      guestIndex: member._guestIndex,
+      field,
+    })
     await fetchRegistrations()
   } catch {
     await fetchRegistrations()
@@ -517,7 +532,13 @@ async function confirmRemove() {
   try {
     if (member._memberType === 'self') {
       if ((reg.guest_count || 0) === 0) {
-        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+        await invokeRegistrationAction({
+          action: 'admin-remove-member',
+          activityId: activityData.value?.id,
+          registrationId: reg.id,
+          memberType: member._memberType,
+          guestIndex: member._guestIndex,
+        })
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
           localCancelledMembers.value = [
@@ -532,14 +553,26 @@ async function confirmRemove() {
           ...localCancelledMembers.value,
           { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
         ]
-        await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
+        await invokeRegistrationAction({
+          action: 'admin-remove-member',
+          activityId: activityData.value?.id,
+          registrationId: reg.id,
+          memberType: member._memberType,
+          guestIndex: member._guestIndex,
+        })
       }
     } else if (member._memberType === 'guest') {
       const removedGuest = (reg.guests || [])[member._guestIndex]
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
-        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
+        await invokeRegistrationAction({
+          action: 'admin-remove-member',
+          activityId: activityData.value?.id,
+          registrationId: reg.id,
+          memberType: member._memberType,
+          guestIndex: member._guestIndex,
+        })
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
           if (removedGuest)
@@ -555,7 +588,13 @@ async function confirmRemove() {
             ...localCancelledMembers.value,
             { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name },
           ]
-        await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
+        await invokeRegistrationAction({
+          action: 'admin-remove-member',
+          activityId: activityData.value?.id,
+          registrationId: reg.id,
+          memberType: member._memberType,
+          guestIndex: member._guestIndex,
+        })
       }
     }
     await fetchRegistrations()
@@ -568,7 +607,11 @@ async function updateAcEnabled(enabled) {
   const activityId = route.query.id || activityData.value?.id
   if (!activityId) return
   try {
-    await supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
+    await invokeRegistrationAction({
+      action: 'admin-update-ac',
+      activityId,
+      enabled,
+    })
   } catch {
     // 靜默失敗，欄位可能尚未建立
   }
@@ -830,49 +873,16 @@ async function _doSubmitSignup() {
     try {
       const leaveStatusChanged = (newSelf === 0) !== isCurrentlyOnLeave
 
-      // 更新請假狀態
-      if (leaveStatusChanged) {
-        const newLeaveDates = newSelf === 0 ? [...(seasonReg.leave_dates || []), resolvedDate.value] : (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
-        const updatePayload = { leave_dates: newLeaveDates }
-        // 取消請假（加回來）時記錄回歸時間，下次名單排序將以此為準，不保留原本的早期名次
-        if (newSelf !== 0) {
-          updatePayload.rejoin_times = { ...(seasonReg.rejoin_times || {}), [resolvedDate.value]: new Date().toISOString() }
-        }
-        await supabase.from('registrations').update(updatePayload).eq('id', seasonReg.id)
-      }
-
-      // 處理群外臨打報名
+      // 處理請假狀態與群外臨打報名；身分由 Edge Function 驗 LINE token 後決定。
       const guestTotal = signupState.guest
-      const prevGuestTotal = myRegistration.value?.guest_count ?? 0
-      const prevGuests = myRegistration.value?.guests ?? []
-      const submitTime = new Date().toISOString()
-
-      if (guestTotal > 0) {
-        const guestsWithTime = signupState.guests.slice(0, guestTotal).map((g, i) => ({
-          ...g,
-          added_at: i < prevGuests.length ? prevGuests[i].added_at || submitTime : submitTime,
-        }))
-        const payload = {
-          activity_id: activityData.value?.id,
-          activity_date: resolvedDate.value,
-          user_id: liffStore.userId,
-          display_name: liffStore.displayName,
-          picture_url: liffStore.pictureUrl || null,
-          self_count: 0,
-          self_added_at: null,
-          guest_count: guestTotal,
-          guests: guestsWithTime,
-          status: 'active',
-        }
-        if (myRegistration.value) {
-          await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
-        } else {
-          await supabase.from('registrations').insert(payload)
-        }
-      } else if (myRegistration.value && prevGuestTotal > 0) {
-        // 群外全部清空，取消那筆臨打報名
-        await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', myRegistration.value.id)
-      }
+      await invokeRegistrationAction({
+        action: 'season-leave',
+        activityId: activityData.value?.id,
+        activityDate: resolvedDate.value,
+        selfCount: newSelf,
+        guestCount: guestTotal,
+        guests: signupState.guests.slice(0, guestTotal),
+      })
 
       await fetchRegistrations()
       setSignupOpen(false, { restoreFocus: false })
@@ -922,7 +932,14 @@ async function _doSubmitSignup() {
   if (total <= 0 && myRegistration.value) {
     try {
       const cancellingReg = myRegistration.value
-      await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', cancellingReg.id)
+      await invokeRegistrationAction({
+        action: 'save-registration',
+        activityId: activityData.value?.id,
+        activityDate: activityType.value === 'season' ? null : resolvedDate.value,
+        selfCount: 0,
+        guestCount: 0,
+        guests: [],
+      })
       await fetchRegistrations()
       if (!cancelledRegistrations.value.find(r => r.id === cancellingReg.id)) {
         localCancelledMembers.value = [
@@ -953,37 +970,19 @@ async function _doSubmitSignup() {
     return
   }
 
-  const submitTime = new Date().toISOString()
   const isNewRegistration = !myRegistration.value
   const prevSelfCount = myRegistration.value?.self_count ?? 0
   const prevGuests = myRegistration.value?.guests ?? []
 
-  const selfAddedAt = signupState.self === 1 ? (prevSelfCount === 0 ? submitTime : (myRegistration.value?.self_added_at ?? submitTime)) : null
-
-  const guestsWithTime = signupState.guests.slice(0, signupState.guest).map((g, i) => ({
-    ...g,
-    added_at: isNewRegistration || i >= prevGuests.length ? submitTime : prevGuests[i].added_at || submitTime,
-  }))
-
-  const payload = {
-    activity_id: activityData.value?.id,
-    activity_date: activityType.value === 'season' ? null : resolvedDate.value,
-    user_id: liffStore.userId,
-    display_name: liffStore.displayName,
-    picture_url: liffStore.pictureUrl || null,
-    self_count: signupState.self,
-    self_added_at: selfAddedAt,
-    guest_count: signupState.guest,
-    guests: guestsWithTime,
-    status: 'active',
-  }
-
   try {
-    if (myRegistration.value) {
-      await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
-    } else {
-      await supabase.from('registrations').insert(payload)
-    }
+    await invokeRegistrationAction({
+      action: 'save-registration',
+      activityId: activityData.value?.id,
+      activityDate: activityType.value === 'season' ? null : resolvedDate.value,
+      selfCount: signupState.self,
+      guestCount: signupState.guest,
+      guests: signupState.guests.slice(0, signupState.guest),
+    })
     await fetchRegistrations()
     // 「我」從有報名變成沒報名（整筆未取消，例如還有群外），補進本地取消清單
     if (prevSelfCount > 0 && signupState.self === 0 && myRegistration.value) {
@@ -1050,28 +1049,10 @@ async function directSeasonRegister() {
   if (isSubmitting.value) return
   isSubmitting.value = true
   try {
-    const submitTime = new Date().toISOString()
-    const payload = {
-      activity_id: activityData.value?.id,
-      activity_date: null,
-      user_id: liffStore.userId,
-      display_name: liffStore.displayName,
-      picture_url: liffStore.pictureUrl || null,
-      self_count: 1,
-      self_added_at: submitTime,
-      guest_count: 0,
-      guests: [],
-      status: 'active',
-    }
-    if (myRegistration.value) {
-      await supabase.from('registrations').update(payload).eq('id', myRegistration.value.id)
-    } else if (myCancelledSeasonRegistration.value) {
-      // 重新加回已取消的季打報名
-      await supabase.from('registrations').update(payload).eq('id', myCancelledSeasonRegistration.value.id)
-    } else {
-      await supabase.from('registrations').insert(payload)
-    }
-    await supabase.from('members').update({ is_season: true }).eq('user_id', liffStore.userId)
+    await invokeRegistrationAction({
+      action: 'direct-season-register',
+      activityId: activityData.value?.id,
+    })
     liffStore.isSeason = true
     await fetchRegistrations()
   } catch {
@@ -1086,8 +1067,10 @@ async function confirmSeasonCancel() {
   const reg = myRegistration.value
   if (!reg) return
   try {
-    await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
-    await supabase.from('members').update({ is_season: false }).eq('user_id', liffStore.userId)
+    await invokeRegistrationAction({
+      action: 'season-cancel',
+      activityId: activityData.value?.id,
+    })
     liffStore.isSeason = false
     await fetchRegistrations()
   } catch {

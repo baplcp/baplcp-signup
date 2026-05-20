@@ -13,6 +13,7 @@ export const useLiffStore = defineStore('liff', () => {
   const userId = ref(null)
   const displayName = ref(null)
   const pictureUrl = ref(null)
+  const lineAccessToken = ref(null)
   const role = ref('member')
   const gender = ref(null)
   const isSeason = ref(false)
@@ -27,50 +28,33 @@ export const useLiffStore = defineStore('liff', () => {
     }
   }
 
-  // 登入時同步 members 表：找到就讀取 role，找不到就自動新增（role 預設 guest）
+  // 登入時透過 Edge Function 同步 members；production 不信任前端傳入的 LINE 身分。
   async function syncMember(uid, name) {
     if (!uid) return
     try {
-      const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', uid).maybeSingle()
-
-      if (error) {
-        console.warn('syncMember select error', error.message)
+      if (import.meta.env.DEV) {
+        const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', uid).maybeSingle()
+        if (error) return
+        if (data) {
+          role.value = data.role
+          gender.value = data.gender || null
+          isSeason.value = data.is_season ?? false
+        } else {
+          await supabase.from('members').insert({ user_id: uid, display_name: name, role: 'member' })
+          role.value = 'member'
+        }
         return
       }
 
-      if (data) {
-        // 已有記錄：直接讀取 role 與 gender，不覆蓋管理員設定
-        role.value = data.role
-        gender.value = data.gender || null
-
-        // 自動同步 is_season：依據使用者是否在最新季打 activity 有 active 報名
-        const { data: latestSeason } = await supabase.from('activities').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
-
-        if (latestSeason) {
-          const { data: seasonReg } = await supabase
-            .from('registrations')
-            .select('id')
-            .eq('activity_id', latestSeason.id)
-            .eq('user_id', uid)
-            .is('activity_date', null)
-            .eq('status', 'active')
-            .maybeSingle()
-          const newIsSeason = !!seasonReg
-          if (newIsSeason !== data.is_season) {
-            await supabase.from('members').update({ is_season: newIsSeason }).eq('user_id', uid)
-          }
-          isSeason.value = newIsSeason
-        } else {
-          isSeason.value = data.is_season ?? false
-        }
-      } else {
-        // 第一次登入：自動新增，role 預設 guest
-        const { error: insertError } = await supabase.from('members').insert({ user_id: uid, display_name: name, role: 'member' })
-        if (insertError) {
-          console.warn('syncMember insert error', insertError.message)
-        }
-        role.value = 'member'
-      }
+      if (!lineAccessToken.value) return
+      const { data, error } = await supabase.functions.invoke('member-profile', {
+        body: { action: 'sync' },
+        headers: { 'x-line-access-token': lineAccessToken.value },
+      })
+      if (error) throw error
+      role.value = data?.role ?? 'member'
+      gender.value = data?.gender ?? null
+      isSeason.value = data?.isSeason ?? false
     } catch (e) {
       console.warn('syncMember exception', e)
     }
@@ -99,6 +83,7 @@ export const useLiffStore = defineStore('liff', () => {
           userId.value = data.userId
           displayName.value = data.displayName
           pictureUrl.value = data.pictureUrl ?? null
+          lineAccessToken.value = data.accessToken ?? null
           await syncMember(data.userId, data.displayName)
           initialized.value = true
           // 還原登入前的頁面，交由 App.vue 透過 router.replace 處理
@@ -129,6 +114,7 @@ export const useLiffStore = defineStore('liff', () => {
           userId.value = profile.userId
           displayName.value = profile.displayName
           pictureUrl.value = profile.pictureUrl
+          lineAccessToken.value = liff.getAccessToken()
           await syncMember(profile.userId, profile.displayName)
         }
 
@@ -143,6 +129,7 @@ export const useLiffStore = defineStore('liff', () => {
         userId.value = profile.userId
         displayName.value = profile.displayName
         pictureUrl.value = profile.pictureUrl
+        lineAccessToken.value = liff.getAccessToken()
         await syncMember(profile.userId, profile.displayName)
 
         // LIFF auth 後回到首頁時，還原 auth 前的 hash 路由
@@ -191,10 +178,32 @@ export const useLiffStore = defineStore('liff', () => {
     return initializationPromise
   }
 
+  async function getLineAccessToken() {
+    await initialize()
+    if (lineAccessToken.value) return lineAccessToken.value
+    if (!import.meta.env.DEV && liff.isLoggedIn()) {
+      lineAccessToken.value = liff.getAccessToken()
+      return lineAccessToken.value
+    }
+    return null
+  }
+
   async function updateGender(newGender) {
     if (!userId.value) return
     const value = newGender || null
-    const { error } = await supabase.from('members').update({ gender: value }).eq('user_id', userId.value)
+    if (import.meta.env.DEV) {
+      const { error } = await supabase.from('members').update({ gender: value }).eq('user_id', userId.value)
+      if (!error) gender.value = value
+      else console.warn('updateGender error', error.message)
+      return
+    }
+
+    const lineToken = await getLineAccessToken()
+    if (!lineToken) return
+    const { error } = await supabase.functions.invoke('member-profile', {
+      body: { action: 'update-gender', gender: value },
+      headers: { 'x-line-access-token': lineToken },
+    })
     if (!error) gender.value = value
     else console.warn('updateGender error', error.message)
   }
@@ -210,6 +219,7 @@ export const useLiffStore = defineStore('liff', () => {
     userId,
     displayName,
     pictureUrl,
+    lineAccessToken,
     role,
     gender,
     isSeason,
@@ -217,6 +227,7 @@ export const useLiffStore = defineStore('liff', () => {
     pendingRedirect,
     getUserProfile,
     initialize,
+    getLineAccessToken,
     login,
     updateGender,
   }
