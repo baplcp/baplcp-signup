@@ -1,10 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
-const ALLOWED_ORIGINS = [
-  'https://baplcp.github.io',
-  'http://localhost:5173',
-  'http://localhost:4173',
-]
+const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
 
 function corsHeaders(origin: string) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
@@ -15,7 +11,7 @@ function corsHeaders(origin: string) {
   }
 }
 
-serve(async (req) => {
+serve(async req => {
   const origin = req.headers.get('origin') ?? ''
 
   if (req.method === 'OPTIONS') {

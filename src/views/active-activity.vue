@@ -79,11 +79,14 @@ const myRegistration = ref(null)
 const memberGenders = ref({})
 
 // 使用者在此頁設定完性別後，立即更新本地 memberGenders，不需重抓名單
-watch(() => liffStore.gender, (newGender) => {
-  if (liffStore.userId && newGender) {
-    memberGenders.value = { ...memberGenders.value, [liffStore.userId]: newGender }
+watch(
+  () => liffStore.gender,
+  newGender => {
+    if (liffStore.userId && newGender) {
+      memberGenders.value = { ...memberGenders.value, [liffStore.userId]: newGender }
+    }
   }
-})
+)
 
 async function fetchRegistrations() {
   const activityId = route.query.id || activityData.value?.id
@@ -143,20 +146,17 @@ async function fetchRegistrations() {
     const genders = {}
     if (userIds.length) {
       const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
-      if (memberData) memberData.forEach(m => { genders[m.user_id] = m.gender || null })
+      if (memberData)
+        memberData.forEach(m => {
+          genders[m.user_id] = m.gender || null
+        })
     }
     if (liffStore.userId && liffStore.gender) genders[liffStore.userId] = liffStore.gender
     memberGenders.value = genders
   }
 
   // 同步抓季打報名（供臨打頁面顯示季打成員）
-  const { data: seasonData } = await supabase
-    .from('registrations')
-    .select('*')
-    .eq('activity_id', activityId)
-    .is('activity_date', null)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
+  const { data: seasonData } = await supabase.from('registrations').select('*').eq('activity_id', activityId).is('activity_date', null).eq('status', 'active').order('created_at', { ascending: true })
   seasonRegistrations.value = seasonData || []
   mySeasonRegistration.value = seasonData?.find(r => r.user_id === liffStore.userId) || null
 
@@ -166,14 +166,17 @@ async function fetchRegistrations() {
     const { data: seasonMemberData } = await supabase.from('members').select('user_id, gender').in('user_id', seasonUserIds)
     if (seasonMemberData) {
       const updated = { ...memberGenders.value }
-      seasonMemberData.forEach(m => { updated[m.user_id] = m.gender || null })
+      seasonMemberData.forEach(m => {
+        updated[m.user_id] = m.gender || null
+      })
       memberGenders.value = updated
     }
   }
 }
 
 onMounted(async () => {
-  const AC_FIELDS = 'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
+  const AC_FIELDS =
+    'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
   const id = route.query.id
 
   // 預先啟動 activity 查詢，與 LIFF init 並行，縮短整體等待時間
@@ -196,7 +199,9 @@ onMounted(async () => {
 
   await fetchRegistrations()
   isLoading.value = false
-  _nowTickInterval = setInterval(() => { nowTick.value = new Date() }, 1000)
+  _nowTickInterval = setInterval(() => {
+    nowTick.value = new Date()
+  }, 1000)
 
   _realtimeChannel = supabase
     .channel('registrations-live')
@@ -264,9 +269,7 @@ const registrationCountdown = computed(() => {
   const h = Math.floor(diff / 3600000)
   const m = Math.floor((diff % 3600000) / 60000)
   const s = Math.floor((diff % 60000) / 1000)
-  return h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} 後開放`
-    : `${m}:${String(s).padStart(2, '0')} 後開放`
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} 後開放` : `${m}:${String(s).padStart(2, '0')} 後開放`
 })
 
 const vacancyCount = computed(() => {
@@ -335,11 +338,35 @@ const memberList = computed(() => {
   registrations.value.forEach(reg => {
     if (reg.self_count > 0) {
       const ts = reg.self_added_at || reg.created_at
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(ts), _ts: ts, gender: memberGenders.value[reg.user_id] || null, _regId: reg.id, _memberType: 'self', _guestIndex: -1, paidCourt: reg.paid_court ?? false, paidAc: reg.paid_ac ?? false })
+      members.push({
+        name: reg.display_name,
+        badge: reg.display_name.charAt(0),
+        image: reg.picture_url || null,
+        time: formatRegistrationTime(ts),
+        _ts: ts,
+        gender: memberGenders.value[reg.user_id] || null,
+        _regId: reg.id,
+        _memberType: 'self',
+        _guestIndex: -1,
+        paidCourt: reg.paid_court ?? false,
+        paidAc: reg.paid_ac ?? false,
+      })
     }
     ;(reg.guests || []).forEach((guest, gIdx) => {
       const ts = guest.added_at || reg.created_at
-      const entry = { name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(ts), addedBy: reg.display_name, _ts: ts, gender: guest.gender || null, _regId: reg.id, _memberType: 'guest', _guestIndex: gIdx, paidCourt: guest.paid_court ?? false, paidAc: guest.paid_ac ?? false }
+      const entry = {
+        name: guest.name || '群外',
+        badge: (guest.name || '群').charAt(0),
+        time: formatRegistrationTime(ts),
+        addedBy: reg.display_name,
+        _ts: ts,
+        gender: guest.gender || null,
+        _regId: reg.id,
+        _memberType: 'guest',
+        _guestIndex: gIdx,
+        paidCourt: guest.paid_court ?? false,
+        paidAc: guest.paid_ac ?? false,
+      }
       if (gIdx >= 2) {
         overflowGuests.push(entry)
       } else {
@@ -360,7 +387,7 @@ const cancelledMemberList = computed(() => {
 
   // Supabase 抓得到的整筆 cancelled 紀錄
   cancelledRegistrations.value.forEach(reg => {
-    if (activeUserIds.has(reg.user_id)) return  // 已重新報名，略過
+    if (activeUserIds.has(reg.user_id)) return // 已重新報名，略過
     if (reg.self_count > 0) {
       members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) })
     }
@@ -407,7 +434,7 @@ const myFullyPaid = computed(() => {
     if (acEnabled.value && !reg.paid_ac) return false
   }
 
-  for (const guest of (reg.guests || [])) {
+  for (const guest of reg.guests || []) {
     if (!guest.paid_court) return false
     if (acEnabled.value && !guest.paid_ac) return false
   }
@@ -422,9 +449,12 @@ async function togglePayment(member, field) {
     if (regIdx === -1) return
     const reg = seasonRegistrations.value[regIdx]
     const updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
-    seasonRegistrations.value = seasonRegistrations.value.map((r, i) => i === regIdx ? updatedReg : r)
+    seasonRegistrations.value = seasonRegistrations.value.map((r, i) => (i === regIdx ? updatedReg : r))
     try {
-      await supabase.from('registrations').update({ [field]: updatedReg[field] }).eq('id', reg.id)
+      await supabase
+        .from('registrations')
+        .update({ [field]: updatedReg[field] })
+        .eq('id', reg.id)
       await fetchRegistrations()
     } catch {
       await fetchRegistrations()
@@ -441,17 +471,18 @@ async function togglePayment(member, field) {
   if (member._memberType === 'self') {
     updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
   } else {
-    const newGuests = (reg.guests || []).map((g, i) =>
-      i === member._guestIndex ? { ...g, [field]: !(g[field] ?? false) } : g
-    )
+    const newGuests = (reg.guests || []).map((g, i) => (i === member._guestIndex ? { ...g, [field]: !(g[field] ?? false) } : g))
     updatedReg = { ...reg, guests: newGuests }
   }
-  registrations.value = registrations.value.map((r, i) => i === regIdx ? updatedReg : r)
+  registrations.value = registrations.value.map((r, i) => (i === regIdx ? updatedReg : r))
 
   // 背景寫入 DB，完成後再同步一次確保一致
   try {
     if (member._memberType === 'self') {
-      await supabase.from('registrations').update({ [field]: updatedReg[field] }).eq('id', reg.id)
+      await supabase
+        .from('registrations')
+        .update({ [field]: updatedReg[field] })
+        .eq('id', reg.id)
     } else {
       await supabase.from('registrations').update({ guests: updatedReg.guests }).eq('id', reg.id)
     }
@@ -489,12 +520,18 @@ async function confirmRemove() {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
+          localCancelledMembers.value = [
+            ...localCancelledMembers.value,
+            { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
+          ]
         }
         return
       } else {
         // 有群外：只把本人移出，記入取消清單
-        localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
+        localCancelledMembers.value = [
+          ...localCancelledMembers.value,
+          { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
+        ]
         await supabase.from('registrations').update({ self_count: 0, self_added_at: null }).eq('id', reg.id)
       }
     } else if (member._memberType === 'guest') {
@@ -505,11 +542,19 @@ async function confirmRemove() {
         await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', reg.id)
         await fetchRegistrations()
         if (!cancelledRegistrations.value.find(r => r.id === reg.id)) {
-          if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name }]
+          if (removedGuest)
+            localCancelledMembers.value = [
+              ...localCancelledMembers.value,
+              { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name },
+            ]
         }
         return
       } else {
-        if (removedGuest) localCancelledMembers.value = [...localCancelledMembers.value, { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name }]
+        if (removedGuest)
+          localCancelledMembers.value = [
+            ...localCancelledMembers.value,
+            { name: removedGuest.name || '群外', badge: (removedGuest.name || '群').charAt(0), time: formatRegistrationTime(removedGuest.added_at || reg.created_at), addedBy: reg.display_name },
+          ]
         await supabase.from('registrations').update({ guests: newGuests, guest_count: newGuestCount }).eq('id', reg.id)
       }
     }
@@ -756,9 +801,7 @@ async function _doSubmitSignup() {
   }
 
   if (!isRegistrationOpen.value) {
-    const openTimeStr = registrationOpenAt.value
-      ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' })
-      : '—'
+    const openTimeStr = registrationOpenAt.value ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
     setSuccessDialogOpen(true, {
       title: '報名尚未開放',
       copy: `報名將於 ${openTimeStr} 開放，你可以先填好資料，時間到再送出。`,
@@ -789,9 +832,7 @@ async function _doSubmitSignup() {
 
       // 更新請假狀態
       if (leaveStatusChanged) {
-        const newLeaveDates = newSelf === 0
-          ? [...(seasonReg.leave_dates || []), resolvedDate.value]
-          : (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
+        const newLeaveDates = newSelf === 0 ? [...(seasonReg.leave_dates || []), resolvedDate.value] : (seasonReg.leave_dates || []).filter(d => d !== resolvedDate.value)
         const updatePayload = { leave_dates: newLeaveDates }
         // 取消請假（加回來）時記錄回歸時間，下次名單排序將以此為準，不保留原本的早期名次
         if (newSelf !== 0) {
@@ -809,7 +850,7 @@ async function _doSubmitSignup() {
       if (guestTotal > 0) {
         const guestsWithTime = signupState.guests.slice(0, guestTotal).map((g, i) => ({
           ...g,
-          added_at: i < prevGuests.length ? (prevGuests[i].added_at || submitTime) : submitTime,
+          added_at: i < prevGuests.length ? prevGuests[i].added_at || submitTime : submitTime,
         }))
         const payload = {
           activity_id: activityData.value?.id,
@@ -884,9 +925,20 @@ async function _doSubmitSignup() {
       await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', cancellingReg.id)
       await fetchRegistrations()
       if (!cancelledRegistrations.value.find(r => r.id === cancellingReg.id)) {
-        localCancelledMembers.value = [...localCancelledMembers.value, { name: cancellingReg.display_name, badge: cancellingReg.display_name.charAt(0), image: cancellingReg.picture_url || null, time: formatRegistrationTime(cancellingReg.self_added_at || cancellingReg.created_at) }]
+        localCancelledMembers.value = [
+          ...localCancelledMembers.value,
+          {
+            name: cancellingReg.display_name,
+            badge: cancellingReg.display_name.charAt(0),
+            image: cancellingReg.picture_url || null,
+            time: formatRegistrationTime(cancellingReg.self_added_at || cancellingReg.created_at),
+          },
+        ]
         ;(cancellingReg.guests || []).forEach(g => {
-          localCancelledMembers.value = [...localCancelledMembers.value, { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at || cancellingReg.created_at), addedBy: cancellingReg.display_name }]
+          localCancelledMembers.value = [
+            ...localCancelledMembers.value,
+            { name: g.name || '群外', badge: (g.name || '群').charAt(0), time: formatRegistrationTime(g.added_at || cancellingReg.created_at), addedBy: cancellingReg.display_name },
+          ]
         })
       }
       setSignupOpen(false, { restoreFocus: false })
@@ -906,13 +958,11 @@ async function _doSubmitSignup() {
   const prevSelfCount = myRegistration.value?.self_count ?? 0
   const prevGuests = myRegistration.value?.guests ?? []
 
-  const selfAddedAt = signupState.self === 1
-    ? (prevSelfCount === 0 ? submitTime : (myRegistration.value?.self_added_at ?? submitTime))
-    : null
+  const selfAddedAt = signupState.self === 1 ? (prevSelfCount === 0 ? submitTime : (myRegistration.value?.self_added_at ?? submitTime)) : null
 
   const guestsWithTime = signupState.guests.slice(0, signupState.guest).map((g, i) => ({
     ...g,
-    added_at: isNewRegistration || i >= prevGuests.length ? submitTime : (prevGuests[i].added_at || submitTime),
+    added_at: isNewRegistration || i >= prevGuests.length ? submitTime : prevGuests[i].added_at || submitTime,
   }))
 
   const payload = {
@@ -938,7 +988,10 @@ async function _doSubmitSignup() {
     // 「我」從有報名變成沒報名（整筆未取消，例如還有群外），補進本地取消清單
     if (prevSelfCount > 0 && signupState.self === 0 && myRegistration.value) {
       const reg = myRegistration.value
-      localCancelledMembers.value = [...localCancelledMembers.value, { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) }]
+      localCancelledMembers.value = [
+        ...localCancelledMembers.value,
+        { name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) },
+      ]
     }
     // 群外人數減少時，把被移除的群外朋友加進取消清單
     if (!isNewRegistration && signupState.guest < prevGuests.length) {
@@ -985,9 +1038,7 @@ async function directSeasonRegister() {
   }
 
   if (!isRegistrationOpen.value) {
-    const openTimeStr = registrationOpenAt.value
-      ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' })
-      : '—'
+    const openTimeStr = registrationOpenAt.value ? registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
     setSuccessDialogOpen(true, {
       title: '報名尚未開放',
       copy: `季打報名將於 ${openTimeStr} 開放。`,
@@ -1075,13 +1126,7 @@ function handleEscape() {
 
   <main v-else class="active-activity-page" :class="[{ 'signup-open': signupOpen }, `hero-${activityType}`]" @keydown.esc="handleEscape">
     <Teleport v-if="isAdmin" to="#nav-extra">
-      <button
-        class="admin-mode-toggle"
-        :class="{ 'is-active': adminMode }"
-        type="button"
-        :aria-pressed="String(adminMode)"
-        @click="adminMode = !adminMode"
-      >
+      <button class="admin-mode-toggle" :class="{ 'is-active': adminMode }" type="button" :aria-pressed="String(adminMode)" @click="adminMode = !adminMode">
         <span class="admin-mode-dot"></span>
         管理
       </button>
@@ -1104,7 +1149,7 @@ function handleEscape() {
       status-label="狀態"
       :status-value="summaryStatusText"
       :status-tone="hasSubmittedSignup ? 'success' : 'default'"
-      :fee-amount="activityType === 'season' ? summaryFeeAmount : (hasSubmittedSignup ? summaryFee : summaryFeeAmount)"
+      :fee-amount="activityType === 'season' ? summaryFeeAmount : hasSubmittedSignup ? summaryFee : summaryFeeAmount"
       :fee-state="activityType !== 'season' && hasSubmittedSignup ? (myFullyPaid ? '已繳' : '未繳') : ''"
       :fee-state-tone="hasSubmittedSignup && myFullyPaid ? 'success' : 'default'"
       :fee-aria-label="summaryFeeLabel"
@@ -1117,7 +1162,18 @@ function handleEscape() {
       @view-dates="showAllDatesDialog = true"
     />
 
-    <ActivityMemberSection :tabs="SEGMENT_TABS" :active-segment="activeSegment" :members="filteredMemberList" :bottom-spacing="(isLoading || filteredMemberList.length === 0) ? 0 : (hasVisibleSectionBelow ? 0 : 100)" :is-admin="isAdmin" :admin-mode="adminMode" :ac-enabled="acEnabled" @change="setSegmentTab" @remove="handleRemoveRequest" @toggle-payment="togglePayment" />
+    <ActivityMemberSection
+      :tabs="SEGMENT_TABS"
+      :active-segment="activeSegment"
+      :members="filteredMemberList"
+      :bottom-spacing="isLoading || filteredMemberList.length === 0 ? 0 : hasVisibleSectionBelow ? 0 : 100"
+      :is-admin="isAdmin"
+      :admin-mode="adminMode"
+      :ac-enabled="acEnabled"
+      @change="setSegmentTab"
+      @remove="handleRemoveRequest"
+      @toggle-payment="togglePayment"
+    />
     <div v-if="isLoading && filteredMemberList.length === 0" class="member-skeleton" aria-hidden="true">
       <div v-for="i in 7" :key="i" class="member-skeleton-row">
         <div class="skel skel-rank"></div>
@@ -1142,9 +1198,7 @@ function handleEscape() {
           </div>
           <div class="cancelled-info">
             <span class="cancelled-name">{{ member.name }}</span>
-            <span v-if="member.time || member.addedBy" class="cancelled-meta">
-              {{ member.time }}<template v-if="member.time && member.addedBy"> · </template>{{ member.addedBy }}
-            </span>
+            <span v-if="member.time || member.addedBy" class="cancelled-meta"> {{ member.time }}<template v-if="member.time && member.addedBy"> · </template>{{ member.addedBy }} </span>
           </div>
         </div>
       </div>
@@ -1171,7 +1225,16 @@ function handleEscape() {
 
     <div v-if="activityType !== 'ended' && !adminMode" class="footer-bar">
       <div class="footer-fade"></div>
-      <button ref="heroCtaButton" class="cta" :class="{ 'cta-disabled': isSeasonRegistrationClosed && !hasSubmittedSignup }" type="button" :disabled="isSubmitting || (isSeasonRegistrationClosed && !hasSubmittedSignup)" @click="handleCtaClick">{{ isSubmitting ? '處理中...' : heroCtaText }}</button>
+      <button
+        ref="heroCtaButton"
+        class="cta"
+        :class="{ 'cta-disabled': isSeasonRegistrationClosed && !hasSubmittedSignup }"
+        type="button"
+        :disabled="isSubmitting || (isSeasonRegistrationClosed && !hasSubmittedSignup)"
+        @click="handleCtaClick"
+      >
+        {{ isSubmitting ? '處理中...' : heroCtaText }}
+      </button>
     </div>
 
     <div class="signup-overlay phone-container modal-frame" :class="{ 'is-open': signupOpen }" :aria-hidden="String(!signupOpen)" :inert="!signupOpen">
@@ -1180,7 +1243,7 @@ function handleEscape() {
         <div class="signup-sheet-header">
           <h2 class="signup-sheet-title" id="signup-sheet-title">{{ isSeasonLeaveMode ? '季打出席管理' : '報名此球局' }}</h2>
           <span v-if="!isSeasonLeaveMode" class="prefill-tag">可預填</span>
-          <span v-else class="prefill-tag" style="background: rgba(255,230,190,0.85); color: #c87416;">請假 = 0</span>
+          <span v-else class="prefill-tag" style="background: rgba(255, 230, 190, 0.85); color: #c87416">請假 = 0</span>
           <button ref="signupCloseButton" class="signup-close" type="button" aria-label="關閉報名表" @click="setSignupOpen(false)">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -1228,7 +1291,14 @@ function handleEscape() {
                 <p v-if="!isAdmin && signupState.guest > 2" class="guest-over-limit-notice">每人限帶 2 位優先報名，超過 2 位將依序遞補</p>
                 <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
                   <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
-                  <select v-model="guest.gender" class="guest-select" :class="{ 'is-error': showGuestValidation && !guest.gender }" :name="`guest-gender-${index + 1}`" required :aria-label="`第 ${index + 1} 位群外朋友性別`">
+                  <select
+                    v-model="guest.gender"
+                    class="guest-select"
+                    :class="{ 'is-error': showGuestValidation && !guest.gender }"
+                    :name="`guest-gender-${index + 1}`"
+                    required
+                    :aria-label="`第 ${index + 1} 位群外朋友性別`"
+                  >
                     <option v-for="option in GENDER_OPTIONS" :key="option.value" :value="option.value" :disabled="option.disabled">
                       {{ option.label }}
                     </option>
@@ -1268,7 +1338,13 @@ function handleEscape() {
     </div>
 
     <!-- 取消季打報名確認 sheet -->
-    <div class="season-cancel-overlay phone-container modal-frame" :class="{ 'is-open': seasonCancelOpen }" :aria-hidden="String(!seasonCancelOpen)" :inert="!seasonCancelOpen" @click.self="seasonCancelOpen = false">
+    <div
+      class="season-cancel-overlay phone-container modal-frame"
+      :class="{ 'is-open': seasonCancelOpen }"
+      :aria-hidden="String(!seasonCancelOpen)"
+      :inert="!seasonCancelOpen"
+      @click.self="seasonCancelOpen = false"
+    >
       <section class="season-cancel-sheet" role="dialog" aria-modal="true">
         <p class="season-cancel-title">確認取消季打報名？</p>
         <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
@@ -1280,14 +1356,20 @@ function handleEscape() {
     </div>
 
     <!-- 查看所有日期 Dialog -->
-    <div class="all-dates-overlay phone-container modal-frame" :class="{ 'is-open': showAllDatesDialog }" :aria-hidden="String(!showAllDatesDialog)" :inert="!showAllDatesDialog" @click.self="showAllDatesDialog = false">
+    <div
+      class="all-dates-overlay phone-container modal-frame"
+      :class="{ 'is-open': showAllDatesDialog }"
+      :aria-hidden="String(!showAllDatesDialog)"
+      :inert="!showAllDatesDialog"
+      @click.self="showAllDatesDialog = false"
+    >
       <section class="all-dates-sheet" role="dialog" aria-modal="true" aria-labelledby="all-dates-title">
         <div class="all-dates-header">
           <h2 id="all-dates-title" class="all-dates-title">所有場次日期</h2>
           <span class="all-dates-count">共 {{ activitySessionCount }} 次</span>
         </div>
         <div class="all-dates-list">
-          <div v-for="(date, i) in (activityData?.dates || [])" :key="date" class="all-dates-row">
+          <div v-for="(date, i) in activityData?.dates || []" :key="date" class="all-dates-row">
             <span class="all-dates-index">{{ i + 1 }}</span>
             <span class="all-dates-label">{{ formatAllDate(date) }}</span>
           </div>
@@ -1860,8 +1942,12 @@ function handleEscape() {
 }
 
 @keyframes skel-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .cancelled-section {
@@ -2166,7 +2252,10 @@ function handleEscape() {
   border: 1.5px solid rgba(255, 255, 255, 0.45);
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .admin-mode-toggle.is-active {

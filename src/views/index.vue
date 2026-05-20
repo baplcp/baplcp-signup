@@ -23,11 +23,7 @@ function isDateExpired(dateStr, endTime) {
 }
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('activities')
-    .select('id, dates, end_time')
-    .order('created_at', { ascending: false })
-    .limit(20)
+  const { data } = await supabase.from('activities').select('id, dates, end_time').order('created_at', { ascending: false }).limit(20)
 
   if (data && data.length > 0) {
     let nearestDate = null

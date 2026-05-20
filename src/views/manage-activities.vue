@@ -17,10 +17,7 @@ onMounted(async () => {
     return
   }
 
-  const { data } = await supabase
-    .from('activities')
-    .select('id, title, dates')
-    .order('created_at', { ascending: false })
+  const { data } = await supabase.from('activities').select('id, title, dates').order('created_at', { ascending: false })
 
   if (data) activities.value = data
   isLoading.value = false
@@ -50,7 +47,9 @@ function rowStyle(index) {
 
 function onTouchStart(index, e) {
   const newOffsets = {}
-  Object.keys(rowOffsets.value).forEach(i => { newOffsets[Number(i)] = 0 })
+  Object.keys(rowOffsets.value).forEach(i => {
+    newOffsets[Number(i)] = 0
+  })
   rowOffsets.value = newOffsets
   activeDrag.value = {
     index,

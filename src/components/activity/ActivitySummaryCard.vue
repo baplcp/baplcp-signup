@@ -128,7 +128,9 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
       <div class="summary-info activity-summary-info">
         <p class="summary-time activity-summary-time">
           <template v-if="date">
-            <span class="summary-date activity-summary-date">{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span>
+            <span class="summary-date activity-summary-date"
+              >{{ date }}<span class="summary-weekday activity-summary-weekday">（{{ weekday }}）</span></span
+            >
             <span class="summary-separator activity-summary-separator">|</span>
           </template>
           <span>{{ time }}</span>

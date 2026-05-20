@@ -8,23 +8,22 @@ const liffStore = useLiffStore()
 const router = useRouter()
 
 // LINE OAuth 登入後還原原本的頁面（外部瀏覽器 OAuth 回調用）
-watch(() => liffStore.pendingRedirect, (path) => {
-  if (!path) return
-  liffStore.pendingRedirect = null
-  router.replace(path)
-})
+watch(
+  () => liffStore.pendingRedirect,
+  path => {
+    if (!path) return
+    liffStore.pendingRedirect = null
+    router.replace(path)
+  }
+)
 
 const selectedGender = ref('')
 const saving = ref(false)
 
-const showGenderPrompt = computed(() =>
-  liffStore.initialized &&
-  !!liffStore.userId &&
-  liffStore.gender === null
-)
+const showGenderPrompt = computed(() => liffStore.initialized && !!liffStore.userId && liffStore.gender === null)
 
 // 每次 prompt 出現時重置選擇
-watch(showGenderPrompt, (val) => {
+watch(showGenderPrompt, val => {
   if (val) selectedGender.value = ''
 })
 
@@ -41,31 +40,26 @@ async function confirmGender() {
     <RouterView />
   </Layout>
 
-  <div
-    class="gender-prompt-overlay shared-dialog-overlay"
-    :class="{ 'is-open': showGenderPrompt }"
-    :aria-hidden="String(!showGenderPrompt)"
-    :inert="!showGenderPrompt"
-  >
+  <div class="gender-prompt-overlay shared-dialog-overlay" :class="{ 'is-open': showGenderPrompt }" :aria-hidden="String(!showGenderPrompt)" :inert="!showGenderPrompt">
     <section class="shared-dialog gender-prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="gender-prompt-title">
       <h2 class="shared-dialog-title" id="gender-prompt-title">請設定你的性別</h2>
       <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
       <div class="gender-options">
         <button
-          v-for="opt in [{ value: 'female', label: '女' }, { value: 'male', label: '男' }]"
+          v-for="opt in [
+            { value: 'female', label: '女' },
+            { value: 'male', label: '男' },
+          ]"
           :key="opt.value"
           class="gender-option-btn"
           :class="{ 'is-selected': selectedGender === opt.value }"
           type="button"
           @click="selectedGender = opt.value"
-        >{{ opt.label }}</button>
+        >
+          {{ opt.label }}
+        </button>
       </div>
-      <button
-        class="shared-dialog-button gender-confirm-btn"
-        type="button"
-        :disabled="!selectedGender || saving"
-        @click="confirmGender"
-      >確認</button>
+      <button class="shared-dialog-button gender-confirm-btn" type="button" :disabled="!selectedGender || saving" @click="confirmGender">確認</button>
     </section>
   </div>
 </template>
@@ -112,5 +106,4 @@ async function confirmGender() {
   background: #d8dae5;
   cursor: default;
 }
-
 </style>

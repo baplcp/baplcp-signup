@@ -41,7 +41,7 @@ async function sendLineMessage(token: string, groupId: string, text: string): Pr
   }
 }
 
-serve(async (_req) => {
+serve(async _req => {
   try {
     const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
     const lineGroupId = Deno.env.get('LINE_GROUP_ID')
@@ -58,9 +58,7 @@ serve(async (_req) => {
 
     const { data: activities, error } = await supabase
       .from('activities')
-      .select(
-        'id, title, pickup_label, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time'
-      )
+      .select('id, title, pickup_label, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
 
     if (error) throw error
 
@@ -77,11 +75,7 @@ serve(async (_req) => {
     const notifications: Notification[] = []
 
     for (const activity of activities ?? []) {
-      const dates: string[] = Array.isArray(activity.dates)
-        ? activity.dates
-        : typeof activity.dates === 'string'
-          ? JSON.parse(activity.dates)
-          : []
+      const dates: string[] = Array.isArray(activity.dates) ? activity.dates : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
 
       // 季打報名通知
       if (activity.season_enabled && activity.season_open_date && activity.season_open_time) {
@@ -123,12 +117,7 @@ serve(async (_req) => {
       const registrationUrl = `https://liff.line.me/${LIFF_ID}?liff.state=${liffState}`
       const typeLabel = n.type === 'season' ? '季打' : '臨打'
       const notifyTitle = n.type === 'pickup' && n.pickupLabel ? n.pickupLabel : n.title
-      const text =
-        `🏐 ${typeLabel}報名即將開始！（5 分鐘後）\n\n` +
-        `【${notifyTitle}】\n` +
-        `📅 ${n.activityDate} ${n.startTime}\n` +
-        `📍 ${n.location}\n\n` +
-        `👉 立即報名：\n${registrationUrl}`
+      const text = `🏐 ${typeLabel}報名即將開始！（5 分鐘後）\n\n` + `【${notifyTitle}】\n` + `📅 ${n.activityDate} ${n.startTime}\n` + `📍 ${n.location}\n\n` + `👉 立即報名：\n${registrationUrl}`
 
       await sendLineMessage(lineToken, lineGroupId, text)
       console.log(`Notified: activity ${n.id} (${n.type}, ${n.activityDate})`)

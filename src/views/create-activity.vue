@@ -916,12 +916,7 @@ async function handleSubmitActivity() {
                   copy="活動前不發送報名成功提醒"
                   @select="setChoice('reminderEnabled', 'disabled')"
                 />
-                <CreateActivityChoiceCard
-                  :active="isChoiceActive('reminderEnabled', 'enabled')"
-                  :condensed="false"
-                  title="發送提醒"
-                  @select="setChoice('reminderEnabled', 'enabled')"
-                >
+                <CreateActivityChoiceCard :active="isChoiceActive('reminderEnabled', 'enabled')" :condensed="false" title="發送提醒" @select="setChoice('reminderEnabled', 'enabled')">
                   <span class="choice-rule">
                     <span>每次活動</span>
                     <span class="select-wrap" @click.stop="setChoice('reminderEnabled', 'enabled')">
@@ -957,9 +952,10 @@ async function handleSubmitActivity() {
     </div>
 
     <div class="cta-fade">
-      <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">{{ isSubmitting ? (isEditMode ? '儲存中...' : '建立中...') : (isEditMode ? '儲存設定' : '建立球局') }}</button>
+      <button ref="submitButton" class="submit-button" type="submit" form="create-activity-form" :disabled="isSubmitting">
+        {{ isSubmitting ? (isEditMode ? '儲存中...' : '建立中...') : isEditMode ? '儲存設定' : '建立球局' }}
+      </button>
     </div>
-
 
     <div class="calendar-overlay phone-container modal-frame" :class="{ 'is-open': isCalendarOpen }" :aria-hidden="String(!isCalendarOpen)" @click.self="closeCalendar">
       <section class="calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
@@ -1479,7 +1475,6 @@ async function handleSubmitActivity() {
   font-weight: 600;
   pointer-events: auto;
 }
-
 
 .calendar-overlay,
 .time-overlay {

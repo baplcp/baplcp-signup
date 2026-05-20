@@ -126,7 +126,7 @@ onMounted(async () => {
 
   // 查最新球局的報名人數，計算臨打缺幾
   const futureDates = []
-  for (const act of (data || [])) {
+  for (const act of data || []) {
     const sorted = (act.dates || []).slice().sort()
     const nearestDate = sorted.find(d => !isDateExpired(d, act.end_time))
     if (nearestDate) futureDates.push({ act, date: nearestDate })
@@ -134,12 +134,7 @@ onMounted(async () => {
   if (futureDates.length > 0) {
     futureDates.sort((a, b) => a.date.localeCompare(b.date))
     const { act, date } = futureDates[0]
-    const { data: regs } = await supabase
-      .from('registrations')
-      .select('self_count, guest_count')
-      .eq('activity_id', act.id)
-      .or(`activity_date.eq.${date},activity_date.is.null`)
-      .eq('status', 'active')
+    const { data: regs } = await supabase.from('registrations').select('self_count, guest_count').eq('activity_id', act.id).or(`activity_date.eq.${date},activity_date.is.null`).eq('status', 'active')
     if (regs) {
       const totalPeople = regs.reduce((sum, r) => sum + (r.self_count || 0) + (r.guest_count || 0), 0)
       latestSpots.value = Math.max(0, (act.single_capacity || 0) - totalPeople)
@@ -187,16 +182,7 @@ function isSegmentVisible(segment) {
         <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('upcoming')">更多</button>
       </div>
       <div v-show="isSegmentVisible('upcoming')" class="upcoming-list" aria-label="即將到來">
-        <GroupEventRow
-          v-for="act in visibleUpcomingActivities"
-          :key="act.date"
-          :to="act.to"
-          :date="act.date"
-          :location="act.location"
-          :badge="act.badge"
-          :badge-variant="act.badgeVariant"
-          framed
-        />
+        <GroupEventRow v-for="act in visibleUpcomingActivities" :key="act.date" :to="act.to" :date="act.date" :location="act.location" :badge="act.badge" :badge-variant="act.badgeVariant" framed />
         <p v-if="upcomingActivities.length === 0" class="empty-hint">沒有其他即將到來的球局</p>
       </div>
 
@@ -205,16 +191,7 @@ function isSegmentVisible(segment) {
         <button v-show="isSegmentActive('all')" class="more-button" type="button" @click="setSegment('ended')">更多</button>
       </div>
       <div v-show="isSegmentVisible('ended')" class="history-list" aria-label="已結束">
-        <GroupEventRow
-          v-for="act in visibleEndedActivities"
-          :key="act.date"
-          :to="act.to"
-          :date="act.date"
-          :location="act.location"
-          :badge="act.badge"
-          :badge-variant="act.badgeVariant"
-          inset
-        />
+        <GroupEventRow v-for="act in visibleEndedActivities" :key="act.date" :to="act.to" :date="act.date" :location="act.location" :badge="act.badge" :badge-variant="act.badgeVariant" inset />
         <p v-if="endedActivities.length === 0" class="empty-hint">沒有已結束的球局</p>
       </div>
     </template>

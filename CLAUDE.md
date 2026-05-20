@@ -181,24 +181,28 @@ Supabase 作為後端服務，主要負責：
 ## Supabase 資料表結構
 
 ### activities
+
 球局資訊，欄位包含 `id`、`dates`、`title`、`location`、`capacity` 等。
 
 ### registrations
+
 報名紀錄，欄位包含 `user_id`、`display_name`、`picture_url`、`activity_id`、`activity_date`、`status`、`guests` 等。
 
 ### members
+
 會員身份管理表，欄位如下：
 
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| `id` | uuid | 主鍵，自動產生 |
-| `user_id` | text (UNIQUE) | LINE userId |
-| `role` | text | `organizer` / `engineer` / `member`（預設） |
-| `display_name` | text | LINE 顯示名稱，備忘用 |
-| `created_at` | timestamptz | 自動填入 |
-| `updated_at` | timestamptz | 自動更新 |
+| 欄位           | 型別          | 說明                                        |
+| -------------- | ------------- | ------------------------------------------- |
+| `id`           | uuid          | 主鍵，自動產生                              |
+| `user_id`      | text (UNIQUE) | LINE userId                                 |
+| `role`         | text          | `organizer` / `engineer` / `member`（預設） |
+| `display_name` | text          | LINE 顯示名稱，備忘用                       |
+| `created_at`   | timestamptz   | 自動填入                                    |
+| `updated_at`   | timestamptz   | 自動更新                                    |
 
 **角色說明：**
+
 - `organizer`：偉大的主揪
 - `engineer`：苦命的工程師
 - `member`：一般會員（所有新登入者的預設值）
@@ -220,7 +224,7 @@ const liffStore = useLiffStore()
 // 在 template 直接用 liffStore.role
 // 在 script 用 computed 衍生
 const isOrganizer = computed(() => liffStore.role === 'organizer')
-const isEngineer  = computed(() => liffStore.role === 'engineer')
+const isEngineer = computed(() => liffStore.role === 'engineer')
 ```
 
 ---

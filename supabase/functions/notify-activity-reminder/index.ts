@@ -26,13 +26,7 @@ async function pushMessage(token: string, groupId: string, message: Record<strin
 }
 
 // 逐一找出不在群組的 key，換成純文字後重試，其餘人維持 @mention
-async function sendWithGranularFallback(
-  token: string,
-  groupId: string,
-  text: string,
-  substitution: Record<string, unknown>,
-  fallbackNames: Record<string, string>
-): Promise<void> {
+async function sendWithGranularFallback(token: string, groupId: string, text: string, substitution: Record<string, unknown>, fallbackNames: Record<string, string>): Promise<void> {
   let currentText = text
   const sub = { ...substitution }
   const maxRetries = Object.keys(substitution).length + 1
@@ -62,7 +56,7 @@ async function sendWithGranularFallback(
 
 type ConfirmedUser = { userId: string; displayName: string; guestCount: number; guests: Array<{ gender?: string }>; selfInPickup?: boolean }
 
-serve(async (_req) => {
+serve(async _req => {
   try {
     const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
     const lineGroupId = Deno.env.get('LINE_GROUP_ID')
@@ -80,8 +74,7 @@ serve(async (_req) => {
       .eq('reminder_enabled', true)
     if (actErr) throw actErr
 
-    const { data: organizers } = await supabase
-      .from('members').select('user_id, display_name').eq('role', 'organizer')
+    const { data: organizers } = await supabase.from('members').select('user_id, display_name').eq('role', 'organizer')
 
     let notified = 0
 
@@ -92,9 +85,7 @@ serve(async (_req) => {
       const reminderHour = parseInt(activity.reminder_time.slice(0, 2), 10)
       if (hourTw !== reminderHour) continue
 
-      const dates: string[] = Array.isArray(activity.dates)
-        ? activity.dates
-        : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
+      const dates: string[] = Array.isArray(activity.dates) ? activity.dates : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
 
       // 找出「今天 + reminder_days_before 天」是哪些場次日期
       const targetDates = dates.filter(d => addDays(todayTw, activity.reminder_days_before) === d)
@@ -105,7 +96,9 @@ serve(async (_req) => {
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
           .select('user_id, display_name, guests, leave_dates, self_count')
-          .eq('activity_id', activity.id).is('activity_date', null).eq('status', 'active')
+          .eq('activity_id', activity.id)
+          .is('activity_date', null)
+          .eq('status', 'active')
           .order('created_at', { ascending: true })
         if (sErr) throw sErr
 
@@ -124,7 +117,9 @@ serve(async (_req) => {
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
           .select('user_id, display_name, guests, self_added_at, self_count')
-          .eq('activity_id', activity.id).eq('activity_date', targetDate).eq('status', 'active')
+          .eq('activity_id', activity.id)
+          .eq('activity_date', targetDate)
+          .eq('status', 'active')
           .order('self_added_at', { ascending: true, nullsFirst: false })
         if (pErr) throw pErr
 
@@ -138,12 +133,16 @@ serve(async (_req) => {
           // self_count > 0 表示本人有報名臨打；= 0 代表季打請假後只帶群外
           const selfSlots = (reg.self_count ?? 0) > 0 ? 1 : 0
           const allGuests = (reg.guests as Array<{ gender?: string }>) ?? []
-          const confirmedGuestCount = pickupAvailable > 0
-            ? Math.min(allGuests.length, Math.max(0, pickupAvailable - slotCount - selfSlots))
-            : allGuests.length
+          const confirmedGuestCount = pickupAvailable > 0 ? Math.min(allGuests.length, Math.max(0, pickupAvailable - slotCount - selfSlots)) : allGuests.length
           // 本人不在臨打且無群外確認，跳過
           if (selfSlots === 0 && confirmedGuestCount === 0) continue
-          confirmedPickup.push({ userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, guestCount: confirmedGuestCount, guests: allGuests.slice(0, confirmedGuestCount), selfInPickup: selfSlots > 0 })
+          confirmedPickup.push({
+            userId: reg.user_id,
+            displayName: reg.display_name ?? reg.user_id,
+            guestCount: confirmedGuestCount,
+            guests: allGuests.slice(0, confirmedGuestCount),
+            selfInPickup: selfSlots > 0,
+          })
           slotCount += selfSlots + confirmedGuestCount
         }
 
@@ -153,18 +152,27 @@ serve(async (_req) => {
         const allUserIds = [...confirmedPickup, ...confirmedSeason].map(u => u.userId)
         const genderMap: Record<string, string | null> = {}
         if (allUserIds.length) {
-          const { data: memberData } = await supabase.from('members').select('user_id, gender').in('user_id', [...new Set(allUserIds)])
-          if (memberData) memberData.forEach(m => { genderMap[m.user_id] = m.gender || null })
+          const { data: memberData } = await supabase
+            .from('members')
+            .select('user_id, gender')
+            .in('user_id', [...new Set(allUserIds)])
+          if (memberData)
+            memberData.forEach(m => {
+              genderMap[m.user_id] = m.gender || null
+            })
         }
-        let maleCount = 0, femaleCount = 0
+        let maleCount = 0,
+          femaleCount = 0
         const countUser = (u: ConfirmedUser) => {
           // selfInPickup === false 表示本人是季打請假只帶群外，不計本人性別
           if (u.selfInPickup !== false) {
             const g = genderMap[u.userId]
-            if (g === 'male') maleCount++; else if (g === 'female') femaleCount++
+            if (g === 'male') maleCount++
+            else if (g === 'female') femaleCount++
           }
           for (const guest of u.guests) {
-            if (guest.gender === 'male') maleCount++; else if (guest.gender === 'female') femaleCount++
+            if (guest.gender === 'male') maleCount++
+            else if (guest.gender === 'female') femaleCount++
           }
         }
         confirmedPickup.forEach(countUser)
@@ -182,9 +190,7 @@ serve(async (_req) => {
             const key = `m${mentionIdx++}`
             substitution[key] = { type: 'mention', mentionee: { type: 'user', userId: u.userId } }
             fallbackNames[key] = u.displayName
-            const suffix = u.guestCount > 0
-              ? (u.selfInPickup !== false ? `（含群外+${u.guestCount}）` : `（群外+${u.guestCount}）`)
-              : ''
+            const suffix = u.guestCount > 0 ? (u.selfInPickup !== false ? `（含群外+${u.guestCount}）` : `（群外+${u.guestCount}）`) : ''
             parts.push(`{${key}}${suffix}`)
           }
           return parts.join(' ')
@@ -193,8 +199,7 @@ serve(async (_req) => {
         const pickupLine = confirmedPickup.length > 0 ? buildMentionLine(confirmedPickup) : null
         const seasonLine = confirmedSeason.length > 0 ? buildMentionLine(confirmedSeason) : null
 
-        const genderLine = (maleCount > 0 || femaleCount > 0)
-          ? `男生：${maleCount}男 ／ 女生：${femaleCount}女\n\n` : ''
+        const genderLine = maleCount > 0 || femaleCount > 0 ? `男生：${maleCount}男 ／ 女生：${femaleCount}女\n\n` : ''
 
         const orgParts: string[] = []
         for (const org of organizers ?? []) {
@@ -209,12 +214,7 @@ serve(async (_req) => {
         const footer = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgParts.join('、') || '管理員'}${feeStr}`
 
         const header = `🏐 活動前 ${activity.reminder_days_before} 天提醒！\n\n【${activityLabel}】\n📅 ${targetDate} ${activity.start_time ?? ''}\n📍 ${activity.location ?? ''}\n\n`
-        const messageText = (
-          header +
-          (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') +
-          (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') +
-          genderLine + footer
-        ).trimEnd()
+        const messageText = (header + (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') + (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') + genderLine + footer).trimEnd()
 
         await sendWithGranularFallback(lineToken, lineGroupId, messageText, substitution, fallbackNames)
         console.log(`Reminded: activity ${activity.id} (${targetDate}), pickup: ${confirmedPickup.length}, season: ${confirmedSeason.length}`)

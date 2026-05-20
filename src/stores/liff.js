@@ -31,11 +31,7 @@ export const useLiffStore = defineStore('liff', () => {
   async function syncMember(uid, name) {
     if (!uid) return
     try {
-      const { data, error } = await supabase
-        .from('members')
-        .select('role, gender, is_season')
-        .eq('user_id', uid)
-        .maybeSingle()
+      const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', uid).maybeSingle()
 
       if (error) {
         console.warn('syncMember select error', error.message)
@@ -48,13 +44,7 @@ export const useLiffStore = defineStore('liff', () => {
         gender.value = data.gender || null
 
         // 自動同步 is_season：依據使用者是否在最新季打 activity 有 active 報名
-        const { data: latestSeason } = await supabase
-          .from('activities')
-          .select('id')
-          .eq('season_enabled', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+        const { data: latestSeason } = await supabase.from('activities').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
         if (latestSeason) {
           const { data: seasonReg } = await supabase
@@ -75,9 +65,7 @@ export const useLiffStore = defineStore('liff', () => {
         }
       } else {
         // 第一次登入：自動新增，role 預設 guest
-        const { error: insertError } = await supabase
-          .from('members')
-          .insert({ user_id: uid, display_name: name, role: 'member' })
+        const { error: insertError } = await supabase.from('members').insert({ user_id: uid, display_name: name, role: 'member' })
         if (insertError) {
           console.warn('syncMember insert error', insertError.message)
         }
@@ -206,10 +194,7 @@ export const useLiffStore = defineStore('liff', () => {
   async function updateGender(newGender) {
     if (!userId.value) return
     const value = newGender || null
-    const { error } = await supabase
-      .from('members')
-      .update({ gender: value })
-      .eq('user_id', userId.value)
+    const { error } = await supabase.from('members').update({ gender: value }).eq('user_id', userId.value)
     if (!error) gender.value = value
     else console.warn('updateGender error', error.message)
   }

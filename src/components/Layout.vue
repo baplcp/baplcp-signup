@@ -13,8 +13,8 @@ const isMenuOpen = ref(false)
 
 const ROLE_CONFIG = {
   organizer: { label: '偉大的主揪', modifier: 'is-organizer' },
-  engineer:  { label: '苦命的工程師', modifier: 'is-engineer' },
-  member:    { label: '一般會員', modifier: 'is-member' },
+  engineer: { label: '苦命的工程師', modifier: 'is-engineer' },
+  member: { label: '一般會員', modifier: 'is-member' },
 }
 const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.member)
 const isOrganizer = computed(() => liffStore.role === 'organizer')
@@ -134,10 +134,10 @@ watch(
               <!-- 季打身份 badge -->
               <span v-if="liffStore.isSeason" class="drawer-role is-season">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/>
-                  <path d="M12 4C12 4 9 7 9 12C9 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M12 4C12 4 15 7 15 12C15 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M4 12H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M12 4C12 4 9 7 9 12C9 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <path d="M12 4C12 4 15 7 15 12C15 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <path d="M4 12H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
                 <span>黃金季打</span>
               </span>

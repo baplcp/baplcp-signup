@@ -47,10 +47,13 @@ const SWIPE_OPEN_WIDTH = 72
 const rowOffsets = ref({})
 const activeDrag = ref({ index: -1, startX: 0, startY: 0, initOffset: 0, direction: null })
 
-watch(() => props.members, () => {
-  rowOffsets.value = {}
-  activeDrag.value = { index: -1, startX: 0, startY: 0, initOffset: 0, direction: null }
-})
+watch(
+  () => props.members,
+  () => {
+    rowOffsets.value = {}
+    activeDrag.value = { index: -1, startX: 0, startY: 0, initOffset: 0, direction: null }
+  }
+)
 
 function getOffset(index) {
   return rowOffsets.value[index] ?? 0
@@ -142,86 +145,66 @@ function handleRemove(member, index) {
       </button>
     </div>
     <div class="list activity-member-list">
-      <template
-        v-for="(member, index) in members"
-        :key="`${member.name}-${index}`"
-      >
+      <template v-for="(member, index) in members" :key="`${member.name}-${index}`">
         <div v-if="member.status === '候補' && (index === 0 || !members[index - 1].status)" class="waitlist-divider">
           <span class="waitlist-divider-label">候補</span>
         </div>
         <div class="swipe-row-container">
-        <button
-          v-show="isAdmin && !adminMode"
-          class="swipe-delete-btn"
-          type="button"
-          aria-label="`移除 ${member.name}`"
-          @click="handleRemove(member, index)"
-        >
-          移除
-        </button>
-        <div
-          class="row activity-member-row"
-          :style="(isAdmin && !adminMode) ? rowStyle(index) : undefined"
-          @touchstart="onTouchStart(index, $event)"
-          @touchmove="onTouchMove(index, $event)"
-          @touchend="onTouchEnd(index)"
-        >
-          <div class="rank activity-member-rank" :class="{ 'is-waitlist': member.status === '候補' }">{{ index + 1 }}</div>
-          <div class="activity-member-avatar-wrap">
-            <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
-              <img v-if="member.image" :src="member.image" alt="" />
-              <template v-else>{{ member.badge }}</template>
+          <button v-show="isAdmin && !adminMode" class="swipe-delete-btn" type="button" aria-label="`移除 ${member.name}`" @click="handleRemove(member, index)">移除</button>
+          <div
+            class="row activity-member-row"
+            :style="isAdmin && !adminMode ? rowStyle(index) : undefined"
+            @touchstart="onTouchStart(index, $event)"
+            @touchmove="onTouchMove(index, $event)"
+            @touchend="onTouchEnd(index)"
+          >
+            <div class="rank activity-member-rank" :class="{ 'is-waitlist': member.status === '候補' }">{{ index + 1 }}</div>
+            <div class="activity-member-avatar-wrap">
+              <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
+                <img v-if="member.image" :src="member.image" alt="" />
+                <template v-else>{{ member.badge }}</template>
+              </div>
+              <span v-if="member.gender" class="gender-badge" :class="`gender-badge--${member.gender}`" :aria-label="member.gender === 'male' ? '男' : member.gender === 'female' ? '女' : '其他'">
+                <svg v-if="member.gender === 'male'" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="4.5" cy="7.5" r="3" stroke="white" stroke-width="1.6" />
+                  <path d="M7 5 L11 1 M8.5 1 H11 V3.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <svg v-else-if="member.gender === 'female'" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="5" r="3.5" stroke="white" stroke-width="1.6" />
+                  <path d="M6 9 V13 M4 11 H8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <svg v-else viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <circle cx="6" cy="6" r="4" stroke="white" stroke-width="1.6" />
+                  <path d="M4 6 H8 M6 4 V8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+              </span>
             </div>
-            <span v-if="member.gender" class="gender-badge" :class="`gender-badge--${member.gender}`" :aria-label="member.gender === 'male' ? '男' : member.gender === 'female' ? '女' : '其他'">
-              <svg v-if="member.gender === 'male'" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <circle cx="4.5" cy="7.5" r="3" stroke="white" stroke-width="1.6"/>
-                <path d="M7 5 L11 1 M8.5 1 H11 V3.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <svg v-else-if="member.gender === 'female'" viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                <circle cx="6" cy="5" r="3.5" stroke="white" stroke-width="1.6"/>
-                <path d="M6 9 V13 M4 11 H8" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-              <svg v-else viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <circle cx="6" cy="6" r="4" stroke="white" stroke-width="1.6"/>
-                <path d="M4 6 H8 M6 4 V8" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </span>
-          </div>
-          <div class="name activity-member-name" :class="{ 'is-waitlist': member.status === '候補' }">
-            <span>{{ member.name }}</span>
-            <span v-if="member.time" class="activity-member-time">
-              {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
-            </span>
-          </div>
-          <div v-show="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
-          <div v-show="adminMode" class="payment-checks" @click.stop>
-            <button
-              class="pay-check-row"
-              type="button"
-              @click.stop="emit('toggle-payment', member, 'paid_court')"
-            >
-              <span class="pay-check-box" :class="{ 'is-checked': member.paidCourt }">
-                <svg v-if="member.paidCourt" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                  <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <div class="name activity-member-name" :class="{ 'is-waitlist': member.status === '候補' }">
+              <span>{{ member.name }}</span>
+              <span v-if="member.time" class="activity-member-time">
+                {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
               </span>
-              <span class="pay-check-text">場地費</span>
-            </button>
-            <button
-              v-if="acEnabled"
-              class="pay-check-row"
-              type="button"
-              @click.stop="emit('toggle-payment', member, 'paid_ac')"
-            >
-              <span class="pay-check-box" :class="{ 'is-checked': member.paidAc }">
-                <svg v-if="member.paidAc" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                  <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </span>
-              <span class="pay-check-text">冷氣費</span>
-            </button>
+            </div>
+            <div v-show="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
+            <div v-show="adminMode" class="payment-checks" @click.stop>
+              <button class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_court')">
+                <span class="pay-check-box" :class="{ 'is-checked': member.paidCourt }">
+                  <svg v-if="member.paidCourt" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                    <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <span class="pay-check-text">場地費</span>
+              </button>
+              <button v-if="acEnabled" class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_ac')">
+                <span class="pay-check-box" :class="{ 'is-checked': member.paidAc }">
+                  <svg v-if="member.paidAc" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                    <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <span class="pay-check-text">冷氣費</span>
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       </template>
     </div>
@@ -311,9 +294,15 @@ function handleRemove(member, index) {
   height: 9px;
 }
 
-.gender-badge--male { background: #5768ff; }
-.gender-badge--female { background: #f06292; }
-.gender-badge--other { background: #8f95b2; }
+.gender-badge--male {
+  background: #5768ff;
+}
+.gender-badge--female {
+  background: #f06292;
+}
+.gender-badge--other {
+  background: #8f95b2;
+}
 
 .payment-checks {
   display: flex;
@@ -344,7 +333,9 @@ function handleRemove(member, index) {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .pay-check-box.is-checked {
