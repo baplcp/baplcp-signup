@@ -207,9 +207,9 @@ Supabase 作為後端服務，主要負責：
 - `engineer`：苦命的工程師
 - `member`：一般會員（所有新登入者的預設值）
 
-**運作邏輯：** 使用者第一次登入 LIFF 時自動寫入 members（role = member）。管理員直接在 Supabase Table Editor 修改 role 欄位，下次登入即生效。
+**運作邏輯：** 使用者第一次登入時透過 `member-profile` Edge Function 寫入 members（role = member）。管理員直接在 Supabase Table Editor 修改 role 欄位，下次登入即生效。
 
-**RLS 設定：** SELECT 與 INSERT 皆對 anon 開放（查詢時以 user_id 自然過濾）。
+**RLS / migration 設定：** 以 `supabase/SCHEMA.md` 與 `supabase/migrations/` 為準。前端 anon key 只保留讀取權限，`activities`、`registrations`、`members` 寫入需透過 Edge Functions 驗證 LINE 身分與角色。
 
 ---
 
