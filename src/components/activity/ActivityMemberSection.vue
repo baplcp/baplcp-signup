@@ -268,7 +268,6 @@ function handleRemove(member, index) {
 .activity-member-row {
   position: relative;
   z-index: 2;
-  background: #fff;
 }
 
 .activity-member-avatar-wrap {
