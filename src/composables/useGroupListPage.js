@@ -1,5 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
-import { supabase } from '~/utils/supabase'
+import { listGroupActivities } from '~/services/activityService'
+import { listRegistrationsForLatestSpots } from '~/services/registrationService'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
@@ -145,26 +146,14 @@ export function useGroupListPage() {
     if (!latestInfo.value) return
 
     const { activity, date } = latestInfo.value
-    const { data: registrations } = await supabase
-      .from('registrations')
-      .select('self_count, guest_count')
-      .eq('activity_id', activity.id)
-      .or(`activity_date.eq.${date},activity_date.is.null`)
-      .eq('status', 'active')
-
-    if (!registrations) return
+    const registrations = await listRegistrationsForLatestSpots(activity.id, date)
 
     const totalPeople = registrations.reduce((sum, registration) => sum + (registration.self_count || 0) + (registration.guest_count || 0), 0)
     latestSpots.value = Math.max(0, (activity.single_capacity || 0) - totalPeople)
   }
 
   async function fetchActivities() {
-    const { data } = await supabase
-      .from('activities')
-      .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
-      .order('created_at', { ascending: false })
-
-    activities.value = data || []
+    activities.value = await listGroupActivities()
     isLoading.value = false
     await fetchLatestSpots()
   }

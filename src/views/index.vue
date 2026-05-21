@@ -5,7 +5,7 @@ import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
-import { supabase } from '~/utils/supabase'
+import { listHomeActivityCandidates } from '~/services/activityService'
 
 const latestActivityTo = ref('/group-list')
 
@@ -23,7 +23,7 @@ function isDateExpired(dateStr, endTime) {
 }
 
 onMounted(async () => {
-  const { data } = await supabase.from('activities').select('id, dates, end_time').order('created_at', { ascending: false }).limit(20)
+  const data = await listHomeActivityCandidates()
 
   if (data && data.length > 0) {
     let nearestDate = null

@@ -4,10 +4,9 @@ import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
 import { useActiveActivityRegistrations } from '~/composables/useActiveActivityRegistrations'
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { fetchActivityDetail } from '~/services/activityService'
-import { invokeRegistrationAction } from '~/services/registrationService'
+import { invokeRegistrationAction, removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { startLineOAuth } from '~/utils/lineOAuth'
-import { supabase } from '~/utils/supabase'
 
 function toGuestForm(guests = []) {
   return guests.map(g => ({ name: g.name || '', gender: g.gender || '', added_at: g.added_at || null }))
@@ -425,17 +424,14 @@ export function useActiveActivityPage() {
     nowTickInterval = setInterval(() => {
       nowTick.value = new Date()
     }, 1000)
-    realtimeChannel = supabase
-      .channel('registrations-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
-        fetchRegistrations()
-      })
-      .subscribe()
+    realtimeChannel = subscribeToRegistrationChanges(() => {
+      fetchRegistrations()
+    })
   })
 
   onUnmounted(() => {
     if (nowTickInterval) clearInterval(nowTickInterval)
-    if (realtimeChannel) supabase.removeChannel(realtimeChannel)
+    removeRegistrationSubscription(realtimeChannel)
   })
 
   const navigation = {

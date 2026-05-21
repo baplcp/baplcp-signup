@@ -33,6 +33,28 @@ export async function listManagedActivities() {
   return data || []
 }
 
+export async function listHomeActivityCandidates() {
+  const { data } = await supabase.from('activities').select('id, dates, end_time').order('created_at', { ascending: false }).limit(20)
+  return data || []
+}
+
+export async function listSeasonActivities() {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, title, dates, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type')
+    .eq('season_enabled', true)
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
+export async function listGroupActivities() {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session')
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
 export function fetchActivityDetail(id) {
   if (id) {
     return supabase.from('activities').select(ACTIVITY_DETAIL_FIELDS).eq('id', id).single()

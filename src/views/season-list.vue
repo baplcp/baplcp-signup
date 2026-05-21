@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
-import { supabase } from '~/utils/supabase'
+import { listSeasonActivities } from '~/services/activityService'
 
 const activities = ref([])
 const isLoading = ref(true)
@@ -35,13 +35,7 @@ function getRegistrationBadge(act) {
 }
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('activities')
-    .select('id, title, dates, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type')
-    .eq('season_enabled', true)
-    .order('created_at', { ascending: false })
-
-  if (data) activities.value = data
+  activities.value = await listSeasonActivities()
   isLoading.value = false
 })
 </script>

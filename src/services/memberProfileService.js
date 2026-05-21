@@ -1,5 +1,12 @@
 import { supabase } from '~/utils/supabase'
 
+export async function getMemberGenderMap(userIds) {
+  if (!userIds.length) return {}
+
+  const { data } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
+  return data ? Object.fromEntries(data.map(member => [member.user_id, member.gender || null])) : {}
+}
+
 export async function syncMemberProfile({ userId, displayName, lineAccessToken }) {
   if (!userId) return null
 
