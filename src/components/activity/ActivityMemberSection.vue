@@ -213,8 +213,130 @@ function handleRemove(member, index) {
 </template>
 
 <style scoped>
+.activity-segment-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.activity-segment-tab {
+  min-width: 56px;
+  min-height: 34px;
+  padding: 6px 17px;
+  border-radius: 999px;
+  background: var(--line);
+  color: #8d94ad;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 400;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.activity-segment-tab.is-active {
+  background: var(--primary-700);
+  color: var(--neutral-0);
+  font-weight: 600;
+  box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
+}
+
 .activity-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   overflow-x: hidden;
+}
+
+.activity-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+}
+
+.activity-member-rank {
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--primary-700);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.activity-member-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: linear-gradient(135deg, #8aa0ff 0%, var(--primary-700) 100%);
+  color: var(--neutral-0);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.activity-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.activity-member-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.activity-member-time {
+  color: var(--neutral-500);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.activity-member-status {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--neutral-150);
+  color: #8b92b1;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.activity-member-status.is-season {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, #ffe566 0%, #f5a623 100%);
+  color: #7a4200;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 1px 4px rgba(220, 140, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 200, 0.45);
+}
+
+.activity-member-status.is-season .season-crown {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  display: block;
 }
 
 .waitlist-divider {

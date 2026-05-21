@@ -20,11 +20,13 @@ const router = createRouter({
       path: '/group-list',
       name: 'group-list',
       component: GroupList,
+      meta: { header: 'simple' },
     },
     {
       path: '/season-list',
       name: 'season-list',
       component: SeasonList,
+      meta: { header: 'simple' },
     },
     {
       path: '/active-activity',
@@ -35,7 +37,7 @@ const router = createRouter({
       path: '/create-activity',
       name: 'create-activity',
       component: CreateActivity,
-      meta: { requiresOrganizer: true },
+      meta: { requiresOrganizer: true, header: 'none' },
     },
     {
       path: '/ended-activity',
@@ -46,7 +48,7 @@ const router = createRouter({
       path: '/manage-activities',
       name: 'manage-activities',
       component: ManageActivities,
-      meta: { requiresOrganizer: true },
+      meta: { requiresOrganizer: true, header: 'simple' },
     },
   ],
 })

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '~/utils/supabase'
+import { deleteActivity, listManagedActivities } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
 
 const router = useRouter()
@@ -18,9 +18,7 @@ onMounted(async () => {
     return
   }
 
-  const { data } = await supabase.from('activities').select('id, title, dates').order('created_at', { ascending: false })
-
-  if (data) activities.value = data
+  activities.value = await listManagedActivities()
   isLoading.value = false
 })
 
@@ -112,26 +110,13 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   isDeleting.value = true
   try {
-    await invokeActivityAdmin({ action: 'delete', id: deleteTarget.value.act.id })
+    await deleteActivity(liffStore, deleteTarget.value.act.id)
     activities.value = activities.value.filter(a => a.id !== deleteTarget.value.act.id)
     rowOffsets.value = {}
   } finally {
     isDeleting.value = false
     deleteTarget.value = null
   }
-}
-
-async function invokeActivityAdmin(body) {
-  const lineAccessToken = await liffStore.getLineAccessToken()
-  if (!lineAccessToken && !import.meta.env.DEV) throw new Error('missing_line_access_token')
-
-  const options = { body }
-  if (lineAccessToken) {
-    options.headers = { 'x-line-access-token': lineAccessToken }
-  }
-
-  const { error } = await supabase.functions.invoke('activity-admin', options)
-  if (error) throw error
 }
 </script>
 

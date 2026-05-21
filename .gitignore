@@ -4,3 +4,6 @@ node_modules
 .vite
 dist
 .temp
+.env
+.env.*
+!.env.example

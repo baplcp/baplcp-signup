@@ -20,10 +20,9 @@ const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.mem
 const isOrganizer = computed(() => liffStore.role === 'organizer')
 const navScrollProgress = ref(0)
 
-const hiddenHeaderPath = ['group-list', 'create-activity']
-const isShowHeader = computed(() => !hiddenHeaderPath.includes(route.name))
-const simpleHeaderPath = ['group-list', 'manage-activities', 'season-list']
-const isShowSinpleHeader = computed(() => simpleHeaderPath.includes(route.name))
+const headerMode = computed(() => route.meta.header ?? 'default')
+const isShowHeader = computed(() => headerMode.value !== 'none')
+const isShowSimpleHeader = computed(() => headerMode.value === 'simple')
 const navBackgroundOpacity = computed(() => navScrollProgress.value * 0.94)
 const isNavScrolled = computed(() => navScrollProgress.value > 0.55)
 const navStyle = computed(() => ({
@@ -83,7 +82,7 @@ watch(
 
 <template>
   <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl">
-    <header v-if="isShowSinpleHeader" class="simple-header">
+    <header v-if="isShowSimpleHeader" class="simple-header">
       <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />

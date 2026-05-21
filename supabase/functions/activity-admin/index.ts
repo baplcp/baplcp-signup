@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId, requireOrganizer } from '../_shared/function-utils.ts'
 
-const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
 const ACTIVITY_FIELDS = [
   'game_type',
   'title',
@@ -32,28 +32,6 @@ const ACTIVITY_FIELDS = [
   'reminder_days_before',
   'reminder_time',
 ]
-
-function corsHeaders(origin: string) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-line-access-token',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  }
-}
-
-function jsonResponse(body: Record<string, unknown>, status: number, origin: string) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-  })
-}
-
-function normalizeId(value: unknown): string | number | null {
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value
-  if (typeof value === 'string' && /^[0-9a-z-]{1,80}$/i.test(value)) return value
-  return null
-}
 
 function isDateString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -134,20 +112,6 @@ function cleanActivityPayload(input: unknown) {
   return payload
 }
 
-async function getLineProfile(accessToken: string) {
-  const profileRes = await fetch('https://api.line.me/v2/profile', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-  if (!profileRes.ok) throw new Error('invalid_line_token')
-  const profile = await profileRes.json()
-  if (!profile?.userId) throw new Error('invalid_line_profile')
-  return profile
-}
-
-function isLocalDevAdminRequest(origin: string) {
-  return Deno.env.get('ALLOW_DEV_ADMIN') === 'true' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
-}
-
 async function resolveOrganizerIdentity(req: Request, origin: string) {
   const lineAccessToken = req.headers.get('x-line-access-token')
   if (lineAccessToken) {
@@ -160,12 +124,6 @@ async function resolveOrganizerIdentity(req: Request, origin: string) {
   }
 
   throw new Error('missing_line_token')
-}
-
-async function requireOrganizer(supabase: any, userId: string) {
-  const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
-  if (error) throw error
-  if (data?.role !== 'organizer') throw new Error('forbidden')
 }
 
 serve(async req => {

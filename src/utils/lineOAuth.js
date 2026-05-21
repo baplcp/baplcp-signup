@@ -1,5 +1,5 @@
-const CLIENT_ID = '2009808077'
-const REDIRECT_URI = 'https://baplcp.github.io/baplcp-signup/'
+import { LINE_OAUTH_CLIENT_ID, LINE_OAUTH_REDIRECT_URI } from '~/config/env'
+
 const STATE_KEY = 'line-oauth-state'
 const POST_OAUTH_HASH_KEY = 'line-oauth-redirect-hash'
 
@@ -11,8 +11,8 @@ export function startLineOAuth() {
 
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    client_id: LINE_OAUTH_CLIENT_ID,
+    redirect_uri: LINE_OAUTH_REDIRECT_URI,
     state,
     scope: 'profile openid',
   })
@@ -53,4 +53,4 @@ export function popPostOAuthRedirect() {
   return hash
 }
 
-export { REDIRECT_URI as LINE_OAUTH_REDIRECT_URI }
+export { LINE_OAUTH_REDIRECT_URI }

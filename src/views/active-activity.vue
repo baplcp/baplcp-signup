@@ -3,6 +3,9 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import { useRoute, useRouter } from 'vue-router'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
+import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
+import { fetchActivityDetail } from '~/services/activityService'
+import { invokeRegistrationAction } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { supabase } from '~/utils/supabase'
 import { startLineOAuth } from '~/utils/lineOAuth'
@@ -174,14 +177,10 @@ async function fetchRegistrations() {
 }
 
 onMounted(async () => {
-  const AC_FIELDS =
-    'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
   const id = route.query.id
 
   // 預先啟動 activity 查詢，與 LIFF init 並行，縮短整體等待時間
-  const activityFetchPromise = id
-    ? supabase.from('activities').select(AC_FIELDS).eq('id', id).single()
-    : supabase.from('activities').select(AC_FIELDS).order('created_at', { ascending: false }).limit(1).single()
+  const activityFetchPromise = fetchActivityDetail(id)
 
   // 確保 LIFF 初始化完成，userId 就位後再抓報名資料，避免把自己的報名當成新報名
   await liffStore.initialize()
@@ -219,19 +218,6 @@ onUnmounted(() => {
   if (_nowTickInterval) clearInterval(_nowTickInterval)
   if (_realtimeChannel) supabase.removeChannel(_realtimeChannel)
 })
-
-async function invokeRegistrationAction(body) {
-  const lineAccessToken = await liffStore.getLineAccessToken()
-  if (!lineAccessToken && !import.meta.env.DEV) throw new Error('missing_line_access_token')
-
-  const options = { body }
-  if (lineAccessToken) {
-    options.headers = { 'x-line-access-token': lineAccessToken }
-  }
-
-  const { error } = await supabase.functions.invoke('registration-action', options)
-  if (error) throw error
-}
 
 // 報名開放時間（台灣時間 UTC+8，無日光節約）
 const registrationOpenAt = computed(() => {
@@ -303,136 +289,17 @@ function formatAllDate(dateStr) {
   return `${Number(m)} 月 ${Number(d)} 日（${weekday}）`
 }
 
-function formatRegistrationTime(isoString) {
-  if (!isoString) return ''
-  const d = new Date(isoString)
-  const h = String(d.getHours()).padStart(2, '0')
-  const m = String(d.getMinutes()).padStart(2, '0')
-  const s = String(d.getSeconds()).padStart(2, '0')
-  return `${h}:${m}:${s}`
-}
-
 const isAdmin = computed(() => liffStore.role === 'organizer')
 const adminMode = ref(false)
 
-const memberList = computed(() => {
-  const capacity = activityData.value?.single_capacity ?? Infinity
-  const members = []
-
-  // 臨打頁面：先插入未請假的季打成員
-  if (activityType.value !== 'season') {
-    const date = resolvedDate.value
-    seasonRegistrations.value.forEach(reg => {
-      if ((reg.leave_dates || []).includes(date)) return
-      if (reg.self_count > 0) {
-        // 若曾請假後取消請假（rejoin），以回歸時間排序，避免佔住早期的確認名額
-        const ts = reg.rejoin_times?.[date] || reg.created_at
-        members.push({
-          name: reg.display_name,
-          badge: reg.display_name.charAt(0),
-          image: reg.picture_url || null,
-          time: formatRegistrationTime(ts),
-          _ts: ts,
-          gender: memberGenders.value[reg.user_id] || null,
-          _regId: reg.id,
-          _memberType: 'season_self',
-          _guestIndex: -1,
-          isSeason: true,
-          paidCourt: reg.paid_court ?? false,
-          paidAc: reg.paid_ac ?? false,
-        })
-      }
-    })
-  }
-
-  const overflowGuests = []
-
-  registrations.value.forEach(reg => {
-    if (reg.self_count > 0) {
-      const ts = reg.self_added_at || reg.created_at
-      members.push({
-        name: reg.display_name,
-        badge: reg.display_name.charAt(0),
-        image: reg.picture_url || null,
-        time: formatRegistrationTime(ts),
-        _ts: ts,
-        gender: memberGenders.value[reg.user_id] || null,
-        _regId: reg.id,
-        _memberType: 'self',
-        _guestIndex: -1,
-        paidCourt: reg.paid_court ?? false,
-        paidAc: reg.paid_ac ?? false,
-      })
-    }
-    ;(reg.guests || []).forEach((guest, gIdx) => {
-      const ts = guest.added_at || reg.created_at
-      const entry = {
-        name: guest.name || '群外',
-        badge: (guest.name || '群').charAt(0),
-        time: formatRegistrationTime(ts),
-        addedBy: reg.display_name,
-        _ts: ts,
-        gender: guest.gender || null,
-        _regId: reg.id,
-        _memberType: 'guest',
-        _guestIndex: gIdx,
-        paidCourt: guest.paid_court ?? false,
-        paidAc: guest.paid_ac ?? false,
-      }
-      if (gIdx >= 2) {
-        overflowGuests.push(entry)
-      } else {
-        members.push(entry)
-      }
-    })
-  })
-  members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-  overflowGuests.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-  const all = [...members, ...overflowGuests]
-  return all.map(({ _ts, ...m }, i) => ({ ...m, status: i >= capacity ? '候補' : undefined }))
-})
-
-const cancelledMemberList = computed(() => {
-  // 有 active 報名的 user_id：表示取消後又重新報名，不該出現在取消清單
-  const activeUserIds = new Set(registrations.value.map(r => r.user_id))
-  const members = []
-
-  // Supabase 抓得到的整筆 cancelled 紀錄
-  cancelledRegistrations.value.forEach(reg => {
-    if (activeUserIds.has(reg.user_id)) return // 已重新報名，略過
-    if (reg.self_count > 0) {
-      members.push({ name: reg.display_name, badge: reg.display_name.charAt(0), image: reg.picture_url || null, time: formatRegistrationTime(reg.self_added_at || reg.created_at) })
-    }
-    ;(reg.guests || []).forEach(guest => {
-      members.push({ name: guest.name || '群外', badge: (guest.name || '群').charAt(0), time: formatRegistrationTime(guest.added_at || reg.created_at), addedBy: reg.display_name })
-    })
-  })
-  ;[...registrations.value, ...cancelledRegistrations.value.filter(reg => !activeUserIds.has(reg.user_id))].forEach(reg => {
-    ;(reg.cancelled_members || []).forEach(member => {
-      members.push({
-        name: member.name || '群外',
-        badge: member.badge || (member.name || '群').charAt(0),
-        image: member.image || null,
-        time: formatRegistrationTime(member.time),
-        addedBy: member.addedBy || null,
-      })
-    })
-  })
-
-  return members
-})
-
-const leaveMemberList = computed(() => {
-  if (activityType.value === 'season') return []
-  const date = resolvedDate.value
-  if (!date) return []
-  return seasonRegistrations.value
-    .filter(reg => (reg.leave_dates || []).includes(date))
-    .map(reg => ({
-      name: reg.display_name,
-      badge: reg.display_name.charAt(0),
-      image: reg.picture_url || null,
-    }))
+const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
+  activityData,
+  activityType,
+  resolvedDate,
+  registrations,
+  cancelledRegistrations,
+  seasonRegistrations,
+  memberGenders,
 })
 
 // 目前 tab 下方是否有可見的取消/請假區塊（決定名單底部是否需要額外間距）
@@ -469,7 +336,7 @@ async function togglePayment(member, field) {
     const updatedReg = { ...reg, [field]: !(reg[field] ?? false) }
     seasonRegistrations.value = seasonRegistrations.value.map((r, i) => (i === regIdx ? updatedReg : r))
     try {
-      await invokeRegistrationAction({
+      await invokeRegistrationAction(liffStore, {
         action: 'admin-toggle-payment',
         activityId: activityData.value?.id,
         registrationId: reg.id,
@@ -500,7 +367,7 @@ async function togglePayment(member, field) {
 
   // 背景寫入 DB，完成後再同步一次確保一致
   try {
-    await invokeRegistrationAction({
+    await invokeRegistrationAction(liffStore, {
       action: 'admin-toggle-payment',
       activityId: activityData.value?.id,
       registrationId: reg.id,
@@ -539,7 +406,7 @@ async function confirmRemove() {
   try {
     if (member._memberType === 'self') {
       if ((reg.guest_count || 0) === 0) {
-        await invokeRegistrationAction({
+        await invokeRegistrationAction(liffStore, {
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
           registrationId: reg.id,
@@ -549,7 +416,7 @@ async function confirmRemove() {
         await fetchRegistrations()
         return
       } else {
-        await invokeRegistrationAction({
+        await invokeRegistrationAction(liffStore, {
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
           registrationId: reg.id,
@@ -561,7 +428,7 @@ async function confirmRemove() {
       const newGuests = (reg.guests || []).filter((_, i) => i !== member._guestIndex)
       const newGuestCount = newGuests.length
       if ((reg.self_count || 0) === 0 && newGuestCount === 0) {
-        await invokeRegistrationAction({
+        await invokeRegistrationAction(liffStore, {
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
           registrationId: reg.id,
@@ -571,7 +438,7 @@ async function confirmRemove() {
         await fetchRegistrations()
         return
       } else {
-        await invokeRegistrationAction({
+        await invokeRegistrationAction(liffStore, {
           action: 'admin-remove-member',
           activityId: activityData.value?.id,
           registrationId: reg.id,
@@ -590,7 +457,7 @@ async function updateAcEnabled(enabled) {
   const activityId = route.query.id || activityData.value?.id
   if (!activityId) return
   try {
-    await invokeRegistrationAction({
+    await invokeRegistrationAction(liffStore, {
       action: 'admin-update-ac',
       activityId,
       enabled,
@@ -858,7 +725,7 @@ async function _doSubmitSignup() {
 
       // 處理請假狀態與群外臨打報名；身分由 Edge Function 驗 LINE token 後決定。
       const guestTotal = signupState.guest
-      await invokeRegistrationAction({
+      await invokeRegistrationAction(liffStore, {
         action: 'season-leave',
         activityId: activityData.value?.id,
         activityDate: resolvedDate.value,
@@ -914,7 +781,7 @@ async function _doSubmitSignup() {
   // 取消報名：標記為 cancelled，保留紀錄顯示於名單底部
   if (total <= 0 && myRegistration.value) {
     try {
-      await invokeRegistrationAction({
+      await invokeRegistrationAction(liffStore, {
         action: 'save-registration',
         activityId: activityData.value?.id,
         activityDate: activityType.value === 'season' ? null : resolvedDate.value,
@@ -936,7 +803,7 @@ async function _doSubmitSignup() {
   }
 
   try {
-    await invokeRegistrationAction({
+    await invokeRegistrationAction(liffStore, {
       action: 'save-registration',
       activityId: activityData.value?.id,
       activityDate: activityType.value === 'season' ? null : resolvedDate.value,
@@ -994,7 +861,7 @@ async function directSeasonRegister() {
   if (isSubmitting.value) return
   isSubmitting.value = true
   try {
-    await invokeRegistrationAction({
+    await invokeRegistrationAction(liffStore, {
       action: 'direct-season-register',
       activityId: activityData.value?.id,
     })
@@ -1012,7 +879,7 @@ async function confirmSeasonCancel() {
   const reg = myRegistration.value
   if (!reg) return
   try {
-    await invokeRegistrationAction({
+    await invokeRegistrationAction(liffStore, {
       action: 'season-cancel',
       activityId: activityData.value?.id,
     })

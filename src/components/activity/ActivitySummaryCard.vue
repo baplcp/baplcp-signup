@@ -172,6 +172,140 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 </template>
 
 <style scoped>
+.activity-summary-card {
+  position: relative;
+  z-index: 3;
+  margin: -88px 16px 0;
+  min-height: 107px;
+  padding: 16px 16px 0;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.activity-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding-bottom: 16px;
+}
+
+.activity-summary-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.activity-summary-time {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  color: var(--neutral-700);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.activity-summary-date {
+  letter-spacing: 0;
+  font-kerning: normal;
+  font-feature-settings: 'kern';
+  margin-right: -2px;
+}
+
+.activity-summary-weekday {
+  display: inline-block;
+  font-size: 13px;
+  transform: translateX(-4px);
+}
+
+.activity-summary-separator {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  margin: 0 12px 0 2px;
+  background: var(--neutral-300);
+  color: var(--neutral-300);
+  font-size: 0;
+  line-height: 0;
+  font-weight: 400;
+}
+
+.activity-summary-location {
+  margin: 0;
+  color: var(--neutral-700);
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 400;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.activity-summary-status {
+  margin: 0 -16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.activity-summary-status-text {
+  margin: 0;
+  min-width: 0;
+  color: var(--neutral-700);
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.activity-summary-fee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: var(--neutral-700);
+  white-space: nowrap;
+}
+
+.activity-summary-fee-money,
+.activity-summary-fee-air {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+.activity-summary-fee-money {
+  margin-right: -10px;
+}
+
+.activity-summary-fee-air {
+  margin-right: -4px;
+}
+
+.activity-summary-fee-amount,
+.activity-summary-fee-state {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.activity-summary-fee-amount {
+  margin-right: -4px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.activity-summary-fee-state {
+  font-weight: 400;
+}
+
 .summary-card--primary {
   box-shadow: var(--shadow-primary-card);
 }

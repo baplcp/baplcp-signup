@@ -1,25 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
 
-const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
-
-function corsHeaders(origin: string) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-line-access-token',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  }
-}
-
-type LineProfile = {
-  userId: string
-  displayName: string
-  pictureUrl?: string | null
+type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
 }
 
-const DEV_PROFILE: LineProfile = {
+const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',
   displayName: 'Dev Admin',
   pictureUrl: null,
@@ -29,19 +16,6 @@ const DEV_PROFILE: LineProfile = {
 type GuestInput = {
   name?: string
   gender?: string
-}
-
-function jsonResponse(body: Record<string, unknown>, status: number, origin: string) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-  })
-}
-
-function normalizeId(value: unknown): string | number | null {
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value
-  if (typeof value === 'string' && /^[0-9a-z-]{1,80}$/i.test(value)) return value
-  return null
 }
 
 function isDateString(value: unknown): value is string {
@@ -74,25 +48,7 @@ function normalizeGuests(value: unknown, count: number): Array<{ name: string; g
   })
 }
 
-async function getLineProfile(accessToken: string): Promise<LineProfile> {
-  const profileRes = await fetch('https://api.line.me/v2/profile', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-  if (!profileRes.ok) throw new Error('invalid_line_token')
-  const profile = await profileRes.json()
-  if (!profile?.userId || !profile?.displayName) throw new Error('invalid_line_profile')
-  return {
-    userId: profile.userId,
-    displayName: profile.displayName,
-    pictureUrl: profile.pictureUrl ?? null,
-  }
-}
-
-function isLocalDevAdminRequest(origin: string) {
-  return Deno.env.get('ALLOW_DEV_ADMIN') === 'true' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
-}
-
-async function resolveProfile(req: Request, origin: string): Promise<LineProfile> {
+async function resolveProfile(req: Request, origin: string): Promise<AdminLineProfile> {
   const lineAccessToken = req.headers.get('x-line-access-token')
   if (lineAccessToken) return getLineProfile(lineAccessToken)
 
@@ -162,13 +118,7 @@ function appendCancelledMembers(reg: Record<string, any>, entries: Array<Record<
   return [...existing, ...entries]
 }
 
-async function requireOrganizer(supabase: any, userId: string) {
-  const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
-  if (error) throw error
-  if (data?.role !== 'organizer') throw new Error('forbidden')
-}
-
-async function requireAdmin(supabase: any, profile: LineProfile) {
+async function requireAdmin(supabase: any, profile: AdminLineProfile) {
   if (profile.isDevAdmin) return
   await requireOrganizer(supabase, profile.userId)
 }

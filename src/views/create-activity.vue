@@ -1,55 +1,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { buildActivityPayload, createActivityFormDefaults, getActivityFormErrors, populateActivityForm } from '~/composables/useCreateActivityForm'
+import { createActivity, getActivity, updateActivity } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
-import { supabase } from '~/utils/supabase'
 import CreateActivityChoiceCard from '../components/create-activity/CreateActivityChoiceCard.vue'
 import CreateActivityMoneyField from '../components/create-activity/CreateActivityMoneyField.vue'
 import CreateActivityTimeSelect from '../components/create-activity/CreateActivityTimeSelect.vue'
 
-const api = {
-  async createActivity(payload) {
-    const data = await invokeActivityAdmin({ action: 'create', payload })
-    return data
-  },
-  async getActivity(id) {
-    const { data, error } = await supabase.from('activities').select('*').eq('id', id).single()
-    if (error) throw error
-    return data
-  },
-  async updateActivity(id, payload) {
-    const data = await invokeActivityAdmin({ action: 'update', id, payload })
-    return data
-  },
-}
-
-const form = reactive({
-  gameType: 'season',
-  activityTitle: '',
-  pickupLabel: '',
-  location: '',
-  activityStartTime: '',
-  activityEndTime: '',
-  seasonSingleFee: '',
-  pickupSingleFee: '',
-  acFee: '',
-  singleCapacity: '18',
-  seasonIncludeAc: true,
-  seasonCapacity: 'unlimited',
-  seasonOpenDate: '',
-  seasonOpenTime: '00:00',
-  seasonDeadlineType: 'unlimited',
-  seasonCloseDate: '',
-  seasonCloseTime: '',
-  pickupOpenDate: '前 7 天',
-  pickupOpenTime: '20:00',
-  deadlineType: 'unlimited',
-  pickupCloseDate: '前 1 天',
-  pickupCloseTime: '20:00',
-  reminderEnabled: 'disabled',
-  reminderDaysBefore: '前 3 天',
-  reminderTime: '09:00',
-})
+const form = reactive(createActivityFormDefaults())
 
 const submitButton = ref(null)
 const createDialogButton = ref(null)
@@ -158,34 +117,8 @@ onMounted(async () => {
     editId.value = idParam
     isPopulatingForm.value = true
     try {
-      const data = await api.getActivity(idParam)
-      form.gameType = data.game_type || 'season'
-      form.activityTitle = data.title || ''
-      form.location = data.location || ''
-      selectedDates.value = data.dates || []
-      form.activityStartTime = data.start_time || ''
-      form.activityEndTime = data.end_time || ''
-      form.seasonSingleFee = String(data.season_fee_per_session ?? '')
-      form.pickupSingleFee = String(data.pickup_fee_per_session ?? '')
-      form.acFee = String(data.ac_fee ?? '')
-      form.singleCapacity = String(data.single_capacity ?? '18')
-      seasonEnabled.value = data.season_enabled ?? true
-      form.seasonIncludeAc = data.season_include_ac ?? true
-      form.seasonCapacity = data.season_capacity || 'unlimited'
-      form.seasonOpenDate = data.season_open_date || ''
-      form.seasonOpenTime = data.season_open_time || '00:00'
-      form.seasonDeadlineType = data.season_deadline_type || 'unlimited'
-      form.seasonCloseDate = data.season_close_date || ''
-      form.seasonCloseTime = data.season_close_time || ''
-      form.pickupLabel = data.pickup_label || ''
-      form.pickupOpenDate = data.pickup_open_days_before ? `前 ${data.pickup_open_days_before} 天` : '前 7 天'
-      form.pickupOpenTime = data.pickup_open_time || '20:00'
-      form.deadlineType = data.pickup_deadline_type || 'unlimited'
-      form.pickupCloseDate = data.pickup_close_days_before ? `前 ${data.pickup_close_days_before} 天` : '前 1 天'
-      form.pickupCloseTime = data.pickup_close_time || ''
-      form.reminderEnabled = data.reminder_enabled ? 'enabled' : 'disabled'
-      form.reminderDaysBefore = data.reminder_days_before != null ? `前 ${data.reminder_days_before} 天` : '前 3 天'
-      form.reminderTime = data.reminder_time ? data.reminder_time.slice(0, 5) : '09:00'
+      const data = await getActivity(idParam)
+      populateActivityForm(form, data, selectedDates, seasonEnabled)
 
       const firstDate = selectedDates.value[0]
       if (firstDate) {
@@ -245,11 +178,6 @@ function from24Hour(value) {
   }
 }
 
-function parseDaysBefore(raw) {
-  const match = (raw || '').match(/(\d+)/)
-  return match ? parseInt(match[1], 10) : null
-}
-
 function returnToPreviousPage() {
   if (window.history.length > 1) window.history.back()
   else window.location.href = './group-list.html'
@@ -263,20 +191,6 @@ const isOrganizer = computed(() => liffStore.role === 'organizer')
 const editId = ref(null)
 const isEditMode = computed(() => !!editId.value)
 const isPopulatingForm = ref(false)
-
-async function invokeActivityAdmin(body) {
-  const lineAccessToken = await liffStore.getLineAccessToken()
-  if (!lineAccessToken && !import.meta.env.DEV) throw new Error('missing_line_access_token')
-
-  const options = { body }
-  if (lineAccessToken) {
-    options.headers = { 'x-line-access-token': lineAccessToken }
-  }
-
-  const { data, error } = await supabase.functions.invoke('activity-admin', options)
-  if (error) throw error
-  return data?.data ?? data
-}
 
 function goToCreatedActivityList() {
   const inAppFrom = window.history.state?.__inAppFrom
@@ -482,37 +396,7 @@ function clearError(field) {
 }
 
 function validate() {
-  const checks = [
-    { field: 'activityTitle', ok: form.activityTitle.trim() !== '' },
-    { field: 'location', ok: form.location.trim() !== '' },
-    { field: 'activityDates', ok: selectedDates.value.length > 0 },
-    { field: 'activityStartTime', ok: form.activityStartTime !== '' },
-    { field: 'activityEndTime', ok: form.activityEndTime !== '' },
-    { field: 'seasonSingleFee', ok: String(form.seasonSingleFee).trim() !== '' },
-    { field: 'pickupSingleFee', ok: String(form.pickupSingleFee).trim() !== '' },
-    { field: 'acFee', ok: String(form.acFee).trim() !== '' },
-    { field: 'singleCapacity', ok: String(form.singleCapacity).trim() !== '' },
-    { field: 'pickupOpenDate', ok: form.pickupOpenDate !== '' },
-    { field: 'pickupOpenTime', ok: form.pickupOpenTime !== '' },
-  ]
-
-  if (seasonEnabled.value) {
-    checks.push({ field: 'seasonCapacity', ok: form.seasonCapacity !== '' }, { field: 'seasonOpenDate', ok: form.seasonOpenDate !== '' }, { field: 'seasonOpenTime', ok: form.seasonOpenTime !== '' })
-
-    if (form.seasonDeadlineType === 'custom') {
-      checks.push({ field: 'seasonCloseDate', ok: form.seasonCloseDate !== '' }, { field: 'seasonCloseTime', ok: form.seasonCloseTime !== '' })
-    }
-  }
-
-  if (form.deadlineType === 'custom') {
-    checks.push({ field: 'pickupCloseDate', ok: form.pickupCloseDate !== '' }, { field: 'pickupCloseTime', ok: form.pickupCloseTime !== '' })
-  }
-
-  if (form.reminderEnabled === 'enabled') {
-    checks.push({ field: 'reminderDaysBefore', ok: form.reminderDaysBefore !== '' }, { field: 'reminderTime', ok: form.reminderTime !== '' })
-  }
-
-  errorFields.value = new Set(checks.filter(({ ok }) => !ok).map(({ field }) => field))
+  errorFields.value = getActivityFormErrors(form, selectedDates, seasonEnabled)
 
   if (errorFields.value.size > 0) {
     openCreateDialog({
@@ -527,46 +411,14 @@ function validate() {
   return true
 }
 
-function buildActivityPayload() {
-  return {
-    game_type: form.gameType || 'season',
-    title: form.activityTitle || '',
-    location: form.location || '',
-    dates: selectedDates.value,
-    start_time: form.activityStartTime || null,
-    end_time: form.activityEndTime || null,
-    season_fee_per_session: Number(form.seasonSingleFee) || 0,
-    pickup_fee_per_session: Number(form.pickupSingleFee) || 0,
-    ac_fee: Number(form.acFee) || 0,
-    single_capacity: Number(form.singleCapacity) || 18,
-    season_enabled: seasonEnabled.value,
-    season_include_ac: form.seasonIncludeAc,
-    season_total_fee: Number(seasonFee.value) || 0,
-    season_capacity: form.seasonCapacity || null,
-    season_open_date: form.seasonOpenDate || null,
-    season_open_time: form.seasonOpenTime || null,
-    season_deadline_type: form.seasonDeadlineType || 'unlimited',
-    season_close_date: form.seasonCloseDate || null,
-    season_close_time: form.seasonCloseTime || null,
-    pickup_label: form.pickupLabel.trim() || null,
-    pickup_open_days_before: parseDaysBefore(form.pickupOpenDate),
-    pickup_open_time: form.pickupOpenTime || null,
-    pickup_deadline_type: form.deadlineType || 'unlimited',
-    pickup_close_days_before: parseDaysBefore(form.pickupCloseDate),
-    pickup_close_time: form.pickupCloseTime || null,
-    reminder_enabled: form.reminderEnabled === 'enabled',
-    reminder_days_before: form.reminderEnabled === 'enabled' ? parseDaysBefore(form.reminderDaysBefore) : null,
-    reminder_time: form.reminderEnabled === 'enabled' ? form.reminderTime : null,
-  }
-}
-
 async function handleSubmitActivity() {
   if (!validate()) return
+  const payload = buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee.value)
 
   isSubmitting.value = true
   try {
     if (isEditMode.value) {
-      await api.updateActivity(editId.value, buildActivityPayload())
+      await updateActivity(liffStore, editId.value, payload)
       openCreateDialog({
         title: '設定已更新',
         copy: '球局設定已更新完成。',
@@ -574,7 +426,7 @@ async function handleSubmitActivity() {
         returnAfterClose: true,
       })
     } else {
-      await api.createActivity(buildActivityPayload())
+      await createActivity(liffStore, payload)
       openCreateDialog({
         title: '球局建立成功',
         copy: '新球局已建立完成。',

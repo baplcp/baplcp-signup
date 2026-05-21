@@ -1,7 +1,6 @@
 import liff from '@line/liff'
 import { ref } from 'vue'
-
-const LIFF_ID = '2009808077-q6H0su3r'
+import { LIFF_ID } from '~/config/env'
 
 export const liffUser = ref(null)
 

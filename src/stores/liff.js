@@ -1,10 +1,10 @@
 import liff from '@line/liff'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { LIFF_ID } from '~/config/env'
+import { syncMemberProfile, updateMemberGender } from '~/services/memberProfileService'
 import { supabase } from '~/utils/supabase'
 import { consumeOAuthCallback, popPostOAuthRedirect, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
-
-const LIFF_ID = '2009808077-q6H0su3r'
 
 let initializationPromise = null
 
@@ -30,31 +30,12 @@ export const useLiffStore = defineStore('liff', () => {
 
   // 登入時透過 Edge Function 同步 members；production 不信任前端傳入的 LINE 身分。
   async function syncMember(uid, name) {
-    if (!uid) return
     try {
-      if (import.meta.env.DEV) {
-        const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', uid).maybeSingle()
-        if (error) return
-        if (data) {
-          role.value = data.role
-          gender.value = data.gender || null
-          isSeason.value = data.is_season ?? false
-        } else {
-          await supabase.from('members').insert({ user_id: uid, display_name: name, role: 'member' })
-          role.value = 'member'
-        }
-        return
-      }
-
-      if (!lineAccessToken.value) return
-      const { data, error } = await supabase.functions.invoke('member-profile', {
-        body: { action: 'sync' },
-        headers: { 'x-line-access-token': lineAccessToken.value },
-      })
-      if (error) throw error
-      role.value = data?.role ?? 'member'
-      gender.value = data?.gender ?? null
-      isSeason.value = data?.isSeason ?? false
+      const profile = await syncMemberProfile({ userId: uid, displayName: name, lineAccessToken: lineAccessToken.value })
+      if (!profile) return
+      role.value = profile.role
+      gender.value = profile.gender
+      isSeason.value = profile.isSeason
     } catch (e) {
       console.warn('syncMember exception', e)
     }
@@ -191,21 +172,10 @@ export const useLiffStore = defineStore('liff', () => {
   async function updateGender(newGender) {
     if (!userId.value) return
     const value = newGender || null
-    if (import.meta.env.DEV) {
-      const { error } = await supabase.from('members').update({ gender: value }).eq('user_id', userId.value)
-      if (!error) gender.value = value
-      else console.warn('updateGender error', error.message)
-      return
-    }
-
     const lineToken = await getLineAccessToken()
-    if (!lineToken) return
-    const { error } = await supabase.functions.invoke('member-profile', {
-      body: { action: 'update-gender', gender: value },
-      headers: { 'x-line-access-token': lineToken },
-    })
-    if (!error) gender.value = value
-    else console.warn('updateGender error', error.message)
+    const ok = await updateMemberGender({ userId: userId.value, gender: value, lineAccessToken: lineToken })
+    if (ok) gender.value = value
+    else console.warn('updateGender error')
   }
 
   function login() {
