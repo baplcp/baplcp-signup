@@ -41,7 +41,12 @@ function isDateString(value: unknown): value is string {
 }
 
 function isTimeString(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)
+  if (typeof value !== 'string') return false
+  const match = value.match(/^(\d{2}):(\d{2})$/)
+  if (!match) return false
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59
 }
 
 function cleanNullableDate(value: unknown): string | null {
