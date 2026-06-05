@@ -16,10 +16,6 @@ under `supabase/migrations/`.
   - `member-profile`: LINE-verified member sync and profile updates.
 - Public read RLS policies are versioned in
   `20260520005000_version_public_rls_policies.sql`.
-- Public browser reads for sensitive member and registration data go through
-  narrow views instead of full base-table access:
-  - `public_registrations`
-  - `public_member_genders`
 
 ## Local Dev Admin
 
@@ -130,47 +126,6 @@ Roles:
 - `engineer`
 - `member`
 
-### Public read views
-
-#### `public_registrations`
-
-Browser-readable registration fields used by the list UI. The base
-`registrations` table is no longer publicly selectable beyond a minimal
-observable surface for realtime change notifications.
-
-Fields:
-
-- `id`
-- `activity_id`
-- `activity_date`
-- `user_id`
-- `display_name`
-- `picture_url`
-- `self_count`
-- `self_added_at`
-- `guest_count`
-- `guests`
-- `status`
-- `leave_dates`
-- `rejoin_times`
-- `cancelled_members`
-- `created_at`
-
-Payment fields are intentionally excluded from this public view. Logged-in
-members can fetch only their own payment state through
-`registration-action:list-registration-payments`; organizers can fetch payment
-state for the whole activity through the same Edge Function action.
-
-#### `public_member_genders`
-
-Browser-readable member gender lookup used by the list UI. Only members that
-appear in registration records are included.
-
-Fields:
-
-- `user_id`
-- `gender`
-
 ## Migration Index
 
 - `20260520000000_lock_member_registration_writes.sql`: blocks direct anon
@@ -185,6 +140,7 @@ Fields:
   from `guests`.
 - `20260520005000_version_public_rls_policies.sql`: RLS read policies and
   write revokes.
-- `20260605000000_restrict_public_member_registration_reads.sql`: narrows
-  public reads for `members` and `registrations` to public views and keeps only
-  minimal registration columns observable for realtime notifications.
+- `20260605000000_restrict_public_member_registration_reads.sql`: introduced
+  temporary narrow public read views for member and registration data.
+- `20260605001000_restore_public_member_registration_reads.sql`: restores
+  base-table public reads after removing the public view mode.
