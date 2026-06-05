@@ -33,6 +33,9 @@ const ACTIVITY_FIELDS = [
   'reminder_time',
 ]
 
+const GAME_TYPES = ['season']
+const DEADLINE_TYPES = ['unlimited', 'custom']
+
 function isDateString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -53,16 +56,36 @@ function cleanNullableTime(value: unknown): string | null {
   return value
 }
 
-function cleanNumber(value: unknown, fallback: number): number {
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? numberValue : fallback
+function cleanEnum(value: unknown, allowedValues: string[], fallback: string, errorName: string): string {
+  const text = String(value || fallback)
+  if (!allowedValues.includes(text)) throw new Error(errorName)
+  return text
 }
 
-function cleanNullableNumber(value: unknown): number | null {
+function cleanBoolean(value: unknown, fallback = false): boolean {
+  if (value == null || value === '') return fallback
+  if (typeof value !== 'boolean') throw new Error('invalid_boolean')
+  return value
+}
+
+function cleanInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) return fallback
+  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) throw new Error('invalid_number')
+  return numberValue
+}
+
+function cleanNullableInteger(value: unknown, min: number, max: number): number | null {
   if (value == null || value === '') return null
   const numberValue = Number(value)
-  if (!Number.isFinite(numberValue)) throw new Error('invalid_number')
+  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) throw new Error('invalid_number')
   return numberValue
+}
+
+function cleanSeasonCapacity(value: unknown): string {
+  if (value == null || value === '') return 'unlimited'
+  if (value === 'unlimited') return 'unlimited'
+  return String(cleanInteger(value, 18, 1, 18))
 }
 
 function cleanActivityPayload(input: unknown) {
@@ -80,33 +103,33 @@ function cleanActivityPayload(input: unknown) {
   if (!location) throw new Error('missing_location')
   if (!Array.isArray(payload.dates) || payload.dates.length === 0 || !payload.dates.every(isDateString)) throw new Error('invalid_dates')
 
-  payload.game_type = String(payload.game_type || 'season')
+  payload.game_type = cleanEnum(payload.game_type, GAME_TYPES, 'season', 'invalid_game_type')
   payload.title = title
   payload.location = location
   payload.dates = payload.dates
   payload.start_time = cleanNullableTime(payload.start_time)
   payload.end_time = cleanNullableTime(payload.end_time)
-  payload.season_fee_per_session = cleanNumber(payload.season_fee_per_session, 0)
-  payload.pickup_fee_per_session = cleanNumber(payload.pickup_fee_per_session, 0)
-  payload.ac_fee = cleanNumber(payload.ac_fee, 0)
-  payload.single_capacity = cleanNumber(payload.single_capacity, 18)
-  payload.season_enabled = Boolean(payload.season_enabled)
-  payload.season_include_ac = Boolean(payload.season_include_ac)
-  payload.season_total_fee = cleanNumber(payload.season_total_fee, 0)
-  payload.season_capacity = payload.season_capacity == null ? null : String(payload.season_capacity)
+  payload.season_fee_per_session = cleanInteger(payload.season_fee_per_session, 0, 0, 100000)
+  payload.pickup_fee_per_session = cleanInteger(payload.pickup_fee_per_session, 0, 0, 100000)
+  payload.ac_fee = cleanInteger(payload.ac_fee, 0, 0, 100000)
+  payload.single_capacity = cleanInteger(payload.single_capacity, 18, 1, 100)
+  payload.season_enabled = cleanBoolean(payload.season_enabled)
+  payload.season_include_ac = cleanBoolean(payload.season_include_ac)
+  payload.season_total_fee = cleanInteger(payload.season_total_fee, 0, 0, 5000000)
+  payload.season_capacity = cleanSeasonCapacity(payload.season_capacity)
   payload.season_open_date = cleanNullableDate(payload.season_open_date)
   payload.season_open_time = cleanNullableTime(payload.season_open_time)
-  payload.season_deadline_type = String(payload.season_deadline_type || 'unlimited')
+  payload.season_deadline_type = cleanEnum(payload.season_deadline_type, DEADLINE_TYPES, 'unlimited', 'invalid_deadline_type')
   payload.season_close_date = cleanNullableDate(payload.season_close_date)
   payload.season_close_time = cleanNullableTime(payload.season_close_time)
   payload.pickup_label = payload.pickup_label == null ? null : String(payload.pickup_label).trim() || null
-  payload.pickup_open_days_before = cleanNullableNumber(payload.pickup_open_days_before)
+  payload.pickup_open_days_before = cleanNullableInteger(payload.pickup_open_days_before, 1, 7)
   payload.pickup_open_time = cleanNullableTime(payload.pickup_open_time)
-  payload.pickup_deadline_type = String(payload.pickup_deadline_type || 'unlimited')
-  payload.pickup_close_days_before = cleanNullableNumber(payload.pickup_close_days_before)
+  payload.pickup_deadline_type = cleanEnum(payload.pickup_deadline_type, DEADLINE_TYPES, 'unlimited', 'invalid_deadline_type')
+  payload.pickup_close_days_before = cleanNullableInteger(payload.pickup_close_days_before, 1, 7)
   payload.pickup_close_time = cleanNullableTime(payload.pickup_close_time)
-  payload.reminder_enabled = Boolean(payload.reminder_enabled)
-  payload.reminder_days_before = cleanNullableNumber(payload.reminder_days_before)
+  payload.reminder_enabled = cleanBoolean(payload.reminder_enabled)
+  payload.reminder_days_before = cleanNullableInteger(payload.reminder_days_before, 1, 7)
   payload.reminder_time = cleanNullableTime(payload.reminder_time)
 
   return payload
