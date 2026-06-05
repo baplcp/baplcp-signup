@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import { getMemberGenderMap } from '~/services/memberProfileService'
-import { listPickupRegistrations, listSeasonRegistrations } from '~/services/registrationService'
+import { listPickupRegistrations, listRegistrationPayments, listSeasonRegistrations } from '~/services/registrationService'
 
 async function mergeMemberGenders(registrations, liffStore) {
   if (!registrations.length) {
@@ -11,6 +11,28 @@ async function mergeMemberGenders(registrations, liffStore) {
   const genders = await getMemberGenderMap(userIds)
   if (liffStore.userId && liffStore.gender) genders[liffStore.userId] = liffStore.gender
   return genders
+}
+
+function mergeRegistrationPayments(registrations, payments) {
+  if (!registrations.length || !payments.length) return registrations
+
+  const paymentByRegistrationId = new Map(payments.map(payment => [payment.id, payment]))
+  return registrations.map(registration => {
+    const payment = paymentByRegistrationId.get(registration.id)
+    if (!payment) return registration
+
+    const guestPayments = payment.guests || []
+    return {
+      ...registration,
+      paid_court: payment.paid_court,
+      paid_ac: payment.paid_ac,
+      guests: (registration.guests || []).map((guest, index) => ({
+        ...guest,
+        paid_court: guestPayments[index]?.paid_court,
+        paid_ac: guestPayments[index]?.paid_ac,
+      })),
+    }
+  })
 }
 
 export function useActiveActivityRegistrations({ activityData, activityType, resolvedDate, getActivityId, liffStore }) {
@@ -29,7 +51,8 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   )
 
   async function fetchSeasonRegistrations(activityId) {
-    const data = await listSeasonRegistrations(activityId, ['active', 'cancelled'])
+    const paymentPromise = listRegistrationPayments(liffStore, activityId)
+    const data = mergeRegistrationPayments(await listSeasonRegistrations(activityId, ['active', 'cancelled']), await paymentPromise)
 
     const active = data.filter(registration => registration.status === 'active')
     const cancelled = data.filter(registration => registration.status === 'cancelled')
@@ -45,16 +68,19 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     const date = resolvedDate.value
     if (!date) return
 
+    const paymentPromise = listRegistrationPayments(liffStore, activityId)
     const data = await listPickupRegistrations(activityId, date, ['active', 'cancelled'])
-    const active = data.filter(registration => registration.status === 'active')
+    const payments = await paymentPromise
+    const dataWithPayments = mergeRegistrationPayments(data, payments)
+    const active = dataWithPayments.filter(registration => registration.status === 'active')
     registrations.value = active
-    cancelledRegistrations.value = data.filter(registration => registration.status === 'cancelled')
+    cancelledRegistrations.value = dataWithPayments.filter(registration => registration.status === 'cancelled')
     myRegistration.value = active.find(registration => registration.user_id === liffStore.userId) || null
     memberGenders.value = await mergeMemberGenders(active, liffStore)
 
     const seasonData = await listSeasonRegistrations(activityId)
-    seasonRegistrations.value = seasonData || []
-    mySeasonRegistration.value = seasonData?.find(registration => registration.user_id === liffStore.userId) || null
+    seasonRegistrations.value = mergeRegistrationPayments(seasonData || [], payments)
+    mySeasonRegistration.value = seasonRegistrations.value.find(registration => registration.user_id === liffStore.userId) || null
 
     const seasonUserIds = [...new Set((seasonData || []).map(registration => registration.user_id))].filter(id => !(id in memberGenders.value))
     if (!seasonUserIds.length) return

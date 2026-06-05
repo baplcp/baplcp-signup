@@ -123,6 +123,13 @@ async function requireAdmin(supabase: any, profile: AdminLineProfile) {
   await requireOrganizer(supabase, profile.userId)
 }
 
+async function isOrganizer(supabase: any, profile: AdminLineProfile) {
+  if (profile.isDevAdmin) return true
+  const { data, error } = await supabase.from('members').select('role').eq('user_id', profile.userId).maybeSingle()
+  if (error) throw error
+  return data?.role === 'organizer'
+}
+
 async function getActivityForRegistration(supabase: any, activityId: string | number) {
   const { data, error } = await supabase
     .from('activities')
@@ -192,6 +199,29 @@ serve(async req => {
     const supabase = createClient(supabaseUrl, supabaseKey)
     const submitTime = new Date().toISOString()
     const now = new Date()
+
+    if (action === 'list-registration-payments') {
+      const canReadAllPayments = await isOrganizer(supabase, profile)
+      let query = supabase.from('registrations').select('id, paid_court, paid_ac, guests').eq('activity_id', activityId).in('status', ['active', 'cancelled'])
+
+      if (!canReadAllPayments) {
+        query = query.eq('user_id', profile.userId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      const payments = (data || []).map((registration: Record<string, any>) => ({
+        id: registration.id,
+        paid_court: registration.paid_court ?? false,
+        paid_ac: registration.paid_ac ?? false,
+        guests: (Array.isArray(registration.guests) ? registration.guests : []).map((guest: Record<string, any>) => ({
+          paid_court: guest.paid_court ?? false,
+          paid_ac: guest.paid_ac ?? false,
+        })),
+      }))
+
+      return jsonResponse({ payments }, 200, origin)
+    }
 
     if (action === 'save-registration') {
       const activityDate = body.activityDate === null ? null : body.activityDate
