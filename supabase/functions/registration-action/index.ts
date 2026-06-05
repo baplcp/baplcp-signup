@@ -127,7 +127,7 @@ async function getActivityForRegistration(supabase: any, activityId: string | nu
   const { data, error } = await supabase
     .from('activities')
     .select(
-      'id, season_open_date, season_open_time, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
+      'id, season_enabled, season_open_date, season_open_time, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
     )
     .eq('id', activityId)
     .maybeSingle()
@@ -136,8 +136,13 @@ async function getActivityForRegistration(supabase: any, activityId: string | nu
   return data
 }
 
+function assertSeasonEnabled(activity: Record<string, any>) {
+  if (!activity.season_enabled) throw new Error('season_disabled')
+}
+
 function assertRegistrationWindow(activity: Record<string, any>, activityDate: string | null, now: Date) {
   if (activityDate === null) {
+    assertSeasonEnabled(activity)
     if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) {
       throw new Error('registration_not_open')
     }
@@ -197,6 +202,7 @@ serve(async req => {
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
       const normalizedGuests = normalizeGuests(body.guests, guestCount)
       const activity = await getActivityForRegistration(supabase, activityId)
+      if (activityDate === null) assertSeasonEnabled(activity)
 
       const existingQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
       const { data: existing, error: existingError } =
@@ -249,6 +255,7 @@ serve(async req => {
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
       const normalizedGuests = normalizeGuests(body.guests, guestCount)
       const activity = await getActivityForRegistration(supabase, activityId)
+      assertSeasonEnabled(activity)
       assertRegistrationWindow(activity, activityDate, now)
 
       const { data: seasonReg, error: seasonError } = await supabase
@@ -367,6 +374,9 @@ serve(async req => {
     }
 
     if (action === 'season-cancel') {
+      const activity = await getActivityForRegistration(supabase, activityId)
+      assertSeasonEnabled(activity)
+
       const { data: activeReg, error: activeError } = await supabase
         .from('registrations')
         .select('id')
