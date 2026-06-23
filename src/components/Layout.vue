@@ -213,7 +213,24 @@ watch(
       </div>
     </header>
 
-    <slot />
+    <!-- 外部瀏覽器阻擋畫面：偵測到非 LINE 內建瀏覽器時顯示 -->
+    <div v-if="liffStore.initialized && liffStore.isExternalBrowser" class="external-wall" aria-live="assertive" role="alert">
+      <div class="external-wall__card">
+        <div class="external-wall__icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <rect width="64" height="64" rx="16" fill="#06C755"/>
+            <path d="M32 12C21.51 12 13 19.16 13 28C13 35.56 18.97 41.87 27.16 43.6C27.72 43.72 28.08 44.26 27.96 44.82L27.05 49.16C26.91 49.84 27.57 50.39 28.2 50.1C37.35 45.93 51 37.59 51 28C51 19.16 42.49 12 32 12Z" fill="white"/>
+          </svg>
+        </div>
+        <h1 class="external-wall__title">請在 LINE 中開啟</h1>
+        <p class="external-wall__body">
+          此服務需要在 LINE App 中使用<br>
+          請回到 LINE 群組，點擊連結開啟
+        </p>
+      </div>
+    </div>
+
+    <slot v-else />
   </div>
 </template>
 
@@ -546,6 +563,15 @@ watch(
   background: #edeff5;
 }
 
+.drawer-icon.is-refund {
+  background: #f8deb7;
+  color: #c79051;
+}
+
+.drawer-section-title--admin {
+  color: #c79051;
+}
+
 .drawer-divider {
   height: 1px;
   background: #edeff5;
@@ -579,6 +605,53 @@ watch(
   color: #fff;
   flex: 0 0 auto;
   transition: color 0.25s ease;
+}
+
+.external-wall {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--surface, #fff);
+}
+
+.external-wall__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  max-width: 280px;
+}
+
+.external-wall__icon {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
+}
+
+.external-wall__icon svg {
+  width: 72px;
+  height: 72px;
+  display: block;
+}
+
+.external-wall__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #101840;
+}
+
+.external-wall__body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #8f95b2;
 }
 
 @media (max-width: 380px) {
