@@ -10,31 +10,41 @@ const activityId = Number(route.params.id)
 const activity = ref(null)
 const registrations = ref([])
 const isLoading = ref(true)
+const selectedQuarterIndex = ref(0)
+
+const QUARTER_DEFS = [
+  { label: '1~3 月', months: [1, 2, 3] },
+  { label: '4~6 月', months: [4, 5, 6] },
+  { label: '7~9 月', months: [7, 8, 9] },
+  { label: '10~12 月', months: [10, 11, 12] },
+]
+
+const activeQuarters = computed(() => {
+  if (!activity.value?.dates) return []
+  const months = new Set(activity.value.dates.map(d => Number(d.split('-')[1])))
+  return QUARTER_DEFS.filter(q => q.months.some(m => months.has(m)))
+})
+
+const selectedMonths = computed(
+  () => activeQuarters.value[selectedQuarterIndex.value]?.months ?? []
+)
 
 const membersWithLeave = computed(() => {
   if (!activity.value) return []
 
-  const feePerSession =
-    activity.value.season_fee_per_session ??
-    activity.value.season_half_year_fee_per_session ??
-    0
+  const feePerSession = activity.value.season_fee_per_session ?? 0
 
   return registrations.value
     .map(reg => {
-      const leaveDates = Array.isArray(reg.leave_dates) ? reg.leave_dates : []
+      const allLeaveDates = Array.isArray(reg.leave_dates) ? reg.leave_dates : []
+      const leaveDates = allLeaveDates.filter(d => {
+        const month = Number(d.split('-')[1])
+        return selectedMonths.value.includes(month)
+      })
       const leaveCount = leaveDates.length
+      const refundAmount = leaveCount * feePerSession
 
-      let fee = feePerSession
-      if (reg.season_plan === 'half-year' && activity.value.season_half_year_fee_per_session != null) {
-        fee = activity.value.season_half_year_fee_per_session
-      } else if (activity.value.season_fee_per_session != null) {
-        fee = activity.value.season_fee_per_session
-      }
-
-      const refundAmount = leaveCount * fee
-
-      const sortedDates = leaveDates.slice().sort()
-      const formattedDates = sortedDates.map(d => {
+      const formattedDates = leaveDates.slice().sort().map(d => {
         const [, m, day] = d.split('-')
         return `${Number(m)}/${Number(day)}`
       })
@@ -45,7 +55,6 @@ const membersWithLeave = computed(() => {
         leaveCount,
         refundAmount,
         formattedDates,
-        seasonPlan: reg.season_plan,
       }
     })
     .filter(m => m.leaveCount > 0)
@@ -78,6 +87,19 @@ onMounted(async () => {
     </div>
 
     <template v-if="!isLoading">
+      <div v-if="activeQuarters.length > 1" class="segment-tabs">
+        <button
+          v-for="(q, i) in activeQuarters"
+          :key="q.label"
+          class="segment-tab"
+          :class="{ 'is-active': selectedQuarterIndex === i }"
+          type="button"
+          @click="selectedQuarterIndex = i"
+        >
+          {{ q.label }}
+        </button>
+      </div>
+
       <div class="summary-bar">
         <div class="stat-label">應退總額</div>
         <div class="stat-value">${{ totalRefund.toLocaleString() }}</div>
@@ -123,6 +145,36 @@ onMounted(async () => {
   letter-spacing: 0.48px;
   font-weight: 700;
   color: var(--text);
+}
+
+.segment-tabs {
+  display: flex;
+  background: rgba(16, 24, 64, 0.06);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 16px;
+  gap: 2px;
+}
+
+.segment-tab {
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted-soft, #8f95b2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+
+.segment-tab.is-active {
+  background: #fff;
+  color: var(--text, #101840);
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(16, 24, 64, 0.1);
 }
 
 .summary-bar {
