@@ -47,6 +47,15 @@ export async function listSeasonActivities() {
   return data || []
 }
 
+export async function listSeasonActivitiesForRefund() {
+  const { data } = await supabase
+    .from('activities')
+    .select('id, title, dates, season_fee_per_session, season_half_year_fee_per_session')
+    .eq('season_enabled', true)
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
 export async function listGroupActivities() {
   const { data } = await supabase
     .from('activities')

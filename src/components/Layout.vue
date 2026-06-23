@@ -188,6 +188,23 @@ watch(
                 </RouterLink>
               </nav>
             </section>
+            <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
+              <h2 class="drawer-section-title drawer-section-title--admin" id="drawer-admin-title">管理員專區</h2>
+              <nav class="drawer-list" aria-label="管理員專區">
+                <RouterLink @click="closeMenu" class="drawer-link" to="/season-refund">
+                  <span class="drawer-icon is-refund">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
+                      <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M21 12C21 16.971 16.971 21 12 21C9.515 21 7.255 20.01 5.586 18.414" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M18 2L18.414 5.586L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M6 22L5.586 18.414L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M9 12H15M12 9V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span>季打退費</span>
+                </RouterLink>
+              </nav>
+            </section>
           </div>
           <div class="drawer-footer">
             <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>

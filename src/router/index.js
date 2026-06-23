@@ -5,6 +5,8 @@ import GroupList from '~/views/group-list.vue'
 import Index from '~/views/index.vue'
 import ManageActivities from '~/views/manage-activities.vue'
 import SeasonList from '~/views/season-list.vue'
+import SeasonRefund from '~/views/season-refund.vue'
+import SeasonRefundDetail from '~/views/season-refund-detail.vue'
 import { useLiffStore } from '~/stores/liff'
 
 const router = createRouter({
@@ -42,6 +44,18 @@ const router = createRouter({
       path: '/manage-activities',
       name: 'manage-activities',
       component: ManageActivities,
+      meta: { requiresOrganizer: true, header: 'simple' },
+    },
+    {
+      path: '/season-refund',
+      name: 'season-refund',
+      component: SeasonRefund,
+      meta: { requiresOrganizer: true, header: 'simple' },
+    },
+    {
+      path: '/season-refund/:id',
+      name: 'season-refund-detail',
+      component: SeasonRefundDetail,
       meta: { requiresOrganizer: true, header: 'simple' },
     },
   ],
