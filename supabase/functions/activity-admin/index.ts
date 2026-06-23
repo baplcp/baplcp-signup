@@ -10,12 +10,14 @@ const ACTIVITY_FIELDS = [
   'start_time',
   'end_time',
   'season_fee_per_session',
+  'season_half_year_fee_per_session',
   'pickup_fee_per_session',
   'ac_fee',
   'single_capacity',
   'season_enabled',
   'season_include_ac',
   'season_total_fee',
+  'season_half_year_total_fee',
   'season_capacity',
   'season_open_date',
   'season_open_time',
@@ -115,12 +117,14 @@ function cleanActivityPayload(input: unknown) {
   payload.start_time = cleanNullableTime(payload.start_time)
   payload.end_time = cleanNullableTime(payload.end_time)
   payload.season_fee_per_session = cleanInteger(payload.season_fee_per_session, 0, 0, 100000)
+  payload.season_half_year_fee_per_session = cleanInteger(payload.season_half_year_fee_per_session, 0, 0, 100000)
   payload.pickup_fee_per_session = cleanInteger(payload.pickup_fee_per_session, 0, 0, 100000)
   payload.ac_fee = cleanInteger(payload.ac_fee, 0, 0, 100000)
   payload.single_capacity = cleanInteger(payload.single_capacity, 18, 1, 100)
   payload.season_enabled = cleanBoolean(payload.season_enabled)
   payload.season_include_ac = cleanBoolean(payload.season_include_ac)
   payload.season_total_fee = cleanInteger(payload.season_total_fee, 0, 0, 5000000)
+  payload.season_half_year_total_fee = cleanInteger(payload.season_half_year_total_fee, 0, 0, 5000000)
   payload.season_capacity = cleanSeasonCapacity(payload.season_capacity)
   payload.season_open_date = cleanNullableDate(payload.season_open_date)
   payload.season_open_time = cleanNullableTime(payload.season_open_time)

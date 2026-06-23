@@ -20,6 +20,7 @@ export function useActiveActivityViewModels({
   isSubmitting,
   adminMode,
   signupState,
+  selectedSeasonPlan,
 }) {
   const pageClasses = computed(() => [{ 'signup-open': signupOpen.value }, `hero-${activityType.value}`])
   const showHeroCat = computed(() => activityType.value === 'latest' || activityType.value === 'season')
@@ -44,9 +45,26 @@ export function useActiveActivityViewModels({
   const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
   const activityDates = computed(() => activityData.value?.dates || [])
+
+  const seasonQuarterSessionCount = computed(() => {
+    const dates = [...(activityData.value?.dates || [])].sort()
+    if (!dates.length) return 0
+    const first = new Date(dates[0])
+    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
+    return dates.filter(d => new Date(d) < cutoff).length
+  })
+
+  const seasonDisplaySessionCount = computed(() => {
+    if (activityType.value !== 'season') return 0
+    return selectedSeasonPlan?.value === 'half-year' ? activitySessionCount.value : seasonQuarterSessionCount.value
+  })
+
   const summaryFeeAmount = computed(() => {
     if (!activityData.value) return 255
-    if (activityType.value === 'season') return activityData.value.season_total_fee || 0
+    if (activityType.value === 'season') {
+      if (selectedSeasonPlan?.value === 'half-year') return activityData.value.season_half_year_total_fee || 0
+      return activityData.value.season_total_fee || 0
+    }
     const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
     return acEnabled.value ? base + acFeePerSession.value : base
   })
@@ -127,11 +145,18 @@ export function useActiveActivityViewModels({
   const myFullyPaid = computed(() => {
     if (!hasSubmittedSignup.value || !myRegistration.value) return false
     const registration = myRegistration.value
-    if ((registration.self_count || 0) > 0 && (!registration.paid_court || (acEnabled.value && !registration.paid_ac))) return false
-    return (registration.guests || []).every(guest => guest.paid_court && (!acEnabled.value || guest.paid_ac))
+    const acRequired = acEnabled.value && acFeePerSession.value > 0
+    if ((registration.self_count || 0) > 0 && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
+    return (registration.guests || []).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
   })
   const summaryStatusText = computed(() => {
-    if (activityType.value === 'season') return submittedTotal.value > 0 ? `已報名 ${submittedTotal.value} 位` : '未報名'
+    if (activityType.value === 'season') {
+      if (submittedTotal.value > 0) {
+        if (myFullyPaid.value) return selectedSeasonPlan?.value === 'half-year' ? '已報名半年' : '已報名一季'
+        return '尚未繳費'
+      }
+      return '未報名'
+    }
     if (isSeasonLeaveMode.value && submittedTotal.value === 0) {
       return (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value) ? '已請假' : '季打成員'
     }
@@ -146,7 +171,7 @@ export function useActiveActivityViewModels({
     weekday: activityType.value === 'season' ? '' : summaryWeekday.value,
     time: summaryTime.value,
     location: summaryLocation.value,
-    sessionCount: activityType.value === 'season' ? activitySessionCount.value : 0,
+    sessionCount: activityType.value === 'season' ? seasonDisplaySessionCount.value : 0,
     statusLabel: '狀態',
     statusValue: summaryStatusText.value,
     statusTone: hasSubmittedSignup.value ? 'success' : 'default',
@@ -193,6 +218,7 @@ export function useActiveActivityViewModels({
       summaryLocation,
       activitySessionCount,
       activityDates,
+      seasonQuarterSessionCount,
       summaryFeeAmount,
       vacancyCount,
       hasSubmittedSignup,

@@ -34,6 +34,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  acFee: {
+    type: Number,
+    default: 0,
+  },
 })
 
 const emit = defineEmits(['change', 'remove', 'toggle-payment'])
@@ -57,6 +61,10 @@ watch(
 
 function getOffset(index) {
   return rowOffsets.value[index] ?? 0
+}
+
+function isRowRevealed(index) {
+  return getOffset(index) < 0
 }
 
 function setOffset(index, x) {
@@ -150,7 +158,7 @@ function handleRemove(member, index) {
           <span class="waitlist-divider-label">候補</span>
         </div>
         <div class="swipe-row-container">
-          <button v-show="isAdmin && !adminMode" class="swipe-delete-btn" type="button" aria-label="`移除 ${member.name}`" @click="handleRemove(member, index)">移除</button>
+          <button v-show="isAdmin && !adminMode && isRowRevealed(index)" class="swipe-delete-btn" type="button" aria-label="`移除 ${member.name}`" @click="handleRemove(member, index)">移除</button>
           <div
             class="row activity-member-row"
             :style="isAdmin && !adminMode ? rowStyle(index) : undefined"
@@ -186,6 +194,9 @@ function handleRemove(member, index) {
               </span>
             </div>
             <div v-show="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
+            <div v-if="isAdmin && member.seasonPlan && !adminMode" class="season-plan-tag" :class="member.seasonPlan === 'half-year' ? 'is-half-year' : 'is-quarter'">
+              {{ member.seasonPlan === 'half-year' ? '半年' : '一季' }}
+            </div>
             <div v-show="adminMode" class="payment-checks" @click.stop>
               <button class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_court')">
                 <span class="pay-check-box" :class="{ 'is-checked': member.paidCourt }">
@@ -195,7 +206,7 @@ function handleRemove(member, index) {
                 </span>
                 <span class="pay-check-text">場地費</span>
               </button>
-              <button v-if="acEnabled" class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_ac')">
+              <button v-if="acEnabled && acFee > 0" class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_ac')">
                 <span class="pay-check-box" :class="{ 'is-checked': member.paidAc }">
                   <svg v-if="member.paidAc" viewBox="0 0 10 8" fill="none" aria-hidden="true">
                     <path d="M1 4L3.5 6.5L9 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -315,6 +326,26 @@ function handleRemove(member, index) {
   font-size: 12px;
   line-height: 1;
   text-align: center;
+}
+
+.season-plan-tag {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.season-plan-tag.is-quarter {
+  background: #eef0ff;
+  color: var(--primary-700);
+}
+
+.season-plan-tag.is-half-year {
+  background: #e6faf8;
+  color: #0a8a7e;
 }
 
 .activity-member-status.is-season {

@@ -20,10 +20,22 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
   const seasonFee = computed(() => {
     const base = Number(form.seasonSingleFee || 0)
     const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
-    const count = selectedDates.value.length
+    const dates = [...selectedDates.value].sort()
+    if (dates.length === 0) return ''
+    const first = new Date(dates[0])
+    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
+    const count = dates.filter(d => new Date(d) < cutoff).length
     return count > 0 ? String((base + ac) * count) : ''
   })
   const seasonFeeDigits = computed(() => Math.max(seasonFee.value.length, 1))
+
+  const halfYearFee = computed(() => {
+    const base = Number(form.halfYearSingleFee || 0)
+    const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
+    const count = selectedDates.value.length
+    return count > 0 ? String((base + ac) * count) : ''
+  })
+  const halfYearFeeDigits = computed(() => Math.max(halfYearFee.value.length, 1))
 
   watch(
     () => form.activityStartTime,
@@ -101,6 +113,8 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
     isSeasonAvailabilityDisabled,
     seasonFee,
     seasonFeeDigits,
+    halfYearFee,
+    halfYearFeeDigits,
     toggleSeason,
     setChoice,
     isError,

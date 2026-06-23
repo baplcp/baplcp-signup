@@ -7,6 +7,7 @@ export function createActivityFormDefaults() {
     activityStartTime: '',
     activityEndTime: '',
     seasonSingleFee: '',
+    halfYearSingleFee: '',
     pickupSingleFee: '',
     acFee: '',
     singleCapacity: '18',
@@ -36,6 +37,7 @@ export function populateActivityForm(form, activity, selectedDates, seasonEnable
   form.activityStartTime = activity.start_time || ''
   form.activityEndTime = activity.end_time || ''
   form.seasonSingleFee = String(activity.season_fee_per_session ?? '')
+  form.halfYearSingleFee = String(activity.season_half_year_fee_per_session ?? '')
   form.pickupSingleFee = String(activity.pickup_fee_per_session ?? '')
   form.acFee = String(activity.ac_fee ?? '')
   form.singleCapacity = String(activity.single_capacity ?? '18')
@@ -71,6 +73,7 @@ export function getActivityFormErrors(form, selectedDates, seasonEnabled) {
     { field: 'activityStartTime', ok: form.activityStartTime !== '' },
     { field: 'activityEndTime', ok: form.activityEndTime !== '' },
     { field: 'seasonSingleFee', ok: String(form.seasonSingleFee).trim() !== '' },
+    { field: 'halfYearSingleFee', ok: String(form.halfYearSingleFee).trim() !== '' },
     { field: 'pickupSingleFee', ok: String(form.pickupSingleFee).trim() !== '' },
     { field: 'acFee', ok: String(form.acFee).trim() !== '' },
     { field: 'singleCapacity', ok: String(form.singleCapacity).trim() !== '' },
@@ -97,7 +100,7 @@ export function getActivityFormErrors(form, selectedDates, seasonEnabled) {
   return new Set(checks.filter(({ ok }) => !ok).map(({ field }) => field))
 }
 
-export function buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee) {
+export function buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee, halfYearFee) {
   return {
     game_type: form.gameType || 'season',
     title: form.activityTitle || '',
@@ -106,12 +109,14 @@ export function buildActivityPayload(form, selectedDates, seasonEnabled, seasonF
     start_time: form.activityStartTime || null,
     end_time: form.activityEndTime || null,
     season_fee_per_session: Number(form.seasonSingleFee) || 0,
+    season_half_year_fee_per_session: Number(form.halfYearSingleFee) || 0,
     pickup_fee_per_session: Number(form.pickupSingleFee) || 0,
     ac_fee: Number(form.acFee) || 0,
     single_capacity: Number(form.singleCapacity) || 18,
     season_enabled: seasonEnabled.value,
     season_include_ac: form.seasonIncludeAc,
     season_total_fee: Number(seasonFee) || 0,
+    season_half_year_total_fee: Number(halfYearFee) || 0,
     season_capacity: form.seasonCapacity || null,
     season_open_date: form.seasonOpenDate || null,
     season_open_time: form.seasonOpenTime || null,

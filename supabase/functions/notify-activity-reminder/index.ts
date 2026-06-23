@@ -37,7 +37,7 @@ async function sendWithGranularFallback(token: string, groupId: string, text: st
       return
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      if (!msg.includes('not found in the group')) throw e
+      if (!msg.includes('not found in the group') && !msg.includes('in the request body is invalid')) throw e
 
       // 從錯誤訊息找出哪個 key 失敗，例如 substitution["m3"].mentionee
       const match = msg.match(/substitution\[(?:\\?")?([^"\\[\]]+)/)
@@ -146,6 +146,8 @@ serve(async _req => {
           slotCount += selfSlots + confirmedGuestCount
         }
 
+        const remainingSlots = totalCapacity > 0 ? Math.max(0, pickupAvailable - slotCount) : 0
+
         if (confirmedPickup.length === 0 && confirmedSeason.length === 0) continue
 
         // ── 性別計數 ──────────────────────────────────────────────
@@ -214,7 +216,8 @@ serve(async _req => {
         const footer = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgParts.join('、') || '管理員'}${feeStr}`
 
         const header = `🏐 活動前 ${activity.reminder_days_before} 天提醒！\n\n【${activityLabel}】\n📅 ${targetDate} ${activity.start_time ?? ''}\n📍 ${activity.location ?? ''}\n\n`
-        const messageText = (header + (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') + (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') + genderLine + footer).trimEnd()
+        const vacancyLine = remainingSlots > 0 ? `目前還缺 ${remainingSlots} 人，歡迎再報名！\n\n` : ''
+        const messageText = (header + (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') + (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') + genderLine + vacancyLine + footer).trimEnd()
 
         await sendWithGranularFallback(lineToken, lineGroupId, messageText, substitution, fallbackNames)
         console.log(`Reminded: activity ${activity.id} (${targetDate}), pickup: ${confirmedPickup.length}, season: ${confirmedSeason.length}`)

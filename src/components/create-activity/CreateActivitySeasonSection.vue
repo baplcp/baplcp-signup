@@ -27,6 +27,14 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  halfYearFee: {
+    type: String,
+    required: true,
+  },
+  halfYearFeeDigits: {
+    type: Number,
+    required: true,
+  },
   capacityOptions: {
     type: Array,
     required: true,
@@ -98,21 +106,45 @@ function openSeasonCloseTimePicker() {
             </span>
             <span>含冷氣費</span>
           </label>
-          <label class="fee-input-row">
-            <span>$</span>
-            <input
-              id="season-fee"
-              :value="seasonFee"
-              name="seasonFee"
-              type="text"
-              inputmode="numeric"
-              aria-label="季打費用"
-              placeholder=" "
-              readonly
-              :style="{ '--season-fee-digits': seasonFeeDigits }"
-            />
-            <span class="fee-unit">/人</span>
-          </label>
+          <div class="fee-row-group">
+            <div class="fee-row">
+              <span class="fee-row-label">季打</span>
+              <span class="fee-amount">
+                <span>$</span>
+                <input
+                  id="season-fee"
+                  :value="seasonFee"
+                  name="seasonFee"
+                  type="text"
+                  inputmode="numeric"
+                  aria-label="季打費用"
+                  placeholder=" "
+                  readonly
+                  :style="{ '--fee-digits': seasonFeeDigits }"
+                />
+                <span v-if="seasonFee" class="fee-unit">/人</span>
+              </span>
+            </div>
+            <div class="fee-row-divider"></div>
+            <div class="fee-row">
+              <span class="fee-row-label">半年打</span>
+              <span class="fee-amount">
+                <span>$</span>
+                <input
+                  id="half-year-fee"
+                  :value="halfYearFee"
+                  name="halfYearFee"
+                  type="text"
+                  inputmode="numeric"
+                  aria-label="半年打費用"
+                  placeholder=" "
+                  readonly
+                  :style="{ '--fee-digits': halfYearFeeDigits }"
+                />
+                <span v-if="halfYearFee" class="fee-unit">/人</span>
+              </span>
+            </div>
+          </div>
         </div>
         <p class="auto-note fee-note">*自動填入</p>
       </div>
@@ -363,38 +395,56 @@ function openSeasonCloseTimePicker() {
   height: 14px;
 }
 
-.fee-input-row {
+.fee-row-group {
+  display: grid;
+}
+
+.fee-row {
   min-height: 41px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   padding: 10px;
   color: var(--text);
   font-size: 15px;
   line-height: 1.25;
+}
+
+.fee-row-divider {
+  height: 1px;
+  background: var(--line-soft);
+  margin: 0 10px;
+}
+
+.fee-row-label {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.fee-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
 }
 
-.fee-input-row input {
+.fee-amount input {
   min-height: 0;
   border: 0;
   border-radius: 0;
   padding: 0;
   box-shadow: none;
   font-size: 15px;
-}
-
-#season-fee {
-  width: calc((var(--season-fee-digits, 1) * 1ch) + 2px);
+  width: calc((var(--fee-digits, 1) * 1ch) + 2px);
   flex: 0 0 auto;
+  text-align: right;
 }
 
 .fee-unit {
   margin-left: 0;
-}
-
-.fee-input-row input:placeholder-shown + .fee-unit {
-  display: none;
 }
 
 .section-header {

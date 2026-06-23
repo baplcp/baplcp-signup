@@ -5,7 +5,15 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 PROJECT_ID="rkmxoqopptyuqhbeswqo"
-FUNCTION_NAME="notify-registration-open"
+
+FUNCTIONS=(
+  "activity-admin"
+  "registration-action"
+  "member-profile"
+  "line-token"
+  "notify-registration-open"
+  "notify-activity-reminder"
+)
 
 echo ""
 echo "BAPLCP 報名系統 - 部署雲端功能"
@@ -55,18 +63,27 @@ if ! supabase projects list >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "正在部署 $FUNCTION_NAME..."
-echo ""
+FAILED=()
 
-if ! supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_ID" --no-verify-jwt; then
+for FUNCTION_NAME in "${FUNCTIONS[@]}"; do
+  echo "正在部署 $FUNCTION_NAME..."
+  if supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_ID" --no-verify-jwt; then
+    echo "✓ $FUNCTION_NAME 部署成功"
+  else
+    echo "✗ $FUNCTION_NAME 部署失敗"
+    FAILED+=("$FUNCTION_NAME")
+  fi
   echo ""
-  echo "部署失敗。請確認上方錯誤訊息。"
-  echo ""
-  read "pause?按 Enter 關閉..."
-  exit 1
+done
+
+if [ ${#FAILED[@]} -eq 0 ]; then
+  echo "完成。所有雲端功能已成功部署到 Supabase。"
+else
+  echo "以下功能部署失敗，請確認錯誤訊息後重試："
+  for name in "${FAILED[@]}"; do
+    echo "  - $name"
+  done
 fi
 
-echo ""
-echo "完成。$FUNCTION_NAME 已成功部署到 Supabase。"
 echo ""
 read "pause?按 Enter 關閉..."

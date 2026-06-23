@@ -41,6 +41,8 @@ const {
   isSeasonAvailabilityDisabled,
   seasonFee,
   seasonFeeDigits,
+  halfYearFee,
+  halfYearFeeDigits,
   toggleSeason,
   setChoice,
   isError,
@@ -61,7 +63,7 @@ const {
   selectCalendarDate,
 } = useCreateActivityCalendar({ form, selectedDates, clearError })
 
-const { isTimePickerOpen, activeTimePickerValue, openTimePicker, closeTimePicker, commitTimePicker } = useCreateActivityTimePicker({
+const { isTimePickerOpen, activeTimePickerField, activeTimePickerValue, openTimePicker, closeTimePicker, commitTimePicker } = useCreateActivityTimePicker({
   form,
   clearError,
 })
@@ -156,7 +158,7 @@ function validate() {
 
 async function handleSubmitActivity() {
   if (!validate()) return
-  const payload = buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee.value)
+  const payload = buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee.value, halfYearFee.value)
 
   isSubmitting.value = true
   try {
@@ -223,6 +225,8 @@ async function handleSubmitActivity() {
             :is-season-disabled-note-alert="isSeasonDisabledNoteAlert"
             :season-fee="seasonFee"
             :season-fee-digits="seasonFeeDigits"
+            :half-year-fee="halfYearFee"
+            :half-year-fee-digits="halfYearFeeDigits"
             :capacity-options="capacityOptions"
             :time-options="timeOptions"
             :is-error="isError"
@@ -265,7 +269,7 @@ async function handleSubmitActivity() {
       @select-date="selectCalendarDate"
     />
 
-    <CreateActivityTimePickerDialog :open="isTimePickerOpen" :model-value="activeTimePickerValue" @close="closeTimePicker" @commit="commitTimePicker" />
+    <CreateActivityTimePickerDialog :open="isTimePickerOpen" :model-value="activeTimePickerValue" :hour-only="activeTimePickerField === 'reminderTime'" @close="closeTimePicker" @commit="commitTimePicker" />
 
     <CreateActivityResultDialog :open="dialog.isOpen" :title="dialog.title" :copy="dialog.copy" :button-text="dialog.buttonText" @close="closeCreateDialog" />
   </main>

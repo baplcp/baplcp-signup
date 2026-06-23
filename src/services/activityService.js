@@ -2,7 +2,7 @@ import { supabase } from '~/utils/supabase'
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
 
 export const ACTIVITY_DETAIL_FIELDS =
-  'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
+  'id, title, location, dates, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session, season_half_year_fee_per_session, season_total_fee, season_half_year_total_fee, season_capacity, season_enabled, ac_enabled, ac_fee, pickup_open_days_before, pickup_open_time, season_open_date, season_open_time, season_close_date, season_close_time'
 
 async function invokeActivityAdmin(liffStore, body) {
   const data = await invokeLineFunction(liffStore, 'activity-admin', body)

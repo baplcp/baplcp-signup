@@ -2,12 +2,14 @@
 import ActivityAllDatesDialog from '~/components/activity/ActivityAllDatesDialog.vue'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivityMemberSubList from '~/components/activity/ActivityMemberSubList.vue'
+import ActivitySeasonPlanSheet from '~/components/activity/ActivitySeasonPlanSheet.vue'
 import ActivitySignupSheet from '~/components/activity/ActivitySignupSheet.vue'
 import ActivitySummaryCard from '~/components/activity/ActivitySummaryCard.vue'
 import { useActiveActivityPage } from '~/composables/useActiveActivityPage'
 
 const { navigation, activity, summary, members, signup, dialogs, admin, elementRefs, actions } = useActiveActivityPage()
 const { router } = navigation
+const base = import.meta.env.BASE_URL
 </script>
 
 <template>
@@ -28,7 +30,7 @@ const { router } = navigation
       </button>
     </Teleport>
     <section class="hero">
-      <img v-if="activity.showHeroCat" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
+      <img v-if="activity.showHeroCat" class="hero-cat" :src="`${base}images/cat-hide.png`" alt="" aria-hidden="true" />
       <div class="hero-layout">
         <div class="hero-copy">
           <h1>{{ activity.heroTitle }}</h1>
@@ -52,6 +54,7 @@ const { router } = navigation
       :is-admin="admin.isAdmin"
       :admin-mode="admin.adminMode"
       :ac-enabled="admin.acEnabled"
+      :ac-fee="admin.acFeePerSession"
       @change="actions.setSegmentTab"
       @remove="actions.handleRemoveRequest"
       @toggle-payment="actions.togglePayment"
@@ -132,6 +135,20 @@ const { router } = navigation
       </section>
     </div>
 
+    <ActivitySeasonPlanSheet
+      :open="dialogs.seasonPlanOpen"
+      :quarter-count="dialogs.seasonPlanData.quarterCount"
+      :quarter-date-range="dialogs.seasonPlanData.quarterDateRange"
+      :quarter-total="dialogs.seasonPlanData.quarterTotal"
+      :quarter-fee-per-session="dialogs.seasonPlanData.quarterFeePerSession"
+      :half-year-count="dialogs.seasonPlanData.halfYearCount"
+      :half-year-date-range="dialogs.seasonPlanData.halfYearDateRange"
+      :half-year-total="dialogs.seasonPlanData.halfYearTotal"
+      :half-year-fee-per-session="dialogs.seasonPlanData.halfYearFeePerSession"
+      @close="dialogs.seasonPlanOpen = false"
+      @confirm="actions.handleSeasonPlanConfirm"
+    />
+
     <!-- 取消季打報名確認 sheet -->
     <div
       class="season-cancel-overlay phone-container modal-frame"
@@ -150,7 +167,7 @@ const { router } = navigation
       </section>
     </div>
 
-    <ActivityAllDatesDialog :open="dialogs.showAllDatesDialog" :dates="summary.activityDates" :session-count="summary.activitySessionCount" @close="dialogs.showAllDatesDialog = false" />
+    <ActivityAllDatesDialog :open="dialogs.showAllDatesDialog" :dates="summary.activityDates" :session-count="summary.activitySessionCount" :quarter-count="summary.seasonQuarterSessionCount" @close="dialogs.showAllDatesDialog = false" />
   </main>
 </template>
 

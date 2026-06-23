@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
 import { useActiveActivityRegistrations } from '~/composables/useActiveActivityRegistrations'
@@ -35,6 +35,8 @@ export function useActiveActivityPage() {
   const isSubmitting = ref(false)
   const showGuestValidation = ref(false)
   const seasonCancelOpen = ref(false)
+  const seasonPlanOpen = ref(false)
+  const selectedSeasonPlan = ref('quarter')
   const heroCtaButton = ref(null)
   const signupSheetRef = ref(null)
   const successDialogButton = ref(null)
@@ -96,7 +98,12 @@ export function useActiveActivityPage() {
     isSubmitting,
     adminMode,
     signupState,
+    selectedSeasonPlan,
   })
+
+  watch(myRegistration, (reg) => {
+    if (reg?.season_plan) selectedSeasonPlan.value = reg.season_plan
+  }, { immediate: true })
 
   const isSignupChanged = computed(() => {
     if (viewModels.isSeasonLeaveMode.value) {
@@ -345,6 +352,33 @@ export function useActiveActivityPage() {
     }
   }
 
+  function monthRange(dates) {
+    if (!dates.length) return ''
+    const first = new Date(dates[0])
+    const last = new Date(dates[dates.length - 1])
+    const fm = `${first.getMonth() + 1}月`
+    const lm = `${last.getMonth() + 1}月`
+    return fm === lm ? fm : `${first.getMonth() + 1}-${last.getMonth() + 1}月`
+  }
+
+  const seasonPlanData = computed(() => {
+    const dates = [...(activityData.value?.dates || [])].sort()
+    if (!dates.length) return { quarterCount: 0, quarterDateRange: '', quarterTotal: 0, quarterFeePerSession: 0, halfYearCount: 0, halfYearDateRange: '', halfYearTotal: 0, halfYearFeePerSession: 0 }
+    const first = new Date(dates[0])
+    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
+    const quarterDates = dates.filter(d => new Date(d) < cutoff)
+    return {
+      quarterCount: quarterDates.length,
+      quarterDateRange: monthRange(quarterDates),
+      quarterTotal: activityData.value?.season_total_fee || 0,
+      quarterFeePerSession: activityData.value?.season_fee_per_session || 0,
+      halfYearCount: dates.length,
+      halfYearDateRange: monthRange(dates),
+      halfYearTotal: activityData.value?.season_half_year_total_fee || 0,
+      halfYearFeePerSession: activityData.value?.season_half_year_fee_per_session || 0,
+    }
+  })
+
   async function handleCtaClick() {
     if (activityType.value !== 'season') {
       setSignupOpen(true)
@@ -355,6 +389,12 @@ export function useActiveActivityPage() {
       seasonCancelOpen.value = true
       return
     }
+    seasonPlanOpen.value = true
+  }
+
+  async function handleSeasonPlanConfirm(plan) {
+    selectedSeasonPlan.value = plan || 'quarter'
+    seasonPlanOpen.value = false
     await directSeasonRegister()
   }
 
@@ -373,7 +413,7 @@ export function useActiveActivityPage() {
     if (isSubmitting.value) return
     isSubmitting.value = true
     try {
-      await invokeRegistrationAction(liffStore, { action: 'direct-season-register', activityId: activityData.value?.id })
+      await invokeRegistrationAction(liffStore, { action: 'direct-season-register', activityId: activityData.value?.id, seasonPlan: selectedSeasonPlan.value })
       liffStore.isSeason = true
       await fetchRegistrations()
     } catch {
@@ -396,7 +436,8 @@ export function useActiveActivityPage() {
   }
 
   function handleEscape() {
-    if (seasonCancelOpen.value) seasonCancelOpen.value = false
+    if (seasonPlanOpen.value) seasonPlanOpen.value = false
+    else if (seasonCancelOpen.value) seasonCancelOpen.value = false
     else if (removeDialog.open) cancelRemove()
     else if (successDialog.open) setSuccessDialogOpen(false)
     else if (signupOpen.value) setSignupOpen(false)
@@ -472,12 +513,15 @@ export function useActiveActivityPage() {
     successDialog,
     removeDialog,
     seasonCancelOpen,
+    seasonPlanOpen,
+    seasonPlanData,
   })
 
   const admin = reactive({
     adminMode,
     isAdmin,
     acEnabled,
+    acFeePerSession,
   })
 
   const elementRefs = {
@@ -499,6 +543,7 @@ export function useActiveActivityPage() {
     confirmRemove,
     updateAcEnabled,
     handleCtaClick,
+    handleSeasonPlanConfirm,
     confirmSeasonCancel,
     handleEscape,
   }

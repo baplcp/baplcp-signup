@@ -24,6 +24,7 @@ export function useCreateActivityTimePicker({ form, clearError }) {
 
   return {
     isTimePickerOpen,
+    activeTimePickerField,
     activeTimePickerValue,
     openTimePicker,
     closeTimePicker,

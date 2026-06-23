@@ -103,6 +103,14 @@ const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker'])
           @clear-error="emit('clear-error', 'seasonSingleFee')"
         />
         <CreateActivityMoneyField
+          v-model="form.halfYearSingleFee"
+          id="half-year-single-fee"
+          name="halfYearSingleFee"
+          label="半年打"
+          :has-error="isError('halfYearSingleFee')"
+          @clear-error="emit('clear-error', 'halfYearSingleFee')"
+        />
+        <CreateActivityMoneyField
           v-model="form.pickupSingleFee"
           id="pickup-single-fee"
           name="pickupSingleFee"
@@ -215,7 +223,7 @@ const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker'])
 
 .fee-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 

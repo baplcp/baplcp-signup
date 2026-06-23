@@ -274,7 +274,9 @@ serve(async req => {
       if ((selfCount === 0) !== isCurrentlyOnLeave) {
         const nextLeaveDates = selfCount === 0 ? [...leaveDates, activityDate] : leaveDates.filter((date: string) => date !== activityDate)
         const updatePayload: Record<string, unknown> = { leave_dates: nextLeaveDates }
-        if (selfCount !== 0) {
+        if (selfCount === 0) {
+          updatePayload.leave_times = { ...(seasonReg.leave_times || {}), [activityDate]: submitTime }
+        } else {
           updatePayload.rejoin_times = { ...(seasonReg.rejoin_times || {}), [activityDate]: submitTime }
         }
         const { error } = await supabase.from('registrations').update(updatePayload).eq('id', seasonReg.id)
@@ -332,6 +334,9 @@ serve(async req => {
       const activity = await getActivityForRegistration(supabase, activityId)
       assertRegistrationWindow(activity, null, now)
 
+      const rawPlan = body?.seasonPlan
+      const seasonPlan = rawPlan === 'half-year' ? 'half-year' : 'quarter'
+
       const { data: activeReg, error: activeError } = await supabase
         .from('registrations')
         .select('*')
@@ -347,7 +352,7 @@ serve(async req => {
       if (cancelledError) throw cancelledError
 
       const existingSeasonReg = activeReg || cancelledReg
-      const payload = registrationPayload(activityId, null, profile, 1, [], existingSeasonReg, submitTime)
+      const payload = { ...registrationPayload(activityId, null, profile, 1, [], existingSeasonReg, submitTime), season_plan: seasonPlan }
       const { error } = activeReg
         ? await supabase.from('registrations').update(payload).eq('id', activeReg.id)
         : cancelledReg
@@ -365,7 +370,7 @@ serve(async req => {
           .maybeSingle()
         if (retryReadError) throw retryReadError
         if (!retryActiveReg) throw error
-        const retryPayload = registrationPayload(activityId, null, profile, 1, [], retryActiveReg, submitTime)
+        const retryPayload = { ...registrationPayload(activityId, null, profile, 1, [], retryActiveReg, submitTime), season_plan: seasonPlan }
         const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryActiveReg.id)
         if (retryWriteError) throw retryWriteError
       }

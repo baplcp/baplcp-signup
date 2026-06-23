@@ -10,12 +10,17 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  hourOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close', 'commit'])
 
 const hours = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'))
 const minutes = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'))
+const minutesHourOnly = ['00']
 const periods = ['AM', 'PM']
 
 const pickerValue = reactive(from24Hour(props.modelValue))
@@ -30,7 +35,9 @@ watch(
   () => props.open,
   open => {
     if (!open) return
-    Object.assign(pickerValue, from24Hour(props.modelValue))
+    const parsed = from24Hour(props.modelValue)
+    if (props.hourOnly) parsed.minute = '00'
+    Object.assign(pickerValue, parsed)
     nextTick(() => {
       scrollToTimeValue('hour', pickerValue.hour)
       scrollToTimeValue('minute', pickerValue.minute)
@@ -146,14 +153,14 @@ function onTimeWheelScroll(event, key, values) {
           </button>
         </div>
         <div class="time-wheel-column">
-          <button class="time-wheel-arrow" type="button" aria-label="分鐘減少" @click="stepTime('minute', -1, minutes)">
+          <button class="time-wheel-arrow" type="button" aria-label="分鐘減少" @click="stepTime('minute', -1, hourOnly ? minutesHourOnly : minutes)">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', minutes)">
+          <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', hourOnly ? minutesHourOnly : minutes)">
             <button
-              v-for="minute in minutes"
+              v-for="minute in (hourOnly ? minutesHourOnly : minutes)"
               :key="`minute-${minute}`"
               class="time-wheel-option"
               :class="{ 'is-selected': pickerValue.minute === minute }"
@@ -164,7 +171,7 @@ function onTimeWheelScroll(event, key, values) {
               {{ minute }}
             </button>
           </div>
-          <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, minutes)">
+          <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, hourOnly ? minutesHourOnly : minutes)">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>

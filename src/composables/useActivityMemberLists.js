@@ -3,10 +3,12 @@ import { computed } from 'vue'
 function formatRegistrationTime(isoString) {
   if (!isoString) return ''
   const d = new Date(isoString)
+  const month = d.getMonth() + 1
+  const day = d.getDate()
   const h = String(d.getHours()).padStart(2, '0')
   const m = String(d.getMinutes()).padStart(2, '0')
   const s = String(d.getSeconds()).padStart(2, '0')
-  return `${h}:${m}:${s}`
+  return `${month}/${day} ${h}:${m}:${s}`
 }
 
 function registrationSelfEntry(reg, memberType, timestamp, memberGenders, options = {}) {
@@ -85,6 +87,15 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
           members.push(registrationSelfEntry(reg, 'season_self', ts, memberGenders.value, { isSeason: true }))
         }
       })
+    } else {
+      registrations.value.forEach(reg => {
+        if (reg.self_count > 0) {
+          const ts = reg.self_added_at || reg.created_at
+          members.push(registrationSelfEntry(reg, 'self', ts, memberGenders.value, { seasonPlan: reg.season_plan || 'quarter' }))
+        }
+      })
+      members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
+      return members.map(({ _ts, ...member }, index) => ({ ...member, status: index >= (activityData.value?.single_capacity ?? Infinity) ? '候補' : undefined }))
     }
 
     const overflowGuests = []

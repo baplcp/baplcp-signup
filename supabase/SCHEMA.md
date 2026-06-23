@@ -47,12 +47,14 @@ Fields used by the app:
 - `start_time time/text`
 - `end_time time/text`
 - `season_fee_per_session numeric`
+- `season_half_year_fee_per_session numeric`
 - `pickup_fee_per_session numeric`
 - `ac_fee numeric`
 - `single_capacity integer`
 - `season_enabled boolean`
 - `season_include_ac boolean`
 - `season_total_fee numeric`
+- `season_half_year_total_fee numeric`
 - `season_capacity text`
 - `season_open_date date/text`
 - `season_open_time time/text`
@@ -92,8 +94,10 @@ Fields used by the app:
 - `paid_court boolean`
 - `paid_ac boolean`
 - `leave_dates json/jsonb array`
+- `leave_times json/jsonb object` — maps activity date to ISO timestamp when the leave was submitted, e.g. `{ "2026-07-01": "2026-06-20T02:30:00.000Z" }`. Count of leaves = `leave_dates.length`.
 - `rejoin_times json/jsonb object`
 - `cancelled_members jsonb array`
+- `season_plan text` — `'quarter'` (一季) or `'half-year'` (半年), only meaningful for season registrations
 - `created_at timestamptz`
 
 Database invariants:
@@ -144,3 +148,9 @@ Roles:
   temporary narrow public read views for member and registration data.
 - `20260605001000_restore_public_member_registration_reads.sql`: restores
   base-table public reads after removing the public view mode.
+- `20260623002000_add_season_plan_to_registrations.sql`: adds `season_plan`
+  column to `registrations` for recording whether a season member chose 一季 or 半年.
+- `20260623003000_add_leave_times_to_registrations.sql`: adds `leave_times`
+  column to `registrations` to record the ISO timestamp when each season leave was submitted.
+- `20260623004000_add_member_pickup_summary_view.sql`: creates `member_pickup_summary`
+  view that aggregates pickup registration dates and count per member per activity.
