@@ -30,7 +30,7 @@ function isDateExpired(dateStr, endTime) {
 onMounted(async () => {
   const [data] = await Promise.all([
     listHomeActivityCandidates(),
-    countPastParticipations(liffStore.userId).then(n => {
+    liffStore.initialize().then(() => countPastParticipations(liffStore.userId)).then(n => {
       participationCount.value = n
       participationLoading.value = false
     }),
