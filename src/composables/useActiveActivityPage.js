@@ -5,6 +5,7 @@ import { useActiveActivityRegistrations } from '~/composables/useActiveActivityR
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { fetchActivityDetail } from '~/services/activityService'
 import { invokeRegistrationAction, removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
+import { useAppLoadingStore } from '~/stores/appLoading'
 import { useLiffStore } from '~/stores/liff'
 import { startLineOAuth } from '~/utils/lineOAuth'
 
@@ -447,32 +448,40 @@ export function useActiveActivityPage() {
   let realtimeChannel = null
 
   onMounted(async () => {
-    const id = route.query.id
-    const activityFetchPromise = fetchActivityDetail(id)
-    await liffStore.initialize()
-    const { data } = await activityFetchPromise
-    if (data) {
-      activityData.value = data
-      acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee ?? 0
-    } else if (id) {
-      activityNotFound.value = true
-      return
-    }
+    const appLoadingStore = useAppLoadingStore()
+    appLoadingStore.pageLoading = true
 
-    await fetchRegistrations()
-    isLoading.value = false
-    nowTickInterval = setInterval(() => {
-      nowTick.value = new Date()
-    }, 1000)
-    realtimeChannel = subscribeToRegistrationChanges(() => {
-      fetchRegistrations()
-    })
+    try {
+      const id = route.query.id
+      const activityFetchPromise = fetchActivityDetail(id)
+      await liffStore.initialize()
+      const { data } = await activityFetchPromise
+      if (data) {
+        activityData.value = data
+        acEnabled.value = data.ac_enabled ?? false
+        acFeePerSession.value = data.ac_fee ?? 0
+      } else if (id) {
+        activityNotFound.value = true
+        return
+      }
+
+      await fetchRegistrations()
+      isLoading.value = false
+      nowTickInterval = setInterval(() => {
+        nowTick.value = new Date()
+      }, 1000)
+      realtimeChannel = subscribeToRegistrationChanges(() => {
+        fetchRegistrations()
+      })
+    } finally {
+      appLoadingStore.pageLoading = false
+    }
   })
 
   onUnmounted(() => {
     if (nowTickInterval) clearInterval(nowTickInterval)
     removeRegistrationSubscription(realtimeChannel)
+    useAppLoadingStore().pageLoading = false
   })
 
   const navigation = {

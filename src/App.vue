@@ -3,10 +3,15 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '~/components/Layout.vue'
 import LoadingOverlay from '~/components/LoadingOverlay.vue'
+import { useAppLoadingStore } from '~/stores/appLoading'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
+const appLoadingStore = useAppLoadingStore()
 const router = useRouter()
+
+// 遮罩等 LIFF 初始化完，且頁面資料也載完才消失
+const appReady = computed(() => liffStore.initialized && !appLoadingStore.pageLoading)
 
 // LINE OAuth 登入後還原原本的頁面（外部瀏覽器 OAuth 回調用）
 watch(
@@ -14,6 +19,8 @@ watch(
   path => {
     if (!path) return
     liffStore.pendingRedirect = null
+    // 先把 pageLoading 打開，讓 overlay 撐到目標頁面自己設定 loading 狀態為止
+    appLoadingStore.pageLoading = true
     router.replace(path)
   }
 )
@@ -37,7 +44,7 @@ async function confirmGender() {
 </script>
 
 <template>
-  <LoadingOverlay :initialized="liffStore.initialized" />
+  <LoadingOverlay :initialized="appReady" />
 
   <Layout>
     <RouterView />
