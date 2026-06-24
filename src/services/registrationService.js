@@ -29,17 +29,40 @@ export async function listRegistrationsForLatestSpots(activityId, activityDate) 
   return data || []
 }
 
-export async function countPastPickupParticipations(userId) {
+export async function countPastParticipations(userId) {
   if (!userId) return 0
   const today = new Date().toISOString().split('T')[0]
-  const { count, error } = await supabase
+
+  const { count: pickupCount } = await supabase
     .from('registrations')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'active')
+    .gt('self_count', 0)
+    .not('activity_date', 'is', null)
     .lt('activity_date', today)
-  if (error) return 0
-  return count || 0
+
+  const { data: seasonRegs } = await supabase
+    .from('registrations')
+    .select('activity_id, leave_dates')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .gt('self_count', 0)
+    .is('activity_date', null)
+
+  let seasonCount = 0
+  if (seasonRegs && seasonRegs.length > 0) {
+    const activityIds = [...new Set(seasonRegs.map(r => r.activity_id))]
+    const { data: activities } = await supabase.from('activities').select('id, dates').in('id', activityIds)
+    const datesMap = Object.fromEntries((activities || []).map(a => [a.id, a.dates || []]))
+    for (const reg of seasonRegs) {
+      const leaveDates = reg.leave_dates || []
+      const attended = (datesMap[reg.activity_id] || []).filter(d => d < today && !leaveDates.includes(d))
+      seasonCount += attended.length
+    }
+  }
+
+  return (pickupCount || 0) + seasonCount
 }
 
 export function subscribeToRegistrationChanges(onChange) {

@@ -9,7 +9,6 @@ import { useActiveActivityPage } from '~/composables/useActiveActivityPage'
 
 const { navigation, activity, summary, members, signup, dialogs, admin, elementRefs, actions } = useActiveActivityPage()
 const { router } = navigation
-const base = import.meta.env.BASE_URL
 </script>
 
 <template>
@@ -30,7 +29,7 @@ const base = import.meta.env.BASE_URL
       </button>
     </Teleport>
     <section class="hero">
-      <img v-if="activity.showHeroCat" class="hero-cat" :src="`${base}images/cat-hide.png`" alt="" aria-hidden="true" />
+      <img v-if="activity.showHeroCat" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
       <div class="hero-layout">
         <div class="hero-copy">
           <h1>{{ activity.heroTitle }}</h1>

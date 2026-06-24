@@ -6,7 +6,7 @@ import HomeHero from '~/components/home/HomeHero.vue'
 import HomeParticipationCard from '~/components/home/HomeParticipationCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { listHomeActivityCandidates } from '~/services/activityService'
-import { countPastPickupParticipations } from '~/services/registrationService'
+import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
@@ -30,7 +30,7 @@ function isDateExpired(dateStr, endTime) {
 onMounted(async () => {
   const [data] = await Promise.all([
     listHomeActivityCandidates(),
-    countPastPickupParticipations(liffStore.userId).then(n => {
+    countPastParticipations(liffStore.userId).then(n => {
       participationCount.value = n
       participationLoading.value = false
     }),
