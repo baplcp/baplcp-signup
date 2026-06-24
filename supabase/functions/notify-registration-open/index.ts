@@ -74,7 +74,7 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
         contents: [
           {
             type: 'text',
-            text: `${typeLabel}報名即將開始`,
+            text: `${typeLabel}報名將於 5 分鐘後開始`,
             weight: 'bold',
             color: '#5768ff',
             size: 'xs',
@@ -85,12 +85,6 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
             weight: 'bold',
             size: 'xl',
             wrap: true,
-          },
-          {
-            type: 'text',
-            text: '5 分鐘後開放報名',
-            size: 'xs',
-            color: '#6b7280',
           },
           {
             type: 'separator',
