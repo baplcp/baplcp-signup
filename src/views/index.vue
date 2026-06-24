@@ -129,24 +129,23 @@ const utilityItems = [
     <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="latestActivityTo" />
 
     <section class="content">
-      <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
+      <div class="utility-grid">
+        <HomeUtilityItem
+          v-for="item in utilityItems"
+          :key="item.label"
+          :label="item.label"
+          :image-src="item.imageSrc"
+          :to="item.to"
+          :href="item.href"
+          :warm="item.warm"
+          :pending="item.pending"
+          :external="item.external"
+        />
+      </div>
 
-      <section class="section" aria-labelledby="utility-title">
-        <h2 id="utility-title">常用功能</h2>
-        <div class="utility-grid">
-          <HomeUtilityItem
-            v-for="item in utilityItems"
-            :key="item.label"
-            :label="item.label"
-            :image-src="item.imageSrc"
-            :to="item.to"
-            :href="item.href"
-            :warm="item.warm"
-            :pending="item.pending"
-            :external="item.external"
-          />
-        </div>
-      </section>
+      <div class="section">
+        <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
+      </div>
 
       <section class="section" aria-labelledby="faq-title">
         <h2 id="faq-title">常見問題</h2>

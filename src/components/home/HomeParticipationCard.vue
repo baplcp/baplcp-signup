@@ -6,19 +6,20 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
-  goal: {
-    type: Number,
-    default: 5,
-  },
   loading: {
     type: Boolean,
     default: false,
   },
 })
 
+const MILESTONES = [5, 10, 20, 30, 40, 50]
+
+const currentGoal = computed(() => {
+  return MILESTONES.find(m => props.count < m) ?? 50
+})
+
 const progressPercent = computed(() => {
-  if (props.goal <= 0) return 0
-  return Math.min(Math.round((props.count / props.goal) * 100), 100)
+  return Math.min(Math.round((props.count / currentGoal.value) * 100), 100)
 })
 
 const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
@@ -30,7 +31,7 @@ const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
       <img :src="iconBurn" alt="" class="burn-icon" />
       <span class="title-text">累積參與次數</span>
     </div>
-    <p class="goal-text">目標 {{ goal }} 次</p>
+    <p class="goal-text">目標 {{ currentGoal }} 次</p>
     <div class="bar-track">
       <div class="bar-fill" :style="{ width: progressPercent + '%' }" />
     </div>
