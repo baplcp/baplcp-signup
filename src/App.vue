@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '~/components/Layout.vue'
+import LoadingOverlay from '~/components/LoadingOverlay.vue'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
@@ -36,6 +37,8 @@ async function confirmGender() {
 </script>
 
 <template>
+  <LoadingOverlay :initialized="liffStore.initialized" />
+
   <Layout>
     <RouterView />
   </Layout>
