@@ -23,7 +23,7 @@ function isInNotifyWindow(dt: Date, now: Date): boolean {
   return dt >= windowStart && dt < windowEnd
 }
 
-async function sendLineMessage(token: string, groupId: string, text: string): Promise<void> {
+async function sendLineMessage(token: string, groupId: string, message: Record<string, unknown>): Promise<void> {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: {
@@ -32,13 +32,118 @@ async function sendLineMessage(token: string, groupId: string, text: string): Pr
     },
     body: JSON.stringify({
       to: groupId,
-      messages: [{ type: 'text', text }],
+      messages: [message],
     }),
   })
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`LINE push failed: ${err}`)
   }
+}
+
+function buildRegistrationOpenFlexMessage(notification: Notification, registrationUrl: string): Record<string, unknown> {
+  const typeLabel = notification.type === 'season' ? '季打' : '臨打'
+  const notifyTitle = notification.type === 'pickup' && notification.pickupLabel ? notification.pickupLabel : notification.title
+  const dateTime = [notification.activityDate, notification.startTime].filter(Boolean).join(' ') || '未提供時間'
+  const location = notification.location || '未提供地點'
+
+  return {
+    type: 'bubble',
+    altText: notifyTitle,
+    hero: {
+      type: 'image',
+      url: 'https://baplcp.github.io/baplcp-signup/images/thumbnail.jpg',
+      size: 'full',
+      aspectRatio: '20:13',
+      aspectMode: 'cover',
+      action: {
+        type: 'uri',
+        uri: registrationUrl,
+      },
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'md',
+      contents: [
+        {
+          type: 'text',
+          text: `${typeLabel}報名即將開始`,
+          weight: 'bold',
+          color: '#5768ff',
+          size: 'xs',
+        },
+        {
+          type: 'text',
+          text: notifyTitle,
+          weight: 'bold',
+          size: 'xl',
+          wrap: true,
+        },
+        {
+          type: 'text',
+          text: '5 分鐘後開放報名',
+          size: 'xs',
+          color: '#6b7280',
+        },
+        {
+          type: 'separator',
+          margin: 'md',
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: '📅日期', color: '#6b7280', size: 'sm', flex: 1 },
+                { type: 'text', text: dateTime, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+              ],
+            },
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'sm',
+              contents: [
+                { type: 'text', text: '📍地點', color: '#6b7280', size: 'sm', flex: 1 },
+                { type: 'text', text: location, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'button',
+          style: 'primary',
+          color: '#5768ff',
+          action: {
+            type: 'uri',
+            label: '立即報名',
+            uri: registrationUrl,
+          },
+        },
+      ],
+    },
+  }
+}
+
+type Notification = {
+  id: number
+  title: string
+  pickupLabel: string | null
+  location: string
+  startTime: string
+  activityDate: string
+  type: 'season' | 'pickup'
 }
 
 serve(async _req => {
@@ -61,16 +166,6 @@ serve(async _req => {
       .select('id, title, pickup_label, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
 
     if (error) throw error
-
-    type Notification = {
-      id: number
-      title: string
-      pickupLabel: string | null
-      location: string
-      startTime: string
-      activityDate: string
-      type: 'season' | 'pickup'
-    }
 
     const notifications: Notification[] = []
 
@@ -115,11 +210,9 @@ serve(async _req => {
     for (const n of notifications) {
       const liffState = encodeURIComponent(`#/active-activity?id=${n.id}&date=${n.activityDate}&type=${n.type}`)
       const registrationUrl = `https://liff.line.me/${LIFF_ID}?liff.state=${liffState}`
-      const typeLabel = n.type === 'season' ? '季打' : '臨打'
-      const notifyTitle = n.type === 'pickup' && n.pickupLabel ? n.pickupLabel : n.title
-      const text = `🏐 ${typeLabel}報名即將開始！（5 分鐘後）\n\n` + `【${notifyTitle}】\n` + `📅 ${n.activityDate} ${n.startTime}\n` + `📍 ${n.location}\n\n` + `👉 立即報名：\n${registrationUrl}`
+      const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
-      await sendLineMessage(lineToken, lineGroupId, text)
+      await sendLineMessage(lineToken, lineGroupId, message)
       console.log(`Notified: activity ${n.id} (${n.type}, ${n.activityDate})`)
     }
 
