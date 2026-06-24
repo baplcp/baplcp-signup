@@ -48,90 +48,93 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
   const location = notification.location || '未提供地點'
 
   return {
-    type: 'bubble',
+    type: 'flex',
     altText: notifyTitle,
-    hero: {
-      type: 'image',
-      url: 'https://baplcp.github.io/baplcp-signup/images/thumbnail.jpg',
-      size: 'full',
-      aspectRatio: '20:13',
-      aspectMode: 'cover',
-      action: {
-        type: 'uri',
-        uri: registrationUrl,
+    contents: {
+      type: 'bubble',
+      hero: {
+        type: 'image',
+        url: 'https://baplcp.github.io/baplcp-signup/images/thumbnail.jpg',
+        size: 'full',
+        aspectRatio: '20:13',
+        aspectMode: 'cover',
+        action: {
+          type: 'uri',
+          uri: registrationUrl,
+        },
       },
-    },
-    body: {
-      type: 'box',
-      layout: 'vertical',
-      spacing: 'md',
-      contents: [
-        {
-          type: 'text',
-          text: `${typeLabel}報名即將開始`,
-          weight: 'bold',
-          color: '#5768ff',
-          size: 'xs',
-        },
-        {
-          type: 'text',
-          text: notifyTitle,
-          weight: 'bold',
-          size: 'xl',
-          wrap: true,
-        },
-        {
-          type: 'text',
-          text: '5 分鐘後開放報名',
-          size: 'xs',
-          color: '#6b7280',
-        },
-        {
-          type: 'separator',
-          margin: 'md',
-        },
-        {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'box',
-              layout: 'baseline',
-              spacing: 'sm',
-              contents: [
-                { type: 'text', text: '📅日期', color: '#6b7280', size: 'sm', flex: 1 },
-                { type: 'text', text: dateTime, color: '#111827', size: 'sm', wrap: true, flex: 4 },
-              ],
-            },
-            {
-              type: 'box',
-              layout: 'baseline',
-              spacing: 'sm',
-              contents: [
-                { type: 'text', text: '📍地點', color: '#6b7280', size: 'sm', flex: 1 },
-                { type: 'text', text: location, color: '#111827', size: 'sm', wrap: true, flex: 4 },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    footer: {
-      type: 'box',
-      layout: 'vertical',
-      contents: [
-        {
-          type: 'button',
-          style: 'primary',
-          color: '#5768ff',
-          action: {
-            type: 'uri',
-            label: '立即報名',
-            uri: registrationUrl,
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: `${typeLabel}報名即將開始`,
+            weight: 'bold',
+            color: '#5768ff',
+            size: 'xs',
           },
-        },
-      ],
+          {
+            type: 'text',
+            text: notifyTitle,
+            weight: 'bold',
+            size: 'xl',
+            wrap: true,
+          },
+          {
+            type: 'text',
+            text: '5 分鐘後開放報名',
+            size: 'xs',
+            color: '#6b7280',
+          },
+          {
+            type: 'separator',
+            margin: 'md',
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '📅日期', color: '#6b7280', size: 'sm', flex: 1 },
+                  { type: 'text', text: dateTime, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+                ],
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '📍地點', color: '#6b7280', size: 'sm', flex: 1 },
+                  { type: 'text', text: location, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#5768ff',
+            action: {
+              type: 'uri',
+              label: '立即報名',
+              uri: registrationUrl,
+            },
+          },
+        ],
+      },
     },
   }
 }
