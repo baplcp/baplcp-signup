@@ -88,11 +88,9 @@ const infoCards = [
 
 const utilityItems = [
   {
-    label: '贊助胖貓貓',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
-    href: 'https://store.line.me/stickershop/product/30532466/',
-    external: true,
-    warm: true,
+    label: '球局列表',
+    imageSrc: import.meta.env.BASE_URL + 'images/icon-Calendar.png',
+    to: '/group-list',
   },
   {
     label: '季打報名',
@@ -100,16 +98,17 @@ const utilityItems = [
     to: '/season-list',
   },
   {
-    label: '臨打名單',
-    imageSrc: import.meta.env.BASE_URL + '/images/Registration list.png',
-    to: '/group-list',
-    pending: true,
+    label: '打球影片',
+    imageSrc: import.meta.env.BASE_URL + 'images/icon-Youtube.png',
+    href: 'https://www.youtube.com/@okayder',
+    external: true,
   },
   {
-    label: '活動相簿',
-    imageSrc: import.meta.env.BASE_URL + '/images/icon-album.png',
-    href: '#',
-    pending: true,
+    label: '贊助胖貓貓',
+    imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
+    href: 'https://store.line.me/stickershop/product/30532466/',
+    external: true,
+    warm: true,
   },
 ]
 </script>
