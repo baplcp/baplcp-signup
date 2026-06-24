@@ -44,7 +44,11 @@ async function sendLineMessage(token: string, groupId: string, message: Record<s
 function buildRegistrationOpenFlexMessage(notification: Notification, registrationUrl: string): Record<string, unknown> {
   const typeLabel = notification.type === 'season' ? '季打' : '臨打'
   const notifyTitle = notification.type === 'pickup' && notification.pickupLabel ? notification.pickupLabel : notification.title
-  const dateTime = [notification.activityDate, notification.startTime].filter(Boolean).join(' ') || '未提供時間'
+  const date = notification.activityDate || '未提供日期'
+  const time =
+    notification.startTime && notification.endTime
+      ? `${notification.startTime}~${notification.endTime}`
+      : '未提供時間'
   const location = notification.location || '未提供地點'
 
   return {
@@ -103,7 +107,16 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
                 spacing: 'sm',
                 contents: [
                   { type: 'text', text: '📅日期', color: '#6b7280', size: 'sm', flex: 1 },
-                  { type: 'text', text: dateTime, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+                  { type: 'text', text: date, color: '#111827', size: 'sm', wrap: true, flex: 4 },
+                ],
+              },
+              {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                  { type: 'text', text: '🕐時間', color: '#6b7280', size: 'sm', flex: 1 },
+                  { type: 'text', text: time, color: '#111827', size: 'sm', wrap: true, flex: 4 },
                 ],
               },
               {
@@ -145,6 +158,7 @@ type Notification = {
   pickupLabel: string | null
   location: string
   startTime: string
+  endTime: string
   activityDate: string
   type: 'season' | 'pickup'
 }
@@ -166,7 +180,7 @@ serve(async _req => {
 
     const { data: activities, error } = await supabase
       .from('activities')
-      .select('id, title, pickup_label, location, start_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
+      .select('id, title, pickup_label, location, start_time, end_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
 
     if (error) throw error
 
@@ -185,6 +199,7 @@ serve(async _req => {
             pickupLabel: activity.pickup_label ?? null,
             location: activity.location ?? '',
             startTime: activity.start_time ?? '',
+            endTime: activity.end_time ?? '',
             activityDate: dates[0] ?? '',
             type: 'season',
           })
@@ -202,6 +217,7 @@ serve(async _req => {
               pickupLabel: activity.pickup_label ?? null,
               location: activity.location ?? '',
               startTime: activity.start_time ?? '',
+              endTime: activity.end_time ?? '',
               activityDate: dateStr,
               type: 'pickup',
             })
