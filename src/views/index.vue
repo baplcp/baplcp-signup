@@ -3,11 +3,16 @@ import { onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
-import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
+import HomeParticipationCard from '~/components/home/HomeParticipationCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { listHomeActivityCandidates } from '~/services/activityService'
+import { countPastPickupParticipations } from '~/services/registrationService'
+import { useLiffStore } from '~/stores/liff'
 
+const liffStore = useLiffStore()
 const latestActivityTo = ref('/group-list')
+const participationCount = ref(0)
+const participationLoading = ref(true)
 
 const now = new Date()
 
@@ -23,7 +28,13 @@ function isDateExpired(dateStr, endTime) {
 }
 
 onMounted(async () => {
-  const data = await listHomeActivityCandidates()
+  const [data] = await Promise.all([
+    listHomeActivityCandidates(),
+    countPastPickupParticipations(liffStore.userId).then(n => {
+      participationCount.value = n
+      participationLoading.value = false
+    }),
+  ])
 
   if (data && data.length > 0) {
     let nearestDate = null
@@ -118,9 +129,7 @@ const utilityItems = [
     <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="latestActivityTo" />
 
     <section class="content">
-      <div class="top-cards">
-        <HomeInfoCard v-for="card in infoCards" :key="card.title" :title="card.title" :subtitle="card.subtitle" :image-src="card.imageSrc" :to="card.to" :href="card.href" :pending="card.pending" />
-      </div>
+      <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
 
       <section class="section" aria-labelledby="utility-title">
         <h2 id="utility-title">常用功能</h2>
@@ -154,7 +163,7 @@ const utilityItems = [
   margin-top: -124px;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
-  padding: 30px 16px 40px;
+  padding: 20px 16px 40px;
   min-height: calc(100% - 251px);
   z-index: 1;
 }
@@ -174,6 +183,7 @@ const utilityItems = [
   font-size: 20px;
   line-height: 1.4;
   font-weight: 600;
+  color: #101840;
 }
 
 .utility-grid {

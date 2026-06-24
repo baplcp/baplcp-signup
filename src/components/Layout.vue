@@ -171,20 +171,16 @@ watch(
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
                 <RouterLink @click="closeMenu" class="drawer-link" to="/group-list">
-                  <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
-                  <span>已發起的球局</span>
+                  <span class="drawer-icon"><img src="/images/icon-Calendar.png" alt="" /></span>
+                  <span>球局列表</span>
                 </RouterLink>
                 <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
                   <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
                   <span>贊助胖貓貓</span>
                 </a>
                 <RouterLink @click="closeMenu" class="drawer-link" to="/season-list">
-                  <span class="drawer-icon is-warm"><img src="/images/ball.png" alt="" /></span>
+                  <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
-                </RouterLink>
-                <RouterLink @click="closeMenu" class="drawer-link is-pending" to="/">
-                  <span class="drawer-icon"><img src="/images/icon-album.png" alt="" /></span>
-                  <span>參與紀錄</span>
                 </RouterLink>
               </nav>
             </section>

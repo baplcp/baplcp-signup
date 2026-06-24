@@ -29,6 +29,19 @@ export async function listRegistrationsForLatestSpots(activityId, activityDate) 
   return data || []
 }
 
+export async function countPastPickupParticipations(userId) {
+  if (!userId) return 0
+  const today = new Date().toISOString().split('T')[0]
+  const { count, error } = await supabase
+    .from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .lt('activity_date', today)
+  if (error) return 0
+  return count || 0
+}
+
 export function subscribeToRegistrationChanges(onChange) {
   return supabase.channel('registrations-live').on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, onChange).subscribe()
 }
