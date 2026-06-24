@@ -136,7 +136,7 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
             color: '#5768ff',
             action: {
               type: 'uri',
-              label: '立即報名',
+              label: '立即前往',
               uri: registrationUrl,
             },
           },
