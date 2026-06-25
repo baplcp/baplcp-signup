@@ -386,6 +386,10 @@ export function useActiveActivityPage() {
     }
     if (viewModels.isSeasonRegistrationClosed.value && !viewModels.hasSubmittedSignup.value) return
     if (viewModels.hasSubmittedSignup.value) {
+      if (viewModels.isSeasonRegistrationClosed.value) {
+        setSuccessDialogOpen(true, { title: '已超過截止時間', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
+        return
+      }
       seasonCancelOpen.value = true
       return
     }
