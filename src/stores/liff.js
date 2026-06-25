@@ -148,6 +148,23 @@ export const useLiffStore = defineStore('liff', () => {
         }
       }
 
+      // 從通知連結進入時，liff.init() 會透過 hash change 完成 liff.state redirect（SPA 跳轉，不重載頁面），
+      // 此時 LIFF auth 已完成但 liff.init() 已拋出，需在此補上 profile 取得。
+      try {
+        if (!liff.isInClient()) {
+          isExternalBrowser.value = true
+        } else if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile()
+          userId.value = profile.userId
+          displayName.value = profile.displayName
+          pictureUrl.value = profile.pictureUrl
+          lineAccessToken.value = liff.getAccessToken()
+          await syncMember(profile.userId, profile.displayName)
+        }
+      } catch (profileErr) {
+        console.warn('LIFF profile fetch after liff.state redirect failed', profileErr)
+      }
+
       initialized.value = true
     }
   }
