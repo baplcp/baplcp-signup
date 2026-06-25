@@ -66,9 +66,8 @@ defineExpose({
     <button class="signup-backdrop" type="button" aria-label="關閉報名表" @click="emit('close')"></button>
     <section class="signup-sheet" role="dialog" aria-modal="true" aria-labelledby="signup-sheet-title">
       <div class="signup-sheet-header">
-        <h2 class="signup-sheet-title" id="signup-sheet-title">{{ isSeasonLeaveMode ? '季打出席管理' : '報名此球局' }}</h2>
+        <h2 class="signup-sheet-title" id="signup-sheet-title">{{ isSeasonLeaveMode ? '季打請假或臨打報名' : '報名此球局' }}</h2>
         <span v-if="!isSeasonLeaveMode" class="prefill-tag">可預填</span>
-        <span v-else class="prefill-tag is-leave">請假 = 0</span>
         <button ref="closeButton" class="signup-close" type="button" aria-label="關閉報名表" @click="emit('close')">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
