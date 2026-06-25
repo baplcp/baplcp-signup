@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import CreateActivityChoiceCard from './CreateActivityChoiceCard.vue'
 import CreateActivityTimeSelect from './CreateActivityTimeSelect.vue'
 
@@ -6,6 +7,10 @@ const props = defineProps({
   form: {
     type: Object,
     required: true,
+  },
+  selectedDates: {
+    type: Array,
+    default: () => [],
   },
   dayBeforeOptions: {
     type: Array,
@@ -40,6 +45,38 @@ function openReminderTimePicker() {
   emit('set-choice', 'reminderEnabled', 'enabled')
   emit('open-time-picker', 'reminderTime')
 }
+
+function parseDaysBefore(raw) {
+  const match = (raw || '').match(/(\d+)/)
+  return match ? parseInt(match[1], 10) : null
+}
+
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
+function calcNextDateHint(daysBefore, timeStr) {
+  if (daysBefore === null || !timeStr || !props.selectedDates.length) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const sorted = [...props.selectedDates].sort()
+
+  for (const dateStr of sorted) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const target = new Date(y, m - 1, d - daysBefore)
+    if (target >= today) {
+      return `${target.getMonth() + 1}月${target.getDate()}日（週${WEEKDAY_LABELS[target.getDay()]}）${timeStr}`
+    }
+  }
+  return null
+}
+
+const nextPickupOpenHint = computed(() => calcNextDateHint(parseDaysBefore(props.form.pickupOpenDate), props.form.pickupOpenTime))
+
+const nextReminderHint = computed(() => {
+  if (props.form.reminderEnabled !== 'enabled') return null
+  return calcNextDateHint(parseDaysBefore(props.form.reminderDaysBefore), props.form.reminderTime)
+})
 </script>
 
 <template>
@@ -77,6 +114,7 @@ function openReminderTimePicker() {
           @clear-error="emit('clear-error', 'pickupOpenTime')"
         />
       </div>
+      <p v-if="nextPickupOpenHint" class="next-hint">下次將於 {{ nextPickupOpenHint }} 開放</p>
     </div>
 
     <div class="field">
@@ -161,6 +199,7 @@ function openReminderTimePicker() {
             />
             <span>發送</span>
           </span>
+          <p v-if="nextReminderHint" class="next-hint next-hint--in-card">下次將於 {{ nextReminderHint }} 發送</p>
         </CreateActivityChoiceCard>
       </div>
     </div>
@@ -246,5 +285,16 @@ function openReminderTimePicker() {
 select.is-error {
   border-color: var(--danger-500);
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}
+
+.next-hint {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.next-hint--in-card {
+  margin-top: 6px;
 }
 </style>

@@ -242,6 +242,7 @@ async function handleSubmitActivity() {
 
           <CreateActivityPickupSection
             :form="form"
+            :selected-dates="selectedDates"
             :day-before-options="dayBeforeOptions"
             :time-options="timeOptions"
             :is-error="isError"
