@@ -124,8 +124,8 @@ defineProps({
 }
 
 .badge-ended {
-  background: #fdecea;
-  color: #c0392b;
+  background: #ebebeb;
+  color: #888;
 }
 
 .chevron {

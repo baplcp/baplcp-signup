@@ -29,7 +29,7 @@ const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
   <div class="participation-card">
     <div class="title-row">
       <img :src="iconBurn" alt="" class="burn-icon" />
-      <span class="title-text">累積參與次數</span>
+      <span class="title-text">累積次數</span>
     </div>
     <p class="goal-text">
       <span v-if="loading" class="text-skeleton text-skeleton--goal" />
@@ -47,88 +47,78 @@ const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
 </template>
 
 <style scoped>
-/* Figma: rounded-[14px], shadow-[0px_4px_24.4px_0px_rgba(98,86,86,0.25)], bg-white */
-/* Layout uses absolute positions from Figma: title top:16, goal top:59, bar top:85 */
 .participation-card {
   position: relative;
-  background: #f6f8fb;
+  background: #f4f6fa;
   border: 1px solid #e6e8f0;
   border-radius: 14px;
-  height: 111px;
+  height: 78px;
   overflow: hidden;
 }
 
-/* Figma: left:16px, top:16px, gap:4px */
 .title-row {
   position: absolute;
-  left: 16px;
-  top: 16px;
+  left: 11.5px;
+  top: 14px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
-/* Figma: size:25px */
 .burn-icon {
-  width: 25px;
-  height: 25px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-/* Figma: text-[19px], PingFang TC Medium, leading-[1.4], color #101840 */
 .title-text {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
   color: #101840;
   line-height: 1.4;
   white-space: nowrap;
 }
 
-/* Figma: left:13px, top:59px, text-[14px], PingFang TC Semibold, color #f1ad7c */
 .goal-text {
   position: absolute;
-  left: 13px;
-  top: 59px;
+  left: 11.5px;
+  top: 41px;
   margin: 0;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 400;
-  color: #ee927c;
+  color: #6373fd;
   line-height: 1.4;
   white-space: nowrap;
 }
 
-/* Figma: left:15px, top:85px, w:321px → use right:15px for responsive, h:10px */
 .bar-track {
   position: absolute;
-  left: 15px;
-  right: 15px;
-  top: 85px;
-  height: 10px;
+  left: 11.5px;
+  right: 11.5px;
+  top: 59px;
+  height: 8px;
   border-radius: 25px;
-  background: #e6e8f0;
+  background: #d8dae5;
   overflow: hidden;
 }
 
-/* Figma: gradient from #f2b57c to #e8677b */
 .bar-fill {
   height: 100%;
   border-radius: 25px;
-  background: linear-gradient(to right, #f2b57c, #e8677b);
+  background: linear-gradient(to left, #5768ff, #8894ff);
   transition: width 0.4s ease;
 }
 
-/* Figma: text-[63.96px], SF Pro Rounded Bold, leading-none, color #101840 */
-/* Position: right edge at ~29px from card right (351px card: calc(50%+146.5px) - translateX(-100%)) */
 .count-num {
   position: absolute;
-  right: 20px;
-  top: calc(50% - 43px);
-  font-size: 64px;
+  right: 12px;
+  top: 12px;
+  font-size: 40px;
   font-weight: 700;
   color: #101840;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
 }
 
 @keyframes shimmer {
@@ -141,20 +131,20 @@ const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
 .bar-skeleton {
   display: inline-block;
   border-radius: 8px;
-  background: linear-gradient(90deg, #e6e8f0 25%, #f0f2f7 50%, #e6e8f0 75%);
+  background: linear-gradient(90deg, #d8dae5 25%, #eaecf4 50%, #d8dae5 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease infinite;
 }
 
 .count-skeleton {
-  width: 72px;
-  height: 64px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
 }
 
 .text-skeleton--goal {
-  width: 72px;
-  height: 16px;
+  width: 52px;
+  height: 12px;
   border-radius: 6px;
   vertical-align: middle;
 }

@@ -1,8 +1,18 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+
+const showComingSoon = ref(false)
+let comingSoonTimer = null
+
+function handleMyRecordClick() {
+  if (comingSoonTimer) clearTimeout(comingSoonTimer)
+  showComingSoon.value = true
+  comingSoonTimer = setTimeout(() => { showComingSoon.value = false }, 2500)
+}
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
+import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeParticipationCard from '~/components/home/HomeParticipationCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { listHomeActivityCandidates } from '~/services/activityService'
@@ -100,7 +110,7 @@ const infoCards = [
 const utilityItems = [
   {
     label: '球局列表',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-Calendar.png',
+    imageSrc: import.meta.env.BASE_URL + 'images/Registration list.png',
     to: '/group-list',
   },
   {
@@ -110,7 +120,7 @@ const utilityItems = [
   },
   {
     label: '打球影片',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-Youtube.png',
+    imageSrc: import.meta.env.BASE_URL + 'images/icon-video.png',
     href: 'https://www.youtube.com/@okayder',
     external: true,
   },
@@ -129,31 +139,46 @@ const utilityItems = [
     <HomeHero title="球局報名區" subtitle="最新臨打報名及季打請假" cta-label="立即前往" :cta-to="latestActivityTo" />
 
     <section class="content">
-      <div class="utility-grid">
-        <HomeUtilityItem
-          v-for="item in utilityItems"
-          :key="item.label"
-          :label="item.label"
-          :image-src="item.imageSrc"
-          :to="item.to"
-          :href="item.href"
-          :warm="item.warm"
-          :pending="item.pending"
-          :external="item.external"
+      <div class="top-cards">
+        <HomeInfoCard
+          title="我的紀錄"
+          subtitle="報名與請假"
+          :image-src="infoCards[1].imageSrc"
+          @click="handleMyRecordClick"
         />
-      </div>
-
-      <div class="section">
         <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
       </div>
 
-      <section class="section" aria-labelledby="faq-title">
+      <div class="section">
+        <h2>常用功能</h2>
+        <div class="utility-grid">
+          <HomeUtilityItem
+            v-for="item in utilityItems"
+            :key="item.label"
+            :label="item.label"
+            :image-src="item.imageSrc"
+            :to="item.to"
+            :href="item.href"
+            :warm="item.warm"
+            :pending="item.pending"
+            :external="item.external"
+          />
+        </div>
+      </div>
+
+      <section class="section faq-section" aria-labelledby="faq-title">
         <h2 id="faq-title">常見問題</h2>
         <HomeFaqList :faqs="faqs" />
       </section>
       <div class="app-version app-version-note">{{ APP_VERSION }}</div>
     </section>
   </div>
+
+  <Transition name="snackbar">
+    <div v-if="showComingSoon" class="snackbar">
+      即將開放，敬請期待
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -170,11 +195,15 @@ const utilityItems = [
 .top-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 13px;
 }
 
 .section {
   margin-top: 28px;
+}
+
+.faq-section {
+  margin-top: 36px;
 }
 
 .section h2 {
@@ -193,5 +222,42 @@ const utilityItems = [
 
 .app-version {
   margin-top: 28px;
+}
+
+.snackbar {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 24, 64, 0.85);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 20px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.snackbar-sub {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.snackbar-enter-active,
+.snackbar-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.snackbar-enter-from,
+.snackbar-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 </style>

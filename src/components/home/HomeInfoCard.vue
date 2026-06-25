@@ -94,16 +94,15 @@ const linkAttrs = computed(() => {
 .info-card img {
   position: absolute;
   right: 4px;
-  top: 3px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 72px;
-  height: 72px;
+  height: 87px;
   object-fit: contain;
   filter: drop-shadow(3.995px 3.995px 15.279px rgba(16, 24, 67, 0.45));
 }
 
-.info-card.is-pending {
-  opacity: 0.4;
-  pointer-events: none;
-  cursor: default;
+.info-card:not([href]):not([to]) {
+  cursor: pointer;
 }
 </style>
