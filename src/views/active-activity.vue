@@ -39,6 +39,7 @@ const { router } = navigation
 
     <ActivitySummaryCard
       v-bind="summary.summaryCardProps"
+      :is-loading="activity.isLoading"
       :is-admin="admin.isAdmin"
       :ac-enabled="admin.acEnabled"
       @update:ac-enabled="actions.updateAcEnabled"

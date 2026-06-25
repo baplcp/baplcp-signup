@@ -23,7 +23,7 @@ export function useActiveActivityViewModels({
   selectedSeasonPlan,
 }) {
   const pageClasses = computed(() => [{ 'signup-open': signupOpen.value }, `hero-${activityType.value}`])
-  const showHeroCat = computed(() => activityType.value === 'latest' || activityType.value === 'season')
+  const showHeroCat = computed(() => activityType.value === 'latest' || activityType.value === 'pickup' || activityType.value === 'season')
   const heroTitle = computed(() => {
     if (activityType.value === 'season') return activityData.value?.title || '季打報名'
     if (activityType.value === 'upcoming') return '即將到來的球局'

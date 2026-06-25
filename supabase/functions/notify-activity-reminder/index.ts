@@ -92,61 +92,96 @@ serve(async _req => {
       if (targetDates.length === 0) continue
 
       for (const targetDate of targetDates) {
-        // ── 季打報名（排除請假，需先算出佔用名額）────────────────
+        // ── 季打報名 ──────────────────────────────────────────────
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('user_id, display_name, guests, leave_dates, self_count')
+          .select('user_id, display_name, leave_dates, self_count, created_at, rejoin_times')
           .eq('activity_id', activity.id)
           .is('activity_date', null)
           .eq('status', 'active')
-          .order('created_at', { ascending: true })
         if (sErr) throw sErr
-
-        // 只算有本人出席的季打（self_count > 0 且未請假）
-        const confirmedSeason: ConfirmedUser[] = (seasonRegs ?? [])
-          .filter(r => !(r.leave_dates || []).includes(targetDate) && (r.self_count ?? 0) > 0)
-          .map(r => {
-            const allGuests = (r.guests as Array<{ gender?: string }>) ?? []
-            return { userId: r.user_id, displayName: r.display_name ?? r.user_id, guestCount: allGuests.length, guests: allGuests, selfInPickup: true }
-          })
-
-        // 季打確認本人出席的人數（佔用 single_capacity 的名額）
-        const confirmedSeasonCount = confirmedSeason.length
 
         // ── 臨打報名 ──────────────────────────────────────────────
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
-          .select('user_id, display_name, guests, self_added_at, self_count')
+          .select('user_id, display_name, guests, self_added_at, self_count, created_at')
           .eq('activity_id', activity.id)
           .eq('activity_date', targetDate)
           .eq('status', 'active')
-          .order('self_added_at', { ascending: true, nullsFirst: false })
         if (pErr) throw pErr
 
         const totalCapacity = Number(activity.single_capacity) || 0
-        // 扣除季打已佔用名額，剩餘才是臨打可用名額
-        const pickupAvailable = totalCapacity > 0 ? Math.max(0, totalCapacity - confirmedSeasonCount) : 0
-        const confirmedPickup: ConfirmedUser[] = []
-        let slotCount = 0
-        for (const reg of pickupRegs ?? []) {
-          if (pickupAvailable > 0 && slotCount >= pickupAvailable) break
-          // self_count > 0 表示本人有報名臨打；= 0 代表季打請假後只帶群外
-          const selfSlots = (reg.self_count ?? 0) > 0 ? 1 : 0
-          const allGuests = (reg.guests as Array<{ gender?: string }>) ?? []
-          const confirmedGuestCount = pickupAvailable > 0 ? Math.min(allGuests.length, Math.max(0, pickupAvailable - slotCount - selfSlots)) : allGuests.length
-          // 本人不在臨打且無群外確認，跳過
-          if (selfSlots === 0 && confirmedGuestCount === 0) continue
-          confirmedPickup.push({
-            userId: reg.user_id,
-            displayName: reg.display_name ?? reg.user_id,
-            guestCount: confirmedGuestCount,
-            guests: allGuests.slice(0, confirmedGuestCount),
-            selfInPickup: selfSlots > 0,
-          })
-          slotCount += selfSlots + confirmedGuestCount
+
+        // ── 統一排序與名額計算（對齊前端 useActivityMemberLists 邏輯）──
+        // 與前端相同：season + pickup 全部展平後依時間排序，再依 single_capacity 截斷
+        type FlatSlot = {
+          kind: 'season_self' | 'pickup_self' | 'guest'
+          userId: string
+          displayName: string
+          ts: string
+          guestData?: { gender?: string; name?: string }
         }
 
-        const remainingSlots = totalCapacity > 0 ? Math.max(0, pickupAvailable - slotCount) : 0
+        const mainSlots: FlatSlot[] = []
+        const overflowSlots: FlatSlot[] = [] // guestIndex >= 2 的賓客排在最後（同前端）
+
+        for (const reg of seasonRegs ?? []) {
+          if ((reg.leave_dates || []).includes(targetDate)) continue
+          if ((reg.self_count ?? 0) <= 0) continue
+          // 同前端：有 rejoin_times 則用回歸時間，否則用 created_at
+          const ts = ((reg.rejoin_times ?? {}) as Record<string, string>)[targetDate] || reg.created_at
+          mainSlots.push({ kind: 'season_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
+        }
+
+        for (const reg of pickupRegs ?? []) {
+          if ((reg.self_count ?? 0) > 0) {
+            // 同前端：self_added_at 優先，null 時用 created_at（不排到最後）
+            const ts = reg.self_added_at || reg.created_at
+            mainSlots.push({ kind: 'pickup_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
+          }
+          const allGuests = (reg.guests ?? []) as Array<{ gender?: string; name?: string; added_at?: string }>
+          allGuests.forEach((guest, i) => {
+            const slot: FlatSlot = {
+              kind: 'guest',
+              userId: reg.user_id,
+              displayName: reg.display_name ?? reg.user_id,
+              ts: guest.added_at || reg.created_at,
+              guestData: guest,
+            }
+            if (i >= 2) overflowSlots.push(slot)
+            else mainSlots.push(slot)
+          })
+        }
+
+        mainSlots.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+        overflowSlots.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+
+        const allSlots = [...mainSlots, ...overflowSlots]
+        const confirmedSlots = totalCapacity > 0 ? allSlots.slice(0, totalCapacity) : allSlots
+
+        // ── 重組 confirmedSeason / confirmedPickup ─────────────────
+        const confirmedSeason: ConfirmedUser[] = []
+        const pickupMap = new Map<string, { displayName: string; guests: Array<{ gender?: string }>; hasSelf: boolean }>()
+
+        for (const slot of confirmedSlots) {
+          if (slot.kind === 'season_self') {
+            confirmedSeason.push({ userId: slot.userId, displayName: slot.displayName, guestCount: 0, guests: [], selfInPickup: true })
+          } else if (slot.kind === 'pickup_self') {
+            if (!pickupMap.has(slot.userId)) pickupMap.set(slot.userId, { displayName: slot.displayName, guests: [], hasSelf: false })
+            pickupMap.get(slot.userId)!.hasSelf = true
+          } else {
+            if (!pickupMap.has(slot.userId)) pickupMap.set(slot.userId, { displayName: slot.displayName, guests: [], hasSelf: false })
+            pickupMap.get(slot.userId)!.guests.push(slot.guestData as { gender?: string })
+          }
+        }
+
+        const confirmedPickup: ConfirmedUser[] = []
+        for (const [userId, { displayName, guests, hasSelf }] of pickupMap) {
+          if (!hasSelf && guests.length === 0) continue
+          confirmedPickup.push({ userId, displayName, guestCount: guests.length, guests, selfInPickup: hasSelf })
+        }
+
+        const remainingSlots = totalCapacity > 0 ? Math.max(0, totalCapacity - confirmedSlots.length) : 0
 
         if (confirmedPickup.length === 0 && confirmedSeason.length === 0) continue
 

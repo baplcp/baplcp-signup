@@ -46,6 +46,10 @@ defineProps({
     type: String,
     default: 'default',
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
   shadowTone: {
     type: String,
     default: 'primary',
@@ -123,7 +127,10 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
     <div class="summary-main activity-summary-main">
       <div v-if="vacancyLabel" class="summary-vacancy" :class="`summary-vacancy--${vacancyTone}`">
         <p class="summary-vacancy-label">{{ vacancyLabel }}</p>
-        <p class="summary-vacancy-value">{{ vacancyValue }}</p>
+        <p v-if="isLoading" class="summary-vacancy-value" aria-hidden="true">
+          <span class="summary-skel summary-skel-vacancy-value"></span>
+        </p>
+        <p v-else class="summary-vacancy-value">{{ vacancyValue }}</p>
       </div>
       <div class="summary-info activity-summary-info">
         <p class="summary-time activity-summary-time">
@@ -144,7 +151,8 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
     </div>
     <div class="summary-status activity-summary-status">
       <p class="summary-status-text activity-summary-status-text">
-        {{ statusLabel }}：<span class="summary-status-value" :class="`summary-status-value--${statusTone}`">{{ statusValue }}</span>
+        {{ statusLabel }}：<template v-if="isLoading"><span class="summary-skel summary-skel-status" aria-hidden="true"></span></template>
+        <span v-else class="summary-status-value" :class="`summary-status-value--${statusTone}`">{{ statusValue }}</span>
       </p>
       <div class="summary-fee activity-summary-fee" :aria-label="feeAriaLabel">
         <div v-if="isAdmin" class="ac-control" @click.stop="toggleDropdown">
@@ -164,8 +172,13 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
         </div>
         <img v-else class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
         <img v-if="!isAdmin && acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
-        <span class="summary-fee-amount activity-summary-fee-amount">${{ feeAmount }}</span>
-        <span v-if="feeState" class="summary-fee-state activity-summary-fee-state" :class="`summary-fee-state--${feeStateTone}`">{{ feeState }}</span>
+        <template v-if="isLoading">
+          <span class="summary-skel summary-skel-fee" aria-hidden="true"></span>
+        </template>
+        <template v-else>
+          <span class="summary-fee-amount activity-summary-fee-amount">${{ feeAmount }}</span>
+          <span v-if="feeState" class="summary-fee-state activity-summary-fee-state" :class="`summary-fee-state--${feeStateTone}`">{{ feeState }}</span>
+        </template>
       </div>
     </div>
   </section>
@@ -374,6 +387,39 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   border: none;
   padding: 0;
   cursor: pointer;
+}
+
+.summary-skel {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef0f6 25%, #e4e6ef 50%, #eef0f6 75%);
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+
+.summary-skel-vacancy-value {
+  width: 36px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.summary-skel-status {
+  width: 60px;
+  height: 14px;
+  margin-left: 2px;
+  border-radius: 5px;
+}
+
+.summary-skel-fee {
+  width: 54px;
+  height: 14px;
+  border-radius: 5px;
+}
+
+@keyframes skel-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .summary-status-value {
