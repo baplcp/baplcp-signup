@@ -171,17 +171,21 @@ watch(
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
                 <RouterLink @click="closeMenu" class="drawer-link" to="/group-list">
-                  <span class="drawer-icon"><img src="/images/icon-Calendar.png" alt="" /></span>
+                  <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
                   <span>球局列表</span>
                 </RouterLink>
-                <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
-                  <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
-                  <span>贊助胖貓貓</span>
-                </a>
                 <RouterLink @click="closeMenu" class="drawer-link" to="/season-list">
                   <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
                 </RouterLink>
+                <a class="drawer-link" href="https://www.youtube.com/@okayder" target="_blank" rel="noreferrer">
+                  <span class="drawer-icon"><img src="/images/icon-video.png" alt="" /></span>
+                  <span>打球影片</span>
+                </a>
+                <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
+                  <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
+                  <span>贊助胖貓貓</span>
+                </a>
               </nav>
             </section>
             <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
