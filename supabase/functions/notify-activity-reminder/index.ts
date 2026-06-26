@@ -41,7 +41,15 @@ async function sendWithGranularFallback(token: string, groupId: string, text: st
 
       // 從錯誤訊息找出哪個 key 失敗，例如 substitution["m3"].mentionee
       const match = msg.match(/substitution\[(?:\\?")?([^"\\[\]]+)/)
-      if (!match) throw e
+      if (!match) {
+        // 無法識別特定 key（例如測試群中所有被提及的成員都不在群組），全部換成純文字後重送
+        let plainText = currentText
+        for (const [key, name] of Object.entries(fallbackNames)) {
+          plainText = plainText.replace(`{${key}}`, name)
+        }
+        await pushMessage(token, groupId, { type: 'text', text: plainText })
+        return
+      }
       const failedKey = match[1].replace(/\\?"/g, '')
       const plainName = fallbackNames[failedKey]
       if (plainName === undefined) throw e
