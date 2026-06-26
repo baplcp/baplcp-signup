@@ -70,6 +70,7 @@ serve(async _req => {
     const lineGroupId = Deno.env.get('LINE_GROUP_ID_TEST')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    console.log(`[debug] groupId=${lineGroupId} tokenPrefix=${lineToken?.slice(0, 10)}`)
 
     if (!lineToken || !lineGroupId) return new Response('Missing LINE config', { status: 500 })
 
