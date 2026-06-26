@@ -59,7 +59,7 @@ type ConfirmedUser = { userId: string; displayName: string; guestCount: number; 
 serve(async _req => {
   try {
     const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
-    const lineGroupId = Deno.env.get('LINE_GROUP_ID')
+    const lineGroupId = Deno.env.get('LINE_GROUP_ID_TEST')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 

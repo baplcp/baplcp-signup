@@ -159,13 +159,13 @@ type Notification = {
 
 serve(async _req => {
   try {
-    const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
+    const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_B')
     const lineGroupId = Deno.env.get('LINE_GROUP_ID')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     if (!lineToken || !lineGroupId) {
-      console.error('Missing LINE env vars: LINE_CHANNEL_ACCESS_TOKEN or LINE_GROUP_ID')
+      console.error('Missing LINE env vars: LINE_CHANNEL_ACCESS_TOKEN_B or LINE_GROUP_ID')
       return new Response('Missing LINE config', { status: 500 })
     }
 
