@@ -29,6 +29,8 @@ export async function listRegistrationsForLatestSpots(activityId, activityDate) 
   return data || []
 }
 
+const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
+
 export async function countPastParticipations(userId) {
   if (!userId) return 0
   const today = new Date().toISOString().split('T')[0]
@@ -40,6 +42,7 @@ export async function countPastParticipations(userId) {
     .eq('status', 'active')
     .gt('self_count', 0)
     .not('activity_date', 'is', null)
+    .gte('activity_date', PARTICIPATION_COUNT_START_DATE)
     .lt('activity_date', today)
 
   const { data: seasonRegs } = await supabase
@@ -57,7 +60,9 @@ export async function countPastParticipations(userId) {
     const datesMap = Object.fromEntries((activities || []).map(a => [a.id, a.dates || []]))
     for (const reg of seasonRegs) {
       const leaveDates = reg.leave_dates || []
-      const attended = (datesMap[reg.activity_id] || []).filter(d => d < today && !leaveDates.includes(d))
+      const attended = (datesMap[reg.activity_id] || []).filter(
+        d => d >= PARTICIPATION_COUNT_START_DATE && d < today && !leaveDates.includes(d)
+      )
       seasonCount += attended.length
     }
   }

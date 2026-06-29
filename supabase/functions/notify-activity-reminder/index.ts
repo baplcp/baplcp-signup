@@ -33,22 +33,29 @@ async function sendWithGranularFallback(token: string, groupId: string, text: st
 
   for (let i = 0; i <= maxRetries; i++) {
     try {
-      await pushMessage(token, groupId, { type: 'textV2', text: currentText, substitution: sub })
+      const message = Object.keys(sub).length > 0
+        ? { type: 'textV2', text: currentText, substitution: sub }
+        : { type: 'text', text: currentText }
+      await pushMessage(token, groupId, message)
       return
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (!msg.includes('not found in the group') && !msg.includes('in the request body is invalid')) throw e
 
-      // 從錯誤訊息找出哪個 key 失敗，例如 substitution["m3"].mentionee
+      // 嘗試從錯誤訊息找出哪個特定 key 失敗，例如 substitution["m3"].mentionee
       const match = msg.match(/substitution\[(?:\\?")?([^"\\[\]]+)/)
       if (!match) {
-        // 無法識別特定 key（例如測試群中所有被提及的成員都不在群組），全部換成純文字後重送
-        let plainText = currentText
-        for (const [key, name] of Object.entries(fallbackNames)) {
-          plainText = plainText.replace(`{${key}}`, name)
+        // LINE 未指定哪個 key 失敗（"property":"substitution" 通用錯誤）
+        // 將所有剩餘 mention 換成純文字後送出
+        const remainingKeys = Object.keys(sub)
+        if (remainingKeys.length === 0) throw e
+        console.warn(`Substitution error without specific key, replacing all ${remainingKeys.length} mentions with plain text`)
+        for (const k of remainingKeys) {
+          const plainName = fallbackNames[k]
+          if (plainName !== undefined) currentText = currentText.replace(`{${k}}`, plainName)
+          delete sub[k]
         }
-        await pushMessage(token, groupId, { type: 'text', text: plainText })
-        return
+        continue
       }
       const failedKey = match[1].replace(/\\?"/g, '')
       const plainName = fallbackNames[failedKey]
@@ -70,7 +77,6 @@ serve(async _req => {
     const lineGroupId = Deno.env.get('LINE_GROUP_ID_TEST')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    console.log(`[debug] groupId=${lineGroupId} tokenPrefix=${lineToken?.slice(0, 10)}`)
 
     if (!lineToken || !lineGroupId) return new Response('Missing LINE config', { status: 500 })
 
