@@ -216,7 +216,8 @@ export function useActiveActivityPage() {
       })
       return
     }
-    if (!viewModels.isRegistrationOpen.value) {
+    const isPureSeasonLeave = viewModels.isSeasonLeaveMode.value && signupState.guest === 0
+    if (!viewModels.isRegistrationOpen.value && !isPureSeasonLeave) {
       const openTimeStr = viewModels.registrationOpenAt.value ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
       setSuccessDialogOpen(true, { title: '報名尚未開放', copy: `報名將於 ${openTimeStr} 開放，你可以先填好資料，時間到再送出。`, buttonText: '知道了' })
       return

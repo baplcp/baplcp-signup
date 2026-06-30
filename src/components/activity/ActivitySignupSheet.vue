@@ -134,8 +134,8 @@ defineExpose({
       </div>
       <div class="signup-sheet-footer">
         <p class="signup-count">共報名 {{ signupTotal }} 位</p>
-        <button ref="confirmButton" class="confirm-signup" type="button" :disabled="!isRegistrationOpen || isSubmitting || !isSignupChanged" @click="emit('submit')">確認報名</button>
-        <p v-if="registrationCountdown" class="signup-countdown">{{ registrationCountdown }}</p>
+        <button ref="confirmButton" class="confirm-signup" type="button" :disabled="!(isRegistrationOpen || (isSeasonLeaveMode && signupState.guest === 0)) || isSubmitting || !isSignupChanged" @click="emit('submit')">確認報名</button>
+        <p v-if="registrationCountdown && !(isSeasonLeaveMode && signupState.guest === 0)" class="signup-countdown">{{ registrationCountdown }}</p>
         <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
       </div>
     </section>

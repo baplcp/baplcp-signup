@@ -256,7 +256,9 @@ serve(async req => {
       const normalizedGuests = normalizeGuests(body.guests, guestCount)
       const activity = await getActivityForRegistration(supabase, activityId)
       assertSeasonEnabled(activity)
-      assertRegistrationWindow(activity, activityDate, now)
+      if (guestCount > 0) {
+        assertRegistrationWindow(activity, activityDate, now)
+      }
 
       const { data: seasonReg, error: seasonError } = await supabase
         .from('registrations')
