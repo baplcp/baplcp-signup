@@ -22,9 +22,18 @@ export async function listRegistrationsForLatestSpots(activityId, activityDate) 
 
   const { data } = await supabase
     .from('registrations')
-    .select('self_count, guest_count')
+    .select('activity_date, self_count, guest_count, leave_dates')
     .eq('activity_id', activityId)
     .or(`activity_date.eq.${activityDate},activity_date.is.null`)
+    .eq('status', 'active')
+  return data || []
+}
+
+export async function listRegistrationsForActivitySpots(activityId) {
+  const { data } = await supabase
+    .from('registrations')
+    .select('activity_date, self_count, guest_count, leave_dates')
+    .eq('activity_id', activityId)
     .eq('status', 'active')
   return data || []
 }

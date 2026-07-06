@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { listGroupActivities } from '~/services/activityService'
-import { listRegistrationsForLatestSpots } from '~/services/registrationService'
+import { listRegistrationsForActivitySpots, listRegistrationsForLatestSpots } from '~/services/registrationService'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
@@ -49,11 +49,25 @@ function createActivityRoute(activityId, dateStr, type) {
   return `/active-activity?id=${activityId}&date=${dateStr}&type=${type}`
 }
 
+// 季打報名（activity_date 為 null）當天請假就不占用名額，且季打報名不含來賓人數
+function computeVacancy(registrations, dateStr, capacity) {
+  const totalPeople = registrations.reduce((sum, registration) => {
+    if (registration.activity_date === null) {
+      if ((registration.leave_dates || []).includes(dateStr)) return sum
+      return sum + (registration.self_count || 0)
+    }
+    if (registration.activity_date !== dateStr) return sum
+    return sum + (registration.self_count || 0) + (registration.guest_count || 0)
+  }, 0)
+  return Math.max(0, (capacity || 0) - totalPeople)
+}
+
 export function useGroupListPage() {
   const activeSegment = ref(SEGMENT_ALL)
   const activities = ref([])
   const isLoading = ref(true)
   const latestSpots = ref(null)
+  const upcomingSpots = ref({})
   const now = new Date()
 
   const latestInfo = computed(() => {
@@ -101,13 +115,17 @@ export function useGroupListPage() {
     }
 
     rows.sort((a, b) => a.dateStr.localeCompare(b.dateStr))
-    return rows.map(({ activity, dateStr }) => ({
-      date: formatDateRow(dateStr, activity.start_time, activity.end_time),
-      location: activity.location || '—',
-      to: createActivityRoute(activity.id, dateStr, 'upcoming'),
-      badge: '未開放報名',
-      badgeVariant: 'muted',
-    }))
+    return rows.map(({ activity, dateStr }) => {
+      const vacancy = upcomingSpots.value[`${activity.id}_${dateStr}`]
+      const locationText = activity.location || '—'
+      return {
+        date: formatDateRow(dateStr, activity.start_time, activity.end_time),
+        location: vacancy !== undefined ? `缺 ${vacancy}・${locationText}` : locationText,
+        to: createActivityRoute(activity.id, dateStr, 'upcoming'),
+        badge: '未開放報名',
+        badgeVariant: 'muted',
+      }
+    })
   })
 
   const endedActivities = computed(() => {
@@ -147,15 +165,29 @@ export function useGroupListPage() {
 
     const { activity, date } = latestInfo.value
     const registrations = await listRegistrationsForLatestSpots(activity.id, date)
+    latestSpots.value = computeVacancy(registrations, date, activity.single_capacity)
+  }
 
-    const totalPeople = registrations.reduce((sum, registration) => sum + (registration.self_count || 0) + (registration.guest_count || 0), 0)
-    latestSpots.value = Math.max(0, (activity.single_capacity || 0) - totalPeople)
+  async function fetchUpcomingSpots() {
+    const uniqueActivityIds = [...new Set(activities.value.map(activity => activity.id))]
+    const registrationsByActivityId = Object.fromEntries(
+      await Promise.all(uniqueActivityIds.map(async id => [id, await listRegistrationsForActivitySpots(id)]))
+    )
+
+    const spots = {}
+    for (const activity of activities.value) {
+      const registrations = registrationsByActivityId[activity.id] || []
+      for (const dateStr of getSortedDates(activity)) {
+        spots[`${activity.id}_${dateStr}`] = computeVacancy(registrations, dateStr, activity.single_capacity)
+      }
+    }
+    upcomingSpots.value = spots
   }
 
   async function fetchActivities() {
     activities.value = await listGroupActivities()
     isLoading.value = false
-    await fetchLatestSpots()
+    await Promise.all([fetchLatestSpots(), fetchUpcomingSpots()])
   }
 
   onMounted(fetchActivities)
