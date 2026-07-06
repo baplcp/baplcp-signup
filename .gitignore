@@ -4,5 +4,6 @@ node_modules
 .vite
 dist
 .temp
+supabase/.temp/
 !.env.development.example
 !.env.production.example
