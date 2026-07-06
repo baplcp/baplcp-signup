@@ -4,6 +4,5 @@ node_modules
 .vite
 dist
 .temp
-.env
-.env.*
-!.env.example
+!.env.development.example
+!.env.production.example
