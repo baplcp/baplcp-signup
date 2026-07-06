@@ -32,13 +32,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build production
         run: npm run build
 
+      - name: Stage production build
+        run: mv dist pages
+
+      - name: Build development
+        run: npm run build:dev -- --base=/baplcp-signup/dev/
+
+      - name: Stage development build
+        run: mv dist pages/dev
+
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: pages
 
   deploy:
     needs: build
