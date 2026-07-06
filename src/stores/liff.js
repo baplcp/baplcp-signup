@@ -4,9 +4,10 @@ import { ref } from 'vue'
 import { LIFF_ID } from '~/config/env'
 import { syncMemberProfile, updateMemberGender } from '~/services/memberProfileService'
 import { supabase } from '~/utils/supabase'
-import { consumeOAuthCallback, popPostOAuthRedirect, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
+import { consumeOAuthCallback, popPostOAuthRedirect, startLineOAuth, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
 
 let initializationPromise = null
+const AUTO_LINE_OAUTH_ATTEMPTED_KEY = 'line-oauth-auto-attempted'
 
 export const useLiffStore = defineStore('liff', () => {
   const initialized = ref(false)
@@ -26,6 +27,16 @@ export const useLiffStore = defineStore('liff', () => {
       displayName: displayName.value,
       pictureUrl: pictureUrl.value,
     }
+  }
+
+  function clearAutoLineOAuthAttempt() {
+    sessionStorage.removeItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY)
+  }
+
+  function startLineOAuthOnce() {
+    if (sessionStorage.getItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY)) return
+    sessionStorage.setItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY, '1')
+    startLineOAuth()
   }
 
   // 登入時透過 Edge Function 同步 members；production 不信任前端傳入的 LINE 身分。
@@ -66,6 +77,7 @@ export const useLiffStore = defineStore('liff', () => {
           pictureUrl.value = data.pictureUrl ?? null
           lineAccessToken.value = data.accessToken ?? null
           await syncMember(data.userId, data.displayName)
+          clearAutoLineOAuthAttempt()
           initialized.value = true
           // 還原登入前的頁面，交由 App.vue 透過 router.replace 處理
           const targetHash = popPostOAuthRedirect()
@@ -89,17 +101,19 @@ export const useLiffStore = defineStore('liff', () => {
         // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
         isExternalBrowser.value = true
 
-        // 已透過 LIFF token（極少數情況）登入
         if (liff.isLoggedIn()) {
+          // 已透過 LIFF token（極少數情況）登入
           const profile = await liff.getProfile()
           userId.value = profile.userId
           displayName.value = profile.displayName
           pictureUrl.value = profile.pictureUrl
           lineAccessToken.value = liff.getAccessToken()
           await syncMember(profile.userId, profile.displayName)
+          clearAutoLineOAuthAttempt()
         }
 
         initialized.value = true
+        if (!userId.value) startLineOAuthOnce()
         return
       }
 
@@ -112,6 +126,7 @@ export const useLiffStore = defineStore('liff', () => {
         pictureUrl.value = profile.pictureUrl
         lineAccessToken.value = liff.getAccessToken()
         await syncMember(profile.userId, profile.displayName)
+        clearAutoLineOAuthAttempt()
 
         // LIFF auth 後回到首頁時，還原 auth 前的 hash 路由
         const savedHash = sessionStorage.getItem('liff-post-login-hash')
@@ -129,7 +144,11 @@ export const useLiffStore = defineStore('liff', () => {
         if (currentHash && currentHash !== '#/' && currentHash !== '#') {
           sessionStorage.setItem('liff-post-login-hash', currentHash)
         }
+        initialized.value = true
         liff.login({ redirectUri: window.location.href })
+      } else {
+        initialized.value = true
+        startLineOAuthOnce()
       }
     } catch (e) {
       console.error('LIFF init failed', e)
@@ -160,9 +179,16 @@ export const useLiffStore = defineStore('liff', () => {
           pictureUrl.value = profile.pictureUrl
           lineAccessToken.value = liff.getAccessToken()
           await syncMember(profile.userId, profile.displayName)
+          clearAutoLineOAuthAttempt()
         }
       } catch (profileErr) {
         console.warn('LIFF profile fetch after liff.state redirect failed', profileErr)
+      }
+
+      if (!userId.value) {
+        initialized.value = true
+        startLineOAuthOnce()
+        return
       }
 
       initialized.value = true

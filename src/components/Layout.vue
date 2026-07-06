@@ -2,6 +2,7 @@
 import { ref, computed, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
+import { startLineOAuth } from '~/utils/lineOAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,6 +11,8 @@ const scrollBox = useTemplateRef('scrollBox')
 
 const isIndexPage = computed(() => route.name === 'index')
 const isMenuOpen = ref(false)
+const isAwaitingAuth = computed(() => !liffStore.initialized)
+const isLoginRequired = computed(() => liffStore.initialized && !liffStore.userId)
 
 const ROLE_CONFIG = {
   organizer: { label: '偉大的主揪', modifier: 'is-organizer' },
@@ -49,6 +52,16 @@ function toggleMenu() {
 
 function closeMenu() {
   isMenuOpen.value = false
+}
+
+function requestLineLogin() {
+  closeMenu()
+  if (liffStore.isExternalBrowser) {
+    startLineOAuth()
+    return
+  }
+
+  liffStore.login()
 }
 
 function goBack() {
@@ -194,11 +207,11 @@ watch(
                 <RouterLink @click="closeMenu" class="drawer-link" to="/season-refund">
                   <span class="drawer-icon is-refund">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
-                      <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <path d="M21 12C21 16.971 16.971 21 12 21C9.515 21 7.255 20.01 5.586 18.414" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <path d="M18 2L18.414 5.586L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M6 22L5.586 18.414L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M9 12H15M12 9V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                      <path d="M21 12C21 16.971 16.971 21 12 21C9.515 21 7.255 20.01 5.586 18.414" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                      <path d="M18 2L18.414 5.586L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M6 22L5.586 18.414L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M9 12H15M12 9V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
                   </span>
                   <span>季打退費</span>
@@ -213,20 +226,39 @@ watch(
       </div>
     </header>
 
-    <!-- 外部瀏覽器阻擋畫面：偵測到非 LINE 內建瀏覽器時顯示 -->
-    <div v-if="liffStore.initialized && liffStore.isExternalBrowser" class="external-wall" aria-live="assertive" role="alert">
-      <div class="external-wall__card">
-        <div class="external-wall__icon" aria-hidden="true">
+    <div v-if="isAwaitingAuth" class="auth-wall" aria-live="polite">
+      <div class="auth-wall__card">
+        <div class="auth-wall__icon" aria-hidden="true">
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
-            <rect width="64" height="64" rx="16" fill="#06C755"/>
-            <path d="M32 12C21.51 12 13 19.16 13 28C13 35.56 18.97 41.87 27.16 43.6C27.72 43.72 28.08 44.26 27.96 44.82L27.05 49.16C26.91 49.84 27.57 50.39 28.2 50.1C37.35 45.93 51 37.59 51 28C51 19.16 42.49 12 32 12Z" fill="white"/>
+            <rect width="64" height="64" rx="16" fill="#06C755" />
+            <path
+              d="M32 12C21.51 12 13 19.16 13 28C13 35.56 18.97 41.87 27.16 43.6C27.72 43.72 28.08 44.26 27.96 44.82L27.05 49.16C26.91 49.84 27.57 50.39 28.2 50.1C37.35 45.93 51 37.59 51 28C51 19.16 42.49 12 32 12Z"
+              fill="white"
+            />
           </svg>
         </div>
-        <h1 class="external-wall__title">請在 LINE 中開啟</h1>
-        <p class="external-wall__body">
-          此服務需要在 LINE App 中使用<br>
-          請回到 LINE 群組，點擊連結開啟
+        <h1 class="auth-wall__title">正在確認登入狀態</h1>
+        <p class="auth-wall__body">請稍候</p>
+      </div>
+    </div>
+
+    <div v-else-if="isLoginRequired" class="auth-wall" aria-live="assertive" role="alert">
+      <div class="auth-wall__card">
+        <div class="auth-wall__icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <rect width="64" height="64" rx="16" fill="#06C755" />
+            <path
+              d="M32 12C21.51 12 13 19.16 13 28C13 35.56 18.97 41.87 27.16 43.6C27.72 43.72 28.08 44.26 27.96 44.82L27.05 49.16C26.91 49.84 27.57 50.39 28.2 50.1C37.35 45.93 51 37.59 51 28C51 19.16 42.49 12 32 12Z"
+              fill="white"
+            />
+          </svg>
+        </div>
+        <h1 class="auth-wall__title">請先登入 LINE</h1>
+        <p class="auth-wall__body">
+          登入後即可查看球局<br />
+          並完成報名與名單確認
         </p>
+        <button class="auth-wall__button" type="button" @click="requestLineLogin">以 LINE 登入</button>
       </div>
     </div>
 
@@ -607,7 +639,7 @@ watch(
   transition: color 0.25s ease;
 }
 
-.external-wall {
+.auth-wall {
   position: absolute;
   inset: 0;
   z-index: 9999;
@@ -618,7 +650,7 @@ watch(
   background: var(--surface, #fff);
 }
 
-.external-wall__card {
+.auth-wall__card {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -627,19 +659,19 @@ watch(
   max-width: 280px;
 }
 
-.external-wall__icon {
+.auth-wall__icon {
   width: 72px;
   height: 72px;
   flex: 0 0 auto;
 }
 
-.external-wall__icon svg {
+.auth-wall__icon svg {
   width: 72px;
   height: 72px;
   display: block;
 }
 
-.external-wall__title {
+.auth-wall__title {
   margin: 0;
   font-size: 22px;
   font-weight: 600;
@@ -647,11 +679,22 @@ watch(
   color: #101840;
 }
 
-.external-wall__body {
+.auth-wall__body {
   margin: 0;
   font-size: 15px;
   line-height: 1.7;
   color: #8f95b2;
+}
+
+.auth-wall__button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  background: #06c755;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
 }
 
 @media (max-width: 380px) {
