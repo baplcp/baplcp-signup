@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   workflow_dispatch:
 
 permissions:
@@ -20,29 +21,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout production source
         uses: actions/checkout@v6
+        with:
+          ref: main
+          path: source-main
+
+      - name: Checkout development source
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          path: source-dev
 
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: |
+            source-main/package-lock.json
+            source-dev/package-lock.json
 
-      - name: Install dependencies
+      - name: Install production dependencies
+        working-directory: source-main
         run: npm ci
 
       - name: Build production
+        working-directory: source-main
         run: npm run build
 
       - name: Stage production build
-        run: mv dist pages
+        run: mv source-main/dist pages
+
+      - name: Install development dependencies
+        working-directory: source-dev
+        run: npm ci
 
       - name: Build development
+        working-directory: source-dev
         run: npm run build:dev -- --base=/baplcp-signup/dev/
 
       - name: Stage development build
-        run: mv dist pages/dev
+        run: mv source-dev/dist pages/dev
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
