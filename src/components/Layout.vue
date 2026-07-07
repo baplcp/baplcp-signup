@@ -588,9 +588,6 @@ watch(
   background: #f2b57c;
 }
 
-.drawer-icon.is-warm img {
-}
-
 .drawer-icon.is-muted {
   background: #edeff5;
 }
