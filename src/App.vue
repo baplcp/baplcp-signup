@@ -14,7 +14,8 @@ watch(
     if (!path) return
     liffStore.pendingRedirect = null
     router.replace(path)
-  }
+  },
+  { immediate: true }
 )
 
 const selectedGender = ref('')

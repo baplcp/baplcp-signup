@@ -85,6 +85,7 @@ serve(async req => {
         displayName: profile.displayName,
         pictureUrl: profile.pictureUrl ?? null,
         accessToken,
+        expiresIn: tokenData.expires_in ?? null,
       }),
       {
         status: 200,

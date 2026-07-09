@@ -4,10 +4,12 @@ import { ref } from 'vue'
 import { LIFF_ID } from '~/config/env'
 import { syncMemberProfile, updateMemberGender } from '~/services/memberProfileService'
 import { supabase } from '~/utils/supabase'
-import { consumeOAuthCallback, popPostOAuthRedirect, startLineOAuth, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
+import { consumeOAuthCallback, hasLineOAuthCallback, popPostOAuthRedirect, startLineOAuth, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
 
 let initializationPromise = null
 const AUTO_LINE_OAUTH_ATTEMPTED_KEY = 'line-oauth-auto-attempted'
+const EXTERNAL_OAUTH_SESSION_KEY = 'line-oauth-session'
+const EXTERNAL_OAUTH_SESSION_SKEW_MS = 60 * 1000
 
 export const useLiffStore = defineStore('liff', () => {
   const initialized = ref(false)
@@ -31,6 +33,58 @@ export const useLiffStore = defineStore('liff', () => {
 
   function clearAutoLineOAuthAttempt() {
     sessionStorage.removeItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY)
+  }
+
+  function readExternalOAuthSession() {
+    try {
+      const rawSession = sessionStorage.getItem(EXTERNAL_OAUTH_SESSION_KEY)
+      if (!rawSession) return null
+
+      const session = JSON.parse(rawSession)
+      const isValidSession =
+        session &&
+        typeof session.userId === 'string' &&
+        typeof session.displayName === 'string' &&
+        typeof session.accessToken === 'string' &&
+        typeof session.expiresAt === 'number' &&
+        session.expiresAt > Date.now() + EXTERNAL_OAUTH_SESSION_SKEW_MS
+
+      if (isValidSession) return session
+    } catch (e) {
+      console.warn('LINE OAuth session parse failed', e)
+    }
+
+    sessionStorage.removeItem(EXTERNAL_OAUTH_SESSION_KEY)
+    return null
+  }
+
+  function saveExternalOAuthSession(data) {
+    if (!data?.userId || !data?.displayName || !data?.accessToken) return
+
+    const expiresInSeconds = Number(data.expiresIn)
+    const expiresInMs = Number.isFinite(expiresInSeconds) && expiresInSeconds > 0 ? expiresInSeconds * 1000 : 30 * 60 * 1000
+
+    sessionStorage.setItem(
+      EXTERNAL_OAUTH_SESSION_KEY,
+      JSON.stringify({
+        userId: data.userId,
+        displayName: data.displayName,
+        pictureUrl: data.pictureUrl ?? null,
+        accessToken: data.accessToken,
+        expiresAt: Date.now() + expiresInMs,
+      })
+    )
+  }
+
+  async function applyExternalOAuthSession(session) {
+    isExternalBrowser.value = true
+    userId.value = session.userId
+    displayName.value = session.displayName
+    pictureUrl.value = session.pictureUrl ?? null
+    lineAccessToken.value = session.accessToken
+    await syncMember(session.userId, session.displayName)
+    clearAutoLineOAuthAttempt()
+    initialized.value = true
   }
 
   function startLineOAuthOnce() {
@@ -64,6 +118,7 @@ export const useLiffStore = defineStore('liff', () => {
 
     // 在 liff.init() 之前先檢查 LINE OAuth callback，
     // 避免 LIFF SDK 把 ?code 參數誤判為自己的 OAuth 並消耗掉
+    const hasOAuthCallback = hasLineOAuthCallback()
     const oauthCode = consumeOAuthCallback()
     if (oauthCode) {
       isExternalBrowser.value = true
@@ -71,14 +126,14 @@ export const useLiffStore = defineStore('liff', () => {
         const { data, error } = await supabase.functions.invoke('line-token', {
           body: { code: oauthCode, redirectUri: LINE_OAUTH_REDIRECT_URI },
         })
-        if (!error && data?.userId) {
-          userId.value = data.userId
-          displayName.value = data.displayName
-          pictureUrl.value = data.pictureUrl ?? null
-          lineAccessToken.value = data.accessToken ?? null
-          await syncMember(data.userId, data.displayName)
-          clearAutoLineOAuthAttempt()
-          initialized.value = true
+        if (!error && data?.userId && data?.displayName && data?.accessToken) {
+          saveExternalOAuthSession(data)
+          await applyExternalOAuthSession({
+            userId: data.userId,
+            displayName: data.displayName,
+            pictureUrl: data.pictureUrl ?? null,
+            accessToken: data.accessToken,
+          })
           // 還原登入前的頁面，交由 App.vue 透過 router.replace 處理
           const targetHash = popPostOAuthRedirect()
           if (targetHash && targetHash !== '#/') {
@@ -93,6 +148,11 @@ export const useLiffStore = defineStore('liff', () => {
       initialized.value = true
       return
     }
+    if (hasOAuthCallback) {
+      isExternalBrowser.value = true
+      initialized.value = true
+      return
+    }
 
     try {
       await liff.init({ liffId: LIFF_ID })
@@ -100,6 +160,12 @@ export const useLiffStore = defineStore('liff', () => {
       if (!liff.isInClient()) {
         // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
         isExternalBrowser.value = true
+
+        const savedOAuthSession = readExternalOAuthSession()
+        if (savedOAuthSession) {
+          await applyExternalOAuthSession(savedOAuthSession)
+          return
+        }
 
         if (liff.isLoggedIn()) {
           // 已透過 LIFF token（極少數情況）登入
