@@ -50,14 +50,28 @@ const SWIPE_OPEN_WIDTH = 72
 
 const rowOffsets = ref({})
 const activeDrag = ref({ index: -1, startX: 0, startY: 0, initOffset: 0, direction: null })
+const failedAvatarKeys = ref(new Set())
 
 watch(
   () => props.members,
   () => {
     rowOffsets.value = {}
     activeDrag.value = { index: -1, startX: 0, startY: 0, initOffset: 0, direction: null }
+    failedAvatarKeys.value = new Set()
   }
 )
+
+function avatarKey(member, index) {
+  return `${member.name}-${index}`
+}
+
+function hasAvatarImage(member, index) {
+  return Boolean(member.image) && !failedAvatarKeys.value.has(avatarKey(member, index))
+}
+
+function onAvatarError(member, index) {
+  failedAvatarKeys.value = new Set(failedAvatarKeys.value).add(avatarKey(member, index))
+}
 
 function getOffset(index) {
   return rowOffsets.value[index] ?? 0
@@ -168,8 +182,8 @@ function handleRemove(member, index) {
           >
             <div class="rank activity-member-rank" :class="{ 'is-waitlist': member.status === '候補' }">{{ index + 1 }}</div>
             <div class="activity-member-avatar-wrap">
-              <div class="avatar activity-member-avatar" :style="member.image ? undefined : { background: member.color }">
-                <img v-if="member.image" :src="member.image" alt="" />
+              <div class="avatar activity-member-avatar" :style="hasAvatarImage(member, index) ? undefined : { background: member.color }">
+                <img v-if="hasAvatarImage(member, index)" :src="member.image" alt="" @error="onAvatarError(member, index)" />
                 <template v-else>{{ member.badge }}</template>
               </div>
               <span v-if="member.gender" class="gender-badge" :class="`gender-badge--${member.gender}`" :aria-label="member.gender === 'male' ? '男' : member.gender === 'female' ? '女' : '其他'">

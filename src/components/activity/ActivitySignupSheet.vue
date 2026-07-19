@@ -104,7 +104,7 @@ defineExpose({
                   </svg>
                 </button>
                 <output class="stepper-value">{{ signupState.guest }}</output>
-                <button class="stepper-btn" type="button" :disabled="isAdmin ? signupState.guest >= 6 : signupState.guest >= 2" aria-label="增加群外報名人數" @click="emit('adjust-count', 'guest', 1)">
+                <button class="stepper-btn" type="button" :disabled="!isAdmin && signupState.guest >= 2" aria-label="增加群外報名人數" @click="emit('adjust-count', 'guest', 1)">
                   <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
                     <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                   </svg>

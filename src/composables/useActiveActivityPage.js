@@ -190,7 +190,7 @@ export function useActiveActivityPage() {
   }
 
   function adjustSignupCount(type, direction) {
-    const max = type === 'self' ? 1 : 6
+    const max = type === 'self' ? 1 : isAdmin.value ? Infinity : 6
     signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
     if (type === 'guest') syncGuestLength(signupState, signupState.guest)
   }

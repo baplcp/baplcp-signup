@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { ref, watch } from 'vue'
+
+const props = defineProps({
   label: {
     type: String,
     required: true,
@@ -13,6 +15,27 @@ defineProps({
     default: true,
   },
 })
+
+const failedAvatarKeys = ref(new Set())
+
+watch(
+  () => props.members,
+  () => {
+    failedAvatarKeys.value = new Set()
+  }
+)
+
+function avatarKey(member, index) {
+  return `${member.name}-${index}`
+}
+
+function hasAvatarImage(member, index) {
+  return Boolean(member.image) && !failedAvatarKeys.value.has(avatarKey(member, index))
+}
+
+function onAvatarError(member, index) {
+  failedAvatarKeys.value = new Set(failedAvatarKeys.value).add(avatarKey(member, index))
+}
 </script>
 
 <template>
@@ -23,7 +46,7 @@ defineProps({
     <div class="cancelled-list">
       <div v-for="(member, index) in members" :key="`${label}-${member.name}-${index}`" class="cancelled-row">
         <div class="cancelled-avatar">
-          <img v-if="member.image" :src="member.image" alt="" />
+          <img v-if="hasAvatarImage(member, index)" :src="member.image" alt="" @error="onAvatarError(member, index)" />
           <template v-else>{{ member.badge }}</template>
         </div>
         <div class="cancelled-info">

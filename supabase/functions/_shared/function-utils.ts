@@ -46,8 +46,12 @@ export function isLocalDevAdminRequest(origin: string) {
   return Deno.env.get('ALLOW_DEV_ADMIN') === 'true' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
 }
 
-export async function requireOrganizer(supabase: any, userId: string) {
+export async function isOrganizer(supabase: any, userId: string): Promise<boolean> {
   const { data, error } = await supabase.from('members').select('role').eq('user_id', userId).maybeSingle()
   if (error) throw error
-  if (data?.role !== 'organizer') throw new Error('forbidden')
+  return data?.role === 'organizer'
+}
+
+export async function requireOrganizer(supabase: any, userId: string) {
+  if (!(await isOrganizer(supabase, userId))) throw new Error('forbidden')
 }

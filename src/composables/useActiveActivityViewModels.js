@@ -149,6 +149,12 @@ export function useActiveActivityViewModels({
     if ((registration.self_count || 0) > 0 && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
     return (registration.guests || []).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
   })
+  const myWaitlistedCount = computed(() => {
+    const myRegIds = new Set([myRegistration.value?.id, mySeasonRegistration.value?.id].filter(Boolean))
+    if (!myRegIds.size) return 0
+    return memberList.value.filter(member => myRegIds.has(member._regId) && member.status === '候補').length
+  })
+
   const summaryStatusText = computed(() => {
     if (activityType.value === 'season') {
       if (submittedTotal.value > 0) {
@@ -160,7 +166,11 @@ export function useActiveActivityViewModels({
     if (isSeasonLeaveMode.value && submittedTotal.value === 0) {
       return (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value) ? '已請假' : '季打成員'
     }
-    return hasSubmittedSignup.value ? `成功卡位 ${submittedTotal.value} 位` : '無報名'
+    if (!hasSubmittedSignup.value) return '無報名'
+    const waitlisted = myWaitlistedCount.value
+    if (waitlisted <= 0) return `成功卡位 ${submittedTotal.value} 位`
+    if (waitlisted >= submittedTotal.value) return `候補中 ${submittedTotal.value} 位`
+    return `成功卡位 ${submittedTotal.value - waitlisted} 位／候補 ${waitlisted} 位`
   })
   const summaryFeeLabel = computed(() => {
     if (!hasSubmittedSignup.value) return `費用 ${summaryFeeAmount.value} 元`

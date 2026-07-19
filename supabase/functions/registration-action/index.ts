@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
+import { corsHeaders, getLineProfile, isLocalDevAdminRequest, isOrganizer, jsonResponse, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
 
 type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -34,9 +34,9 @@ function addDays(dateStr: string, days: number): string {
   return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
 }
 
-function normalizeGuests(value: unknown, count: number): Array<{ name: string; gender: string; added_at?: string }> {
+function normalizeGuests(value: unknown, count: number, maxCount = 6): Array<{ name: string; gender: string; added_at?: string }> {
   if (!Array.isArray(value)) throw new Error('invalid_guests')
-  if (!Number.isInteger(count) || count < 0 || count > 6) throw new Error('invalid_guest_count')
+  if (!Number.isInteger(count) || count < 0 || count > maxCount) throw new Error('invalid_guest_count')
   if (value.length < count) throw new Error('guest_count_mismatch')
   return value.slice(0, count).map((guest: GuestInput) => {
     const name = String(guest?.name ?? '')
@@ -123,6 +123,11 @@ async function requireAdmin(supabase: any, profile: AdminLineProfile) {
   await requireOrganizer(supabase, profile.userId)
 }
 
+async function isAdminProfile(supabase: any, profile: AdminLineProfile): Promise<boolean> {
+  if (profile.isDevAdmin) return true
+  return isOrganizer(supabase, profile.userId)
+}
+
 async function getActivityForRegistration(supabase: any, activityId: string | number) {
   const { data, error } = await supabase
     .from('activities')
@@ -140,13 +145,13 @@ function assertSeasonEnabled(activity: Record<string, any>) {
   if (!activity.season_enabled) throw new Error('season_disabled')
 }
 
-function assertRegistrationWindow(activity: Record<string, any>, activityDate: string | null, now: Date) {
+function assertRegistrationWindow(activity: Record<string, any>, activityDate: string | null, now: Date, isAdmin = false) {
   if (activityDate === null) {
     assertSeasonEnabled(activity)
     if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) {
       throw new Error('registration_not_open')
     }
-    if (activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)) {
+    if (!isAdmin && activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)) {
       throw new Error('registration_closed')
     }
     return
@@ -159,7 +164,7 @@ function assertRegistrationWindow(activity: Record<string, any>, activityDate: s
     }
   }
 
-  if (activity.pickup_deadline_type === 'custom' && activity.pickup_close_days_before != null && activity.pickup_close_time) {
+  if (!isAdmin && activity.pickup_deadline_type === 'custom' && activity.pickup_close_days_before != null && activity.pickup_close_time) {
     const closeDate = addDays(activityDate, -Number(activity.pickup_close_days_before))
     if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) {
       throw new Error('registration_closed')
@@ -200,7 +205,8 @@ serve(async req => {
       const selfCount = Number(body.selfCount ?? 0)
       const guestCount = Number(body.guestCount ?? 0)
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
-      const normalizedGuests = normalizeGuests(body.guests, guestCount)
+      const admin = await isAdminProfile(supabase, profile)
+      const normalizedGuests = normalizeGuests(body.guests, guestCount, admin ? Infinity : 6)
       const activity = await getActivityForRegistration(supabase, activityId)
       if (activityDate === null) assertSeasonEnabled(activity)
 
@@ -217,7 +223,7 @@ serve(async req => {
         return jsonResponse({ ok: true }, 200, origin)
       }
 
-      assertRegistrationWindow(activity, activityDate, now)
+      assertRegistrationWindow(activity, activityDate, now, admin)
       const payload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, existing, submitTime)
       if (existing) {
         const removedMembers = []
@@ -253,11 +259,12 @@ serve(async req => {
       const selfCount = Number(body.selfCount ?? 0)
       const guestCount = Number(body.guestCount ?? 0)
       if (![0, 1].includes(selfCount)) return jsonResponse({ error: 'invalid_self_count' }, 400, origin)
-      const normalizedGuests = normalizeGuests(body.guests, guestCount)
+      const admin = await isAdminProfile(supabase, profile)
+      const normalizedGuests = normalizeGuests(body.guests, guestCount, admin ? Infinity : 6)
       const activity = await getActivityForRegistration(supabase, activityId)
       assertSeasonEnabled(activity)
       if (guestCount > 0) {
-        assertRegistrationWindow(activity, activityDate, now)
+        assertRegistrationWindow(activity, activityDate, now, admin)
       }
 
       const { data: seasonReg, error: seasonError } = await supabase
