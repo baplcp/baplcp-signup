@@ -41,6 +41,7 @@ export function useActiveActivityPage() {
   const signupSheetRef = ref(null)
   const successDialogButton = ref(null)
   const removeConfirmButton = ref(null)
+  const leaveConfirmButton = ref(null)
 
   const signupState = reactive({ self: 0, guest: 0, guests: [] })
   const successDialog = reactive({
@@ -51,6 +52,7 @@ export function useActiveActivityPage() {
     onButtonClick: null,
   })
   const removeDialog = reactive({ open: false, member: null })
+  const leaveConfirmOpen = ref(false)
 
   const activityType = computed(() => route.query.type || 'latest')
   const resolvedDate = computed(() => {
@@ -190,9 +192,25 @@ export function useActiveActivityPage() {
   }
 
   function adjustSignupCount(type, direction) {
+    if (type === 'self' && direction === -1 && viewModels.isSeasonLeaveMode.value && signupState.self === 1) {
+      leaveConfirmOpen.value = true
+      focusElement(leaveConfirmButton)
+      return
+    }
     const max = type === 'self' ? 1 : isAdmin.value ? Infinity : 6
     signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
     if (type === 'guest') syncGuestLength(signupState, signupState.guest)
+  }
+
+  function cancelLeaveConfirm() {
+    leaveConfirmOpen.value = false
+    focusSignupConfirm()
+  }
+
+  function confirmLeaveConfirm() {
+    leaveConfirmOpen.value = false
+    signupState.self = 0
+    focusSignupConfirm()
   }
 
   async function submitSignup() {
@@ -444,6 +462,7 @@ export function useActiveActivityPage() {
     if (seasonPlanOpen.value) seasonPlanOpen.value = false
     else if (seasonCancelOpen.value) seasonCancelOpen.value = false
     else if (removeDialog.open) cancelRemove()
+    else if (leaveConfirmOpen.value) cancelLeaveConfirm()
     else if (successDialog.open) setSuccessDialogOpen(false)
     else if (signupOpen.value) setSignupOpen(false)
   }
@@ -517,6 +536,7 @@ export function useActiveActivityPage() {
     showAllDatesDialog,
     successDialog,
     removeDialog,
+    leaveConfirmOpen,
     seasonCancelOpen,
     seasonPlanOpen,
     seasonPlanData,
@@ -534,6 +554,7 @@ export function useActiveActivityPage() {
     signupSheetRef,
     successDialogButton,
     removeConfirmButton,
+    leaveConfirmButton,
   }
 
   const actions = {
@@ -546,6 +567,8 @@ export function useActiveActivityPage() {
     handleRemoveRequest,
     cancelRemove,
     confirmRemove,
+    cancelLeaveConfirm,
+    confirmLeaveConfirm,
     updateAcEnabled,
     handleCtaClick,
     handleSeasonPlanConfirm,

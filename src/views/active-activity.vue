@@ -135,6 +135,23 @@ const { router } = navigation
       </section>
     </div>
 
+    <div
+      class="leave-confirm-dialog-overlay shared-dialog-overlay"
+      :class="{ 'is-open': dialogs.leaveConfirmOpen }"
+      :aria-hidden="String(!dialogs.leaveConfirmOpen)"
+      :inert="!dialogs.leaveConfirmOpen"
+    >
+      <button class="leave-confirm-dialog-backdrop" type="button" aria-label="取消請假" @click="actions.cancelLeaveConfirm"></button>
+      <section class="leave-confirm-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="leave-confirm-dialog-title">
+        <h2 class="leave-confirm-dialog-title shared-dialog-title" id="leave-confirm-dialog-title">確定要請假嗎？</h2>
+        <p class="leave-confirm-dialog-copy shared-dialog-copy">你已將「我」的人數按到 0，送出報名後這場將會記為請假，名額會釋出給臨打。確定要繼續嗎？</p>
+        <div class="leave-confirm-dialog-actions">
+          <button type="button" class="leave-confirm-dialog-cancel" @click="actions.cancelLeaveConfirm">取消</button>
+          <button :ref="elementRefs.leaveConfirmButton" type="button" class="leave-confirm-dialog-confirm" @click="actions.confirmLeaveConfirm">確認請假</button>
+        </div>
+      </section>
+    </div>
+
     <ActivitySeasonPlanSheet
       :open="dialogs.seasonPlanOpen"
       :quarter-count="dialogs.seasonPlanData.quarterCount"
@@ -359,6 +376,70 @@ const { router } = navigation
   min-height: 44px;
   border-radius: 10px;
   background: #d14343;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.leave-confirm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+}
+
+.leave-confirm-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.leave-confirm-dialog {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 340px;
+  margin: auto;
+  padding: 28px 24px 24px;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.leave-confirm-dialog-title {
+  color: #c87416;
+}
+
+.leave-confirm-dialog-copy {
+  margin: 10px 0 0;
+  color: #474d66;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.leave-confirm-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.leave-confirm-dialog-cancel {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #d8dae5;
+  background: #fff;
+  color: #474d66;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.leave-confirm-dialog-confirm {
+  min-height: 44px;
+  border-radius: 10px;
+  background: #c87416;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
