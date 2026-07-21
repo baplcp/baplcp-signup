@@ -83,8 +83,9 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       seasonRegistrations.value.forEach(reg => {
         if ((reg.leave_dates || []).includes(date)) return
         if (reg.self_count > 0) {
-          const ts = reg.rejoin_times?.[date] || reg.created_at
-          members.push(registrationSelfEntry(reg, 'season_self', ts, memberGenders.value, { isSeason: true }))
+          const rejoinedAt = reg.rejoin_times?.[date]
+          const ts = rejoinedAt || reg.created_at
+          members.push(registrationSelfEntry(reg, 'season_self', ts, memberGenders.value, { isSeason: true, isRejoined: !!rejoinedAt }))
         }
       })
     } else {

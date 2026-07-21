@@ -115,7 +115,7 @@ export function useActiveActivityViewModels({
 
   const segmentTabs = computed(() => (activityType.value === 'season' ? ['全部'] : ['臨打', '季打', '報名成功']))
   const filteredMemberList = computed(() => {
-    if (activeSegment.value === '臨打') return memberList.value.filter(member => !member.isSeason)
+    if (activeSegment.value === '臨打') return memberList.value.filter(member => !member.isSeason || member.isRejoined)
     if (activeSegment.value === '季打') return memberList.value.filter(member => member.isSeason)
     if (activeSegment.value === '報名成功') return memberList.value.filter(member => !member.status)
     return memberList.value
