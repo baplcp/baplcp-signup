@@ -1,8 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const LIFF_ID = '2009808077-q6H0su3r'
-
 // Taiwan is UTC+8, no DST — all time arithmetic uses fixed +8 offset
 function getSeasonOpenAt(openDateStr: string, openTimeStr: string): Date {
   const [y, mo, d] = openDateStr.split('-').map(Number)
@@ -45,10 +43,7 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
   const typeLabel = notification.type === 'season' ? '季打' : '臨打'
   const notifyTitle = notification.type === 'pickup' && notification.pickupLabel ? notification.pickupLabel : notification.title
   const date = notification.activityDate || '未提供日期'
-  const time =
-    notification.startTime && notification.endTime
-      ? `${notification.startTime}~${notification.endTime}`
-      : '未提供時間'
+  const time = notification.startTime && notification.endTime ? `${notification.startTime}~${notification.endTime}` : '未提供時間'
   const location = notification.location || '未提供地點'
 
   return {
@@ -161,11 +156,12 @@ serve(async _req => {
   try {
     const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_MAIN')
     const lineGroupId = Deno.env.get('LINE_GROUP_ID_MAIN')
+    const liffId = Deno.env.get('LIFF_ID')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    if (!lineToken || !lineGroupId) {
-      console.error('Missing LINE env vars: LINE_CHANNEL_ACCESS_TOKEN_MAIN or LINE_GROUP_ID_MAIN')
+    if (!lineToken || !lineGroupId || !liffId) {
+      console.error('Missing LINE env vars: LINE_CHANNEL_ACCESS_TOKEN_MAIN, LINE_GROUP_ID_MAIN, or LIFF_ID')
       return new Response('Missing LINE config', { status: 500 })
     }
 
@@ -222,7 +218,7 @@ serve(async _req => {
 
     for (const n of notifications) {
       const liffState = encodeURIComponent(`#/active-activity?id=${n.id}&date=${n.activityDate}&type=${n.type}`)
-      const registrationUrl = `https://liff.line.me/${LIFF_ID}?liff.state=${liffState}`
+      const registrationUrl = `https://liff.line.me/${liffId}?liff.state=${liffState}`
       const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
       await sendLineMessage(lineToken, lineGroupId, message)
