@@ -217,8 +217,12 @@ serve(async _req => {
     }
 
     for (const n of notifications) {
-      const liffState = encodeURIComponent(`#/active-activity?id=${n.id}&date=${n.activityDate}&type=${n.type}`)
-      const registrationUrl = `https://liff.line.me/${liffId}?liff.state=${liffState}`
+      const registrationQuery = new URLSearchParams({
+        id: String(n.id),
+        date: n.activityDate,
+        type: n.type,
+      })
+      const registrationUrl = `https://liff.line.me/${liffId}#/active-activity?${registrationQuery}`
       const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
       await sendLineMessage(lineToken, lineGroupId, message)
