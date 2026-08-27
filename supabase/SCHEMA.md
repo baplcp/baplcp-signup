@@ -188,3 +188,6 @@ Roles:
   normalized activity-date, guest, attendance-state, and cancellation-event
   tables; backfills legacy data without deleting source columns; and keeps the
   two representations synchronized during the application cutover.
+- `20260827001000_allow_normalized_public_reads.sql`: grants browser read
+  policies on normalized tables that mirror the existing public base-table read
+  model; writes remain restricted to Edge Functions.
