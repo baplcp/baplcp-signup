@@ -43,7 +43,8 @@ Fields used by the app:
 - `game_type text`
 - `title text`
 - `location text`
-- `dates array/json-compatible date list`
+- `dates jsonb date list` — legacy compatibility snapshot; `activity_dates`
+  is the normalized representation.
 - `start_time time/text`
 - `end_time time/text`
 - `season_fee_per_session numeric`
@@ -73,6 +74,13 @@ Fields used by the app:
 - `ac_enabled boolean`
 - `created_at timestamptz`
 
+Normalized compatibility tables:
+
+- `activity_dates` is the canonical table for activity dates. It keeps an
+  active flag rather than deleting retired dates, so historical registrations
+  and attendance states retain their references. `activities.dates` remains a
+  legacy compatibility snapshot during the migration.
+
 ### `registrations`
 
 Primary key:
@@ -89,15 +97,21 @@ Fields used by the app:
 - `self_count integer`
 - `self_added_at timestamptz`
 - `guest_count integer, derived from guests by trigger`
-- `guests json/jsonb array`
+- `guests jsonb array` — legacy compatibility snapshot; `registration_guests`
+  is the normalized representation.
 - `status text`
 - `paid_court boolean`
 - `paid_ac boolean`
-- `leave_dates json/jsonb array`
+- `leave_dates text[]`
 - `leave_times json/jsonb object` — maps activity date to ISO timestamp when the leave was submitted, e.g. `{ "2026-07-01": "2026-06-20T02:30:00.000Z" }`. Count of leaves = `leave_dates.length`.
 - `rejoin_times json/jsonb object`
 - `cancelled_members jsonb array`
+- `cancelled_guests jsonb array` — older cancellation history kept for data
+  retention and migrated to `registration_cancellation_events`.
 - `season_plan text` — `'quarter'` (一季) or `'half-year'` (半年), only meaningful for season registrations
+- `activity_date_id bigint, nullable` — normalized reference for pickup
+  registrations. It is filled only when `activity_date` matches a known
+  activity date during the compatibility phase.
 - `created_at timestamptz`
 
 Database invariants:
@@ -107,6 +121,22 @@ Database invariants:
   `activity_date is null`.
 - Capacity checks run in a trigger that locks the related activity row.
 - `guest_count` is synchronized from `guests` by trigger.
+
+Normalized compatibility tables:
+
+- `registration_guests` is the canonical per-guest data, including guest
+  payment state. The original `guests` JSONB column is retained during the
+  migration and synchronizes this table by trigger.
+- `season_registration_date_statuses` is the canonical season-member
+  leave/rejoin state per activity date. The original `leave_dates`,
+  `leave_times`, and `rejoin_times` columns are retained and synchronized by
+  trigger.
+- `registration_cancellation_events` stores cancelled-member history. Its
+  `legacy_payload` preserves the original JSON object; both
+  `cancelled_members` and the older `cancelled_guests` are retained.
+- These normalized tables have RLS enabled with no browser-access policy in
+  this compatibility phase. The existing browser read model remains unchanged
+  until its queries are explicitly migrated.
 
 ### `members`
 
@@ -154,3 +184,7 @@ Roles:
   column to `registrations` to record the ISO timestamp when each season leave was submitted.
 - `20260623004000_add_member_pickup_summary_view.sql`: creates `member_pickup_summary`
   view that aggregates pickup registration dates and count per member per activity.
+- `20260827000000_normalize_activity_registration_collections.sql`: adds
+  normalized activity-date, guest, attendance-state, and cancellation-event
+  tables; backfills legacy data without deleting source columns; and keeps the
+  two representations synchronized during the application cutover.
