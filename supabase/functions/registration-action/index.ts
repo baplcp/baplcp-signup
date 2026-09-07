@@ -70,6 +70,25 @@ function isUniqueViolation(error: unknown) {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === '23505'
 }
 
+async function writeRegistration(supabase: any, registrationId: string | null, payload: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc('write_registration_v2', {
+    p_registration_id: registrationId,
+    p_payload: payload,
+  })
+  if (error) throw error
+  return data as string
+}
+
+async function setSeasonRegistrationDateStatus(supabase: any, registrationId: string, activityDate: string, isOnLeave: boolean, changedAt: string) {
+  const { error } = await supabase.rpc('set_season_registration_date_status_v2', {
+    p_registration_id: registrationId,
+    p_activity_date: activityDate,
+    p_is_on_leave: isOnLeave,
+    p_changed_at: changedAt,
+  })
+  if (error) throw error
+}
+
 function registrationPayload(
   activityId: string | number,
   activityDate: string | null,
@@ -217,8 +236,7 @@ serve(async req => {
 
       if (selfCount + guestCount <= 0) {
         if (existing) {
-          const { error } = await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', existing.id)
-          if (error) throw error
+          await writeRegistration(supabase, existing.id, { status: 'cancelled' })
         }
         return jsonResponse({ ok: true }, 200, origin)
       }
@@ -234,11 +252,11 @@ serve(async req => {
       }
 
       if (existing) {
-        const { error } = await supabase.from('registrations').update(payload).eq('id', existing.id)
-        if (error) throw error
+        await writeRegistration(supabase, existing.id, payload)
       } else {
-        const { error } = await supabase.from('registrations').insert(payload)
-        if (error) {
+        try {
+          await writeRegistration(supabase, null, payload)
+        } catch (error) {
           if (!isUniqueViolation(error)) throw error
           const retryQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
           const { data: retryExisting, error: retryReadError } =
@@ -246,8 +264,7 @@ serve(async req => {
           if (retryReadError) throw retryReadError
           if (!retryExisting) throw error
           const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, retryExisting, submitTime)
-          const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryExisting.id)
-          if (retryWriteError) throw retryWriteError
+          await writeRegistration(supabase, retryExisting.id, retryPayload)
         }
       }
       return jsonResponse({ ok: true }, 200, origin)
@@ -281,15 +298,7 @@ serve(async req => {
       const leaveDates = Array.isArray(seasonReg.leave_dates) ? seasonReg.leave_dates : []
       const isCurrentlyOnLeave = leaveDates.includes(activityDate)
       if ((selfCount === 0) !== isCurrentlyOnLeave) {
-        const nextLeaveDates = selfCount === 0 ? [...leaveDates, activityDate] : leaveDates.filter((date: string) => date !== activityDate)
-        const updatePayload: Record<string, unknown> = { leave_dates: nextLeaveDates }
-        if (selfCount === 0) {
-          updatePayload.leave_times = { ...(seasonReg.leave_times || {}), [activityDate]: submitTime }
-        } else {
-          updatePayload.rejoin_times = { ...(seasonReg.rejoin_times || {}), [activityDate]: submitTime }
-        }
-        const { error } = await supabase.from('registrations').update(updatePayload).eq('id', seasonReg.id)
-        if (error) throw error
+        await setSeasonRegistrationDateStatus(supabase, seasonReg.id, activityDate, selfCount === 0, submitTime)
       }
 
       const { data: pickupReg, error: pickupError } = await supabase
@@ -310,11 +319,11 @@ serve(async req => {
           if (removedGuests.length) payload.cancelled_members = appendCancelledMembers(pickupReg, removedGuests)
         }
         if (pickupReg) {
-          const { error } = await supabase.from('registrations').update(payload).eq('id', pickupReg.id)
-          if (error) throw error
+          await writeRegistration(supabase, pickupReg.id, payload)
         } else {
-          const { error } = await supabase.from('registrations').insert(payload)
-          if (error) {
+          try {
+            await writeRegistration(supabase, null, payload)
+          } catch (error) {
             if (!isUniqueViolation(error)) throw error
             const { data: retryPickupReg, error: retryReadError } = await supabase
               .from('registrations')
@@ -327,13 +336,11 @@ serve(async req => {
             if (retryReadError) throw retryReadError
             if (!retryPickupReg) throw error
             const retryPayload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, retryPickupReg, submitTime)
-            const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryPickupReg.id)
-            if (retryWriteError) throw retryWriteError
+            await writeRegistration(supabase, retryPickupReg.id, retryPayload)
           }
         }
       } else if (pickupReg && (pickupReg.guest_count || 0) > 0) {
-        const { error } = await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', pickupReg.id)
-        if (error) throw error
+        await writeRegistration(supabase, pickupReg.id, { status: 'cancelled' })
       }
 
       return jsonResponse({ ok: true }, 200, origin)
@@ -362,12 +369,9 @@ serve(async req => {
 
       const existingSeasonReg = activeReg || cancelledReg
       const payload = { ...registrationPayload(activityId, null, profile, 1, [], existingSeasonReg, submitTime), season_plan: seasonPlan }
-      const { error } = activeReg
-        ? await supabase.from('registrations').update(payload).eq('id', activeReg.id)
-        : cancelledReg
-          ? await supabase.from('registrations').update(payload).eq('id', cancelledReg.id)
-          : await supabase.from('registrations').insert(payload)
-      if (error) {
+      try {
+        await writeRegistration(supabase, activeReg?.id || cancelledReg?.id || null, payload)
+      } catch (error) {
         if (!isUniqueViolation(error)) throw error
         const { data: retryActiveReg, error: retryReadError } = await supabase
           .from('registrations')
@@ -380,8 +384,7 @@ serve(async req => {
         if (retryReadError) throw retryReadError
         if (!retryActiveReg) throw error
         const retryPayload = { ...registrationPayload(activityId, null, profile, 1, [], retryActiveReg, submitTime), season_plan: seasonPlan }
-        const { error: retryWriteError } = await supabase.from('registrations').update(retryPayload).eq('id', retryActiveReg.id)
-        if (retryWriteError) throw retryWriteError
+        await writeRegistration(supabase, retryActiveReg.id, retryPayload)
       }
       await supabase.from('members').update({ is_season: true }).eq('user_id', profile.userId)
       return jsonResponse({ ok: true }, 200, origin)
@@ -401,8 +404,7 @@ serve(async req => {
         .maybeSingle()
       if (activeError) throw activeError
       if (activeReg) {
-        const { error } = await supabase.from('registrations').update({ status: 'cancelled' }).eq('id', activeReg.id)
-        if (error) throw error
+        await writeRegistration(supabase, activeReg.id, { status: 'cancelled' })
       }
       await supabase.from('members').update({ is_season: false }).eq('user_id', profile.userId)
       return jsonResponse({ ok: true }, 200, origin)
@@ -427,14 +429,9 @@ serve(async req => {
         const guests = Array.isArray(reg.guests) ? reg.guests : []
         if (!guests[guestIndex]) return jsonResponse({ error: 'guest_not_found' }, 404, origin)
         const nextGuests = guests.map((guest: Record<string, unknown>, index: number) => (index === guestIndex ? { ...guest, [field]: !(guest[field] ?? false) } : guest))
-        const { error } = await supabase.from('registrations').update({ guests: nextGuests }).eq('id', reg.id)
-        if (error) throw error
+        await writeRegistration(supabase, reg.id, { guests: nextGuests })
       } else {
-        const { error } = await supabase
-          .from('registrations')
-          .update({ [field]: !(reg[field] ?? false) })
-          .eq('id', reg.id)
-        if (error) throw error
+        await writeRegistration(supabase, reg.id, { [field]: !(reg[field] ?? false) })
       }
 
       return jsonResponse({ ok: true }, 200, origin)
@@ -455,8 +452,7 @@ serve(async req => {
       if (memberType === 'self') {
         const removedSelf = (reg.self_count || 0) > 0 ? [cancellationEntryFromSelf(reg)] : []
         const updatePayload = (reg.guest_count || 0) === 0 ? { status: 'cancelled' } : { self_count: 0, self_added_at: null, cancelled_members: appendCancelledMembers(reg, removedSelf) }
-        const { error } = await supabase.from('registrations').update(updatePayload).eq('id', reg.id)
-        if (error) throw error
+        await writeRegistration(supabase, reg.id, updatePayload)
       } else {
         if (!Number.isInteger(guestIndex) || guestIndex < 0) return jsonResponse({ error: 'invalid_guest_index' }, 400, origin)
         const guests = Array.isArray(reg.guests) ? reg.guests : []
@@ -467,8 +463,7 @@ serve(async req => {
           (reg.self_count || 0) === 0 && nextGuests.length === 0
             ? { status: 'cancelled' }
             : { guests: nextGuests, guest_count: nextGuests.length, cancelled_members: appendCancelledMembers(reg, [removedGuest]) }
-        const { error } = await supabase.from('registrations').update(payload).eq('id', reg.id)
-        if (error) throw error
+        await writeRegistration(supabase, reg.id, payload)
       }
 
       return jsonResponse({ ok: true }, 200, origin)

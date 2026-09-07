@@ -17,6 +17,15 @@ under `supabase/migrations/`.
 - Public read RLS policies are versioned in
   `20260520005000_version_public_rls_policies.sql`.
 
+## Normalized-write Rollout
+
+Deploy `20260907000000_add_normalized_write_rpcs.sql` before deploying the
+`activity-admin` and `registration-action` Edge Functions. The migration keeps
+the old-to-new triggers available for an older function instance, while each
+new RPC writes normalized rows and the old compatibility snapshots atomically.
+Do not remove the triggers or legacy columns until production reconciliation
+has remained clean for an agreed retention period.
+
 ## Local Dev Admin
 
 When serving Edge Functions locally, admin actions can use a local dev identity
@@ -79,7 +88,9 @@ Normalized compatibility tables:
 - `activity_dates` is the canonical table for activity dates. It keeps an
   active flag rather than deleting retired dates, so historical registrations
   and attendance states retain their references. `activities.dates` remains a
-  legacy compatibility snapshot during the migration.
+  legacy compatibility snapshot. `write_activity_v2` updates both forms in
+  one transaction; the legacy-to-normalized trigger remains only for older
+  writers during rollout.
 
 ### `registrations`
 
@@ -125,18 +136,21 @@ Database invariants:
 Normalized compatibility tables:
 
 - `registration_guests` is the canonical per-guest data, including guest
-  payment state. The original `guests` JSONB column is retained during the
-  migration and synchronizes this table by trigger.
+  payment state. The original `guests` JSONB column is retained as a
+  compatibility snapshot; `write_registration_v2` writes both forms in one
+  transaction.
 - `season_registration_date_statuses` is the canonical season-member
   leave/rejoin state per activity date. The original `leave_dates`,
-  `leave_times`, and `rejoin_times` columns are retained and synchronized by
-  trigger.
+  `leave_times`, and `rejoin_times` columns are retained as compatibility
+  snapshots and are rebuilt by `set_season_registration_date_status_v2`.
 - `registration_cancellation_events` stores cancelled-member history. Its
   `legacy_payload` preserves the original JSON object; both
   `cancelled_members` and the older `cancelled_guests` are retained.
-- These normalized tables have RLS enabled with no browser-access policy in
-  this compatibility phase. The existing browser read model remains unchanged
-  until its queries are explicitly migrated.
+- These normalized tables have RLS enabled. Browser roles can read them under
+  the same public-read model as their parent records; only `service_role` can
+  execute the normalized-write RPCs. Legacy-to-normalized triggers remain as
+  a temporary fallback for older writers, guarded so an RPC cannot overwrite
+  its own canonical writes.
 
 ### `members`
 
@@ -191,3 +205,7 @@ Roles:
 - `20260827001000_allow_normalized_public_reads.sql`: grants browser read
   policies on normalized tables that mirror the existing public base-table read
   model; writes remain restricted to Edge Functions.
+- `20260907000000_add_normalized_write_rpcs.sql`: introduces service-role-only
+  RPCs that write normalized data as the canonical representation and update
+  legacy columns in the same transaction. Legacy writers remain supported
+  during Edge Function deployment through trigger guards.
