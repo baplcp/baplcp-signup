@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { fetchActiveActivityDates, groupActivityDatesByActivityId } from '../_shared/normalized-collection-data.ts'
 
 // Taiwan is UTC+8, no DST — all time arithmetic uses fixed +8 offset
 function getSeasonOpenAt(openDateStr: string, openTimeStr: string): Date {
@@ -170,14 +171,19 @@ serve(async _req => {
 
     const { data: activities, error } = await supabase
       .from('activities')
-      .select('id, title, pickup_label, location, start_time, end_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
+      .select('id, title, pickup_label, location, start_time, end_time, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
 
     if (error) throw error
+    const activityDates = await fetchActiveActivityDates(
+      supabase,
+      (activities || []).map(activity => activity.id)
+    )
+    const datesByActivityId = groupActivityDatesByActivityId(activityDates)
 
     const notifications: Notification[] = []
 
     for (const activity of activities ?? []) {
-      const dates: string[] = Array.isArray(activity.dates) ? activity.dates : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
+      const dates = (datesByActivityId.get(activity.id) || []).map(activityDate => activityDate.activity_date)
 
       // 季打報名通知
       if (activity.season_enabled && activity.season_open_date && activity.season_open_time) {

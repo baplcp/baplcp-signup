@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { fetchActiveActivityDates, fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses, groupActivityDatesByActivityId } from '../_shared/normalized-collection-data.ts'
 
 function getTaiwanNow(): { date: string; hour: number } {
   const now = new Date()
@@ -33,9 +34,7 @@ async function sendWithGranularFallback(token: string, groupId: string, text: st
 
   for (let i = 0; i <= maxRetries; i++) {
     try {
-      const message = Object.keys(sub).length > 0
-        ? { type: 'textV2', text: currentText, substitution: sub }
-        : { type: 'text', text: currentText }
+      const message = Object.keys(sub).length > 0 ? { type: 'textV2', text: currentText, substitution: sub } : { type: 'text', text: currentText }
       await pushMessage(token, groupId, message)
       return
     } catch (e) {
@@ -85,9 +84,14 @@ serve(async _req => {
 
     const { data: activities, error: actErr } = await supabase
       .from('activities')
-      .select('id, title, pickup_label, location, start_time, single_capacity, pickup_fee_per_session, ac_enabled, ac_fee, dates, reminder_enabled, reminder_days_before, reminder_time')
+      .select('id, title, pickup_label, location, start_time, single_capacity, pickup_fee_per_session, ac_enabled, ac_fee, reminder_enabled, reminder_days_before, reminder_time')
       .eq('reminder_enabled', true)
     if (actErr) throw actErr
+    const activityDates = await fetchActiveActivityDates(
+      supabase,
+      (activities || []).map(activity => activity.id)
+    )
+    const datesByActivityId = groupActivityDatesByActivityId(activityDates)
 
     const { data: organizers } = await supabase.from('members').select('user_id, display_name').eq('role', 'organizer')
 
@@ -100,30 +104,38 @@ serve(async _req => {
       const reminderHour = parseInt(activity.reminder_time.slice(0, 2), 10)
       if (hourTw !== reminderHour) continue
 
-      const dates: string[] = Array.isArray(activity.dates) ? activity.dates : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
-
       // 找出「今天 + reminder_days_before 天」是哪些場次日期
-      const targetDates = dates.filter(d => addDays(todayTw, activity.reminder_days_before) === d)
-      if (targetDates.length === 0) continue
+      const targetActivityDates = (datesByActivityId.get(activity.id) || []).filter(activityDate => addDays(todayTw, activity.reminder_days_before) === activityDate.activity_date)
+      if (targetActivityDates.length === 0) continue
 
-      for (const targetDate of targetDates) {
+      for (const targetActivityDate of targetActivityDates) {
+        const targetDate = targetActivityDate.activity_date
         // ── 季打報名 ──────────────────────────────────────────────
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('user_id, display_name, leave_dates, self_count, created_at, rejoin_times')
+          .select('id, user_id, display_name, self_count, created_at')
           .eq('activity_id', activity.id)
           .is('activity_date', null)
           .eq('status', 'active')
         if (sErr) throw sErr
+        const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(
+          supabase,
+          (seasonRegs || []).map(registration => registration.id),
+          targetActivityDate.id
+        )
 
         // ── 臨打報名 ──────────────────────────────────────────────
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
-          .select('user_id, display_name, guests, self_added_at, self_count, created_at')
+          .select('id, user_id, display_name, self_added_at, self_count, created_at')
           .eq('activity_id', activity.id)
-          .eq('activity_date', targetDate)
+          .eq('activity_date_id', targetActivityDate.id)
           .eq('status', 'active')
         if (pErr) throw pErr
+        const guestsByRegistrationId = await fetchRegistrationGuests(
+          supabase,
+          (pickupRegs || []).map(registration => registration.id)
+        )
 
         const totalCapacity = Number(activity.single_capacity) || 0
 
@@ -141,10 +153,11 @@ serve(async _req => {
         const overflowSlots: FlatSlot[] = [] // guestIndex >= 2 的賓客排在最後（同前端）
 
         for (const reg of seasonRegs ?? []) {
-          if ((reg.leave_dates || []).includes(targetDate)) continue
+          const dateStatus = seasonDateStatuses.get(reg.id)
+          if (dateStatus?.is_on_leave) continue
           if ((reg.self_count ?? 0) <= 0) continue
-          // 同前端：有 rejoin_times 則用回歸時間，否則用 created_at
-          const ts = ((reg.rejoin_times ?? {}) as Record<string, string>)[targetDate] || reg.created_at
+          // 同前端：有回歸時間則用回歸時間，否則用 created_at
+          const ts = dateStatus?.rejoined_at || reg.created_at
           mainSlots.push({ kind: 'season_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
         }
 
@@ -154,14 +167,14 @@ serve(async _req => {
             const ts = reg.self_added_at || reg.created_at
             mainSlots.push({ kind: 'pickup_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
           }
-          const allGuests = (reg.guests ?? []) as Array<{ gender?: string; name?: string; added_at?: string }>
+          const allGuests = guestsByRegistrationId.get(reg.id) || []
           allGuests.forEach((guest, i) => {
             const slot: FlatSlot = {
               kind: 'guest',
               userId: reg.user_id,
               displayName: reg.display_name ?? reg.user_id,
-              ts: guest.added_at || reg.created_at,
-              guestData: guest,
+              ts: guest.joined_at || reg.created_at,
+              guestData: { gender: guest.gender ?? undefined, name: guest.display_name ?? undefined },
             }
             if (i >= 2) overflowSlots.push(slot)
             else mainSlots.push(slot)

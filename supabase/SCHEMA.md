@@ -151,6 +151,9 @@ Normalized compatibility tables:
   execute the normalized-write RPCs. Legacy-to-normalized triggers remain as
   a temporary fallback for older writers, guarded so an RPC cannot overwrite
   its own canonical writes.
+- Browser read services and scheduled notification functions query the
+  normalized tables. Compatibility JSON and array fields remain available only
+  for the transitional RPC input and legacy consumers.
 
 ### `members`
 
