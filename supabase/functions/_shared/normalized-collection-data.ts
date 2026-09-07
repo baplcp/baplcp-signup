@@ -17,6 +17,14 @@ type RegistrationGuest = {
   display_name: string | null
   gender: string | null
   joined_at: string | null
+  paid_court: boolean
+  paid_ac: boolean
+  legacy_payload: Record<string, unknown>
+}
+
+type RegistrationCancellationEvent = {
+  registration_id: string
+  legacy_payload: Record<string, unknown>
 }
 
 function uniqueIds(ids: Array<number | string | null | undefined>) {
@@ -47,6 +55,12 @@ export function groupActivityDatesByActivityId(activityDates: ActivityDate[]) {
   }, new Map<number, ActivityDate[]>())
 }
 
+export async function fetchActivityDateId(supabase: any, activityId: number | string, activityDate: string) {
+  const { data, error } = await supabase.from('activity_dates').select('id').eq('activity_id', activityId).eq('activity_date', activityDate).maybeSingle()
+  if (error) throw error
+  return data?.id ?? null
+}
+
 export async function fetchSeasonRegistrationDateStatuses(supabase: any, registrationIds: Array<string | null | undefined>, activityDateId: number) {
   const ids = uniqueIds(registrationIds)
   if (ids.length === 0) return new Map<string, SeasonRegistrationDateStatus>()
@@ -63,7 +77,7 @@ export async function fetchRegistrationGuests(supabase: any, registrationIds: Ar
 
   const { data, error } = await supabase
     .from('registration_guests')
-    .select('registration_id, guest_position, display_name, gender, joined_at')
+    .select('registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac, legacy_payload')
     .in('registration_id', ids)
     .order('guest_position', { ascending: true })
   if (error) throw error
@@ -74,4 +88,24 @@ export async function fetchRegistrationGuests(supabase: any, registrationIds: Ar
     guestsByRegistrationId.set(guest.registration_id, guests)
     return guestsByRegistrationId
   }, new Map<string, RegistrationGuest[]>())
+}
+
+export async function fetchRegistrationCancelledMemberSnapshots(supabase: any, registrationIds: Array<string | null | undefined>) {
+  const ids = uniqueIds(registrationIds)
+  if (ids.length === 0) return new Map<string, Record<string, unknown>[]>()
+
+  const { data, error } = await supabase
+    .from('registration_cancellation_events')
+    .select('registration_id, legacy_payload')
+    .in('registration_id', ids)
+    .eq('legacy_source', 'cancelled_members')
+    .order('legacy_position', { ascending: true })
+  if (error) throw error
+
+  return (data || []).reduce((snapshotsByRegistrationId: Map<string, Record<string, unknown>[]>, event: RegistrationCancellationEvent) => {
+    const snapshots = snapshotsByRegistrationId.get(event.registration_id) || []
+    snapshots.push(event.legacy_payload)
+    snapshotsByRegistrationId.set(event.registration_id, snapshots)
+    return snapshotsByRegistrationId
+  }, new Map<string, Array<Record<string, unknown>>>())
 }

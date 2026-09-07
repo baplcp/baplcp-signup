@@ -153,7 +153,9 @@ Normalized compatibility tables:
   its own canonical writes.
 - Browser read services and scheduled notification functions query the
   normalized tables. Compatibility JSON and array fields remain available only
-  for the transitional RPC input and legacy consumers.
+  for the transitional RPC input and legacy consumers. `registration-action`
+  reconstructs that transitional input from canonical rows rather than reading
+  the legacy columns directly.
 
 ### `members`
 

@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, isOrganizer, jsonResponse, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
+import { fetchActivityDateId, fetchRegistrationCancelledMemberSnapshots, fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 
 type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -12,6 +13,9 @@ const DEV_PROFILE: AdminLineProfile = {
   pictureUrl: null,
   isDevAdmin: true,
 }
+
+const REGISTRATION_FIELDS =
+  'id, activity_id, activity_date, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
 
 type GuestInput = {
   name?: string
@@ -64,6 +68,48 @@ function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>
     ...guest,
     added_at: previousGuests?.[index]?.added_at || submitTime,
   }))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toLegacyGuestSnapshot(guest: {
+  legacy_payload: unknown
+  display_name: string | null
+  gender: string | null
+  joined_at: string | null
+  paid_court: boolean
+  paid_ac: boolean
+}): Record<string, unknown> {
+  if (isRecord(guest.legacy_payload)) return guest.legacy_payload
+
+  return {
+    name: guest.display_name ?? '',
+    gender: guest.gender ?? null,
+    added_at: guest.joined_at ?? null,
+    paid_court: guest.paid_court ?? false,
+    paid_ac: guest.paid_ac ?? false,
+  }
+}
+
+async function hydrateRegistrationCollections(
+  supabase: any,
+  registration: Record<string, any> | null | undefined,
+  { guests = false, cancelledMembers = false }: { guests?: boolean; cancelledMembers?: boolean } = {}
+) {
+  if (!registration) return registration
+
+  const [guestsByRegistrationId, cancelledMembersByRegistrationId] = await Promise.all([
+    guests ? fetchRegistrationGuests(supabase, [registration.id]) : Promise.resolve(new Map()),
+    cancelledMembers ? fetchRegistrationCancelledMemberSnapshots(supabase, [registration.id]) : Promise.resolve(new Map()),
+  ])
+
+  return {
+    ...registration,
+    ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toLegacyGuestSnapshot) } : {}),
+    ...(cancelledMembers ? { cancelled_members: cancelledMembersByRegistrationId.get(registration.id) || [] } : {}),
+  }
 }
 
 function isUniqueViolation(error: unknown) {
@@ -229,10 +275,14 @@ serve(async req => {
       const activity = await getActivityForRegistration(supabase, activityId)
       if (activityDate === null) assertSeasonEnabled(activity)
 
-      const existingQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
-      const { data: existing, error: existingError } =
-        activityDate === null ? await existingQuery.is('activity_date', null).maybeSingle() : await existingQuery.eq('activity_date', activityDate).maybeSingle()
+      const activityDateId = activityDate === null ? null : await fetchActivityDateId(supabase, activityId, activityDate)
+      if (activityDate !== null && activityDateId === null) return jsonResponse({ error: 'activity_date_not_found' }, 404, origin)
+
+      const existingQuery = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
+      const { data: existingRaw, error: existingError } =
+        activityDate === null ? await existingQuery.is('activity_date', null).maybeSingle() : await existingQuery.eq('activity_date_id', activityDateId).maybeSingle()
       if (existingError) throw existingError
+      const existing = await hydrateRegistrationCollections(supabase, existingRaw, { guests: true, cancelledMembers: true })
 
       if (selfCount + guestCount <= 0) {
         if (existing) {
@@ -258,10 +308,11 @@ serve(async req => {
           await writeRegistration(supabase, null, payload)
         } catch (error) {
           if (!isUniqueViolation(error)) throw error
-          const retryQuery = supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
-          const { data: retryExisting, error: retryReadError } =
-            activityDate === null ? await retryQuery.is('activity_date', null).maybeSingle() : await retryQuery.eq('activity_date', activityDate).maybeSingle()
+          const retryQuery = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
+          const { data: retryExistingRaw, error: retryReadError } =
+            activityDate === null ? await retryQuery.is('activity_date', null).maybeSingle() : await retryQuery.eq('activity_date_id', activityDateId).maybeSingle()
           if (retryReadError) throw retryReadError
+          const retryExisting = await hydrateRegistrationCollections(supabase, retryExistingRaw, { guests: true })
           if (!retryExisting) throw error
           const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, retryExisting, submitTime)
           await writeRegistration(supabase, retryExisting.id, retryPayload)
@@ -283,10 +334,12 @@ serve(async req => {
       if (guestCount > 0) {
         assertRegistrationWindow(activity, activityDate, now, admin)
       }
+      const activityDateId = await fetchActivityDateId(supabase, activityId, activityDate)
+      if (activityDateId === null) return jsonResponse({ error: 'activity_date_not_found' }, 404, origin)
 
       const { data: seasonReg, error: seasonError } = await supabase
         .from('registrations')
-        .select('*')
+        .select(REGISTRATION_FIELDS)
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
         .is('activity_date', null)
@@ -295,21 +348,22 @@ serve(async req => {
       if (seasonError) throw seasonError
       if (!seasonReg) return jsonResponse({ error: 'season_registration_not_found' }, 404, origin)
 
-      const leaveDates = Array.isArray(seasonReg.leave_dates) ? seasonReg.leave_dates : []
-      const isCurrentlyOnLeave = leaveDates.includes(activityDate)
+      const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(supabase, [seasonReg.id], activityDateId)
+      const isCurrentlyOnLeave = seasonDateStatuses.get(seasonReg.id)?.is_on_leave ?? false
       if ((selfCount === 0) !== isCurrentlyOnLeave) {
         await setSeasonRegistrationDateStatus(supabase, seasonReg.id, activityDate, selfCount === 0, submitTime)
       }
 
-      const { data: pickupReg, error: pickupError } = await supabase
+      const { data: pickupRegRaw, error: pickupError } = await supabase
         .from('registrations')
-        .select('*')
+        .select(REGISTRATION_FIELDS)
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
-        .eq('activity_date', activityDate)
+        .eq('activity_date_id', activityDateId)
         .eq('status', 'active')
         .maybeSingle()
       if (pickupError) throw pickupError
+      const pickupReg = await hydrateRegistrationCollections(supabase, pickupRegRaw, { guests: true, cancelledMembers: true })
 
       if (guestCount > 0) {
         const payload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, pickupReg, submitTime)
@@ -325,15 +379,16 @@ serve(async req => {
             await writeRegistration(supabase, null, payload)
           } catch (error) {
             if (!isUniqueViolation(error)) throw error
-            const { data: retryPickupReg, error: retryReadError } = await supabase
+            const { data: retryPickupRegRaw, error: retryReadError } = await supabase
               .from('registrations')
-              .select('*')
+              .select(REGISTRATION_FIELDS)
               .eq('activity_id', activityId)
               .eq('user_id', profile.userId)
-              .eq('activity_date', activityDate)
+              .eq('activity_date_id', activityDateId)
               .eq('status', 'active')
               .maybeSingle()
             if (retryReadError) throw retryReadError
+            const retryPickupReg = await hydrateRegistrationCollections(supabase, retryPickupRegRaw, { guests: true })
             if (!retryPickupReg) throw error
             const retryPayload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, retryPickupReg, submitTime)
             await writeRegistration(supabase, retryPickupReg.id, retryPayload)
@@ -355,7 +410,7 @@ serve(async req => {
 
       const { data: activeReg, error: activeError } = await supabase
         .from('registrations')
-        .select('*')
+        .select(REGISTRATION_FIELDS)
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
         .is('activity_date', null)
@@ -364,7 +419,7 @@ serve(async req => {
       if (activeError) throw activeError
       const { data: cancelledReg, error: cancelledError } = activeReg
         ? { data: null, error: null }
-        : await supabase.from('registrations').select('*').eq('activity_id', activityId).eq('user_id', profile.userId).is('activity_date', null).eq('status', 'cancelled').maybeSingle()
+        : await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).is('activity_date', null).eq('status', 'cancelled').maybeSingle()
       if (cancelledError) throw cancelledError
 
       const existingSeasonReg = activeReg || cancelledReg
@@ -375,7 +430,7 @@ serve(async req => {
         if (!isUniqueViolation(error)) throw error
         const { data: retryActiveReg, error: retryReadError } = await supabase
           .from('registrations')
-          .select('*')
+          .select(REGISTRATION_FIELDS)
           .eq('activity_id', activityId)
           .eq('user_id', profile.userId)
           .is('activity_date', null)
@@ -420,8 +475,9 @@ serve(async req => {
       if (field !== 'paid_court' && field !== 'paid_ac') return jsonResponse({ error: 'invalid_payment_field' }, 400, origin)
       if (memberType !== 'self' && memberType !== 'season_self' && memberType !== 'guest') return jsonResponse({ error: 'invalid_member_type' }, 400, origin)
 
-      const { data: reg, error: regError } = await supabase.from('registrations').select('*').eq('id', registrationId).maybeSingle()
+      const { data: regRaw, error: regError } = await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('id', registrationId).maybeSingle()
       if (regError) throw regError
+      const reg = await hydrateRegistrationCollections(supabase, regRaw, { guests: memberType === 'guest' })
       if (!reg) return jsonResponse({ error: 'registration_not_found' }, 404, origin)
 
       if (memberType === 'guest') {
@@ -445,8 +501,9 @@ serve(async req => {
       if (!registrationId) return jsonResponse({ error: 'invalid_registration_id' }, 400, origin)
       if (memberType !== 'self' && memberType !== 'guest') return jsonResponse({ error: 'invalid_member_type' }, 400, origin)
 
-      const { data: reg, error: regError } = await supabase.from('registrations').select('*').eq('id', registrationId).maybeSingle()
+      const { data: regRaw, error: regError } = await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('id', registrationId).maybeSingle()
       if (regError) throw regError
+      const reg = await hydrateRegistrationCollections(supabase, regRaw, { guests: memberType === 'guest', cancelledMembers: true })
       if (!reg) return jsonResponse({ error: 'registration_not_found' }, 404, origin)
 
       if (memberType === 'self') {
