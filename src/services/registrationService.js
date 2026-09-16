@@ -1,10 +1,9 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
-import { fetchActivityDates, fetchActivityDatesByIds } from '~/services/activityDateService'
+import { fetchActivityDateId, fetchActivityDates, fetchActivityDatesByIds, fetchActivityDatesInRange } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
+const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
 
 function groupBy(items, key) {
   return (items || []).reduce((grouped, item) => {
@@ -97,11 +96,13 @@ async function hydrateRegistrations(registrations, { includeGuests = true, inclu
   if (!registrations?.length) return registrations || []
 
   const registrationIds = registrations.map(registration => registration.id)
-  const [guestsByRegistrationId, statesByRegistrationId, cancellationsByRegistrationId] = await Promise.all([
+  const [guestsByRegistrationId, statesByRegistrationId, cancellationsByRegistrationId, registrationActivityDates] = await Promise.all([
     includeGuests ? fetchRegistrationGuests(registrationIds) : Promise.resolve(new Map()),
     fetchRegistrationDateStates(registrationIds),
     includeCancellations ? fetchCancellationSnapshots(registrationIds) : Promise.resolve(new Map()),
+    fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
   ])
+  const registrationActivityDatesById = new Map(registrationActivityDates.map(activityDate => [activityDate.id, activityDate.activity_date]))
 
   return registrations.map(registration => {
     const guests = (guestsByRegistrationId.get(registration.id) || []).map(toGuest)
@@ -110,6 +111,7 @@ async function hydrateRegistrations(registrations, { includeGuests = true, inclu
 
     return {
       ...registration,
+      activity_date: registration.activity_date_id ? registrationActivityDatesById.get(registration.activity_date_id) || null : null,
       ...(includeGuests ? { guests, guest_count: guests.length } : {}),
       ...dateState,
       ...(includeCancellations ? { cancelled_members: cancelledMembers } : {}),
@@ -129,32 +131,37 @@ export async function invokeRegistrationAction(liffStore, body) {
 
 export async function listSeasonRegistrations(activityId, statuses = ['active']) {
   return listRegistrations(
-    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date', null).in('status', statuses).order('created_at', { ascending: true })
+    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).in('status', statuses).order('created_at', { ascending: true })
   )
 }
 
 export async function listPickupRegistrations(activityId, activityDate, statuses = ['active', 'cancelled']) {
+  const activityDateId = await fetchActivityDateId(activityId, activityDate)
+  if (activityDateId === null) return []
+
   return listRegistrations(
-    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('activity_date', activityDate).in('status', statuses).order('created_at', { ascending: true })
+    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('activity_date_id', activityDateId).in('status', statuses).order('created_at', { ascending: true })
   )
 }
 
 export async function listRegistrationsForLatestSpots(activityId, activityDate) {
   if (!ISO_DATE_PATTERN.test(activityDate || '')) return []
+  const activityDateId = await fetchActivityDateId(activityId, activityDate)
+  if (activityDateId === null) return []
 
   return listRegistrations(
     supabase
       .from('registrations')
-      .select('id, activity_date, self_count, guest_count')
+      .select('id, activity_date_id, self_count, guest_count')
       .eq('activity_id', activityId)
-      .or(`activity_date.eq.${activityDate},activity_date.is.null`)
+      .or(`activity_date_id.eq.${activityDateId},activity_date_id.is.null`)
       .eq('status', 'active'),
     { includeGuests: false, includeCancellations: false }
   )
 }
 
 export async function listRegistrationsForActivitySpots(activityId) {
-  return listRegistrations(supabase.from('registrations').select('id, activity_date, self_count, guest_count').eq('activity_id', activityId).eq('status', 'active'), {
+  return listRegistrations(supabase.from('registrations').select('id, activity_date_id, self_count, guest_count').eq('activity_id', activityId).eq('status', 'active'), {
     includeGuests: false,
     includeCancellations: false,
   })
@@ -165,17 +172,21 @@ const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
 export async function countPastParticipations(userId) {
   if (!userId) return 0
   const today = new Date().toISOString().split('T')[0]
+  const pastActivityDates = await fetchActivityDatesInRange(PARTICIPATION_COUNT_START_DATE, today)
+  const pastActivityDateIds = pastActivityDates.map(activityDate => activityDate.id)
 
-  const { count: pickupCount, error: pickupError } = await supabase
-    .from('registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .gt('self_count', 0)
-    .not('activity_date', 'is', null)
-    .gte('activity_date', PARTICIPATION_COUNT_START_DATE)
-    .lt('activity_date', today)
-  if (pickupError) throw pickupError
+  let pickupCount = 0
+  if (pastActivityDateIds.length) {
+    const { count, error } = await supabase
+      .from('registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .gt('self_count', 0)
+      .in('activity_date_id', pastActivityDateIds)
+    if (error) throw error
+    pickupCount = count || 0
+  }
 
   const { data: seasonRegistrations, error: seasonError } = await supabase
     .from('registrations')
@@ -183,10 +194,10 @@ export async function countPastParticipations(userId) {
     .eq('user_id', userId)
     .eq('status', 'active')
     .gt('self_count', 0)
-    .is('activity_date', null)
+    .is('activity_date_id', null)
   if (seasonError) throw seasonError
 
-  if (!seasonRegistrations?.length) return pickupCount || 0
+  if (!seasonRegistrations?.length) return pickupCount
 
   const [activityDates, statesByRegistrationId] = await Promise.all([
     fetchActivityDates([...new Set(seasonRegistrations.map(registration => registration.activity_id))], { activeOnly: false }),
@@ -202,7 +213,7 @@ export async function countPastParticipations(userId) {
     return count + attendedDates.length
   }, 0)
 
-  return (pickupCount || 0) + seasonCount
+  return pickupCount + seasonCount
 }
 
 export function subscribeToRegistrationChanges(onChange) {

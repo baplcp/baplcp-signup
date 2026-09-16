@@ -21,6 +21,20 @@ export async function fetchActivityDatesByIds(activityDateIds) {
   return data || []
 }
 
+export async function fetchActivityDateId(activityId, activityDate) {
+  if (!activityId || !activityDate) return null
+
+  const { data, error } = await supabase.from('activity_dates').select('id').eq('activity_id', activityId).eq('activity_date', activityDate).maybeSingle()
+  if (error) throw error
+  return data?.id ?? null
+}
+
+export async function fetchActivityDatesInRange(startDate, endDate) {
+  const { data, error } = await supabase.from('activity_dates').select('id, activity_id, activity_date, sort_order').gte('activity_date', startDate).lt('activity_date', endDate)
+  if (error) throw error
+  return data || []
+}
+
 export function groupActivityDates(activityDates) {
   return (activityDates || []).reduce((datesByActivityId, activityDate) => {
     const dates = datesByActivityId.get(activityDate.activity_id) || []

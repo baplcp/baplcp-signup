@@ -1,9 +1,12 @@
 -- Read-only reconciliation for the normalized collection migration.
 --
--- Run this before and after deploying 20260916000000_normalize_registration_integrity_rules.sql
--- and the matching Edge Functions. No returned rows means all checked snapshots
--- and normalized rows agree. Run it only from the Supabase SQL editor or an
--- administrator connection; its output may include registration data.
+-- Run this before applying 20260917000000_prepare_legacy_collection_retirement.sql.
+-- No returned rows means every checked compatibility snapshot agrees with its
+-- normalized rows. After v3 writes begin, use
+-- check-legacy-collection-archives.sql only for the immediate archive copy
+-- check; legacy snapshots intentionally stop changing. Run these scripts only
+-- from the Supabase SQL editor or an administrator connection; output may
+-- include registration data.
 
 with legacy_migration_issues as (
   select

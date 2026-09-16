@@ -14,8 +14,7 @@ const DEV_PROFILE: AdminLineProfile = {
   isDevAdmin: true,
 }
 
-const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
+const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
 
 type GuestInput = {
   name?: string
@@ -117,7 +116,7 @@ function isUniqueViolation(error: unknown) {
 }
 
 async function writeRegistration(supabase: any, registrationId: string | null, payload: Record<string, unknown>) {
-  const { data, error } = await supabase.rpc('write_registration_v2', {
+  const { data, error } = await supabase.rpc('write_registration_v3', {
     p_registration_id: registrationId,
     p_payload: payload,
   })
@@ -125,10 +124,10 @@ async function writeRegistration(supabase: any, registrationId: string | null, p
   return data as string
 }
 
-async function setSeasonRegistrationDateStatus(supabase: any, registrationId: string, activityDate: string, isOnLeave: boolean, changedAt: string) {
-  const { error } = await supabase.rpc('set_season_registration_date_status_v2', {
+async function setSeasonRegistrationDateStatus(supabase: any, registrationId: string, activityDateId: number, isOnLeave: boolean, changedAt: string) {
+  const { error } = await supabase.rpc('set_season_registration_date_status_v3', {
     p_registration_id: registrationId,
-    p_activity_date: activityDate,
+    p_activity_date_id: activityDateId,
     p_is_on_leave: isOnLeave,
     p_changed_at: changedAt,
   })
@@ -137,7 +136,7 @@ async function setSeasonRegistrationDateStatus(supabase: any, registrationId: st
 
 function registrationPayload(
   activityId: string | number,
-  activityDate: string | null,
+  activityDateId: number | null,
   profile: LineProfile,
   selfCount: number,
   guests: Array<{ name: string; gender: string }>,
@@ -146,7 +145,7 @@ function registrationPayload(
 ) {
   return {
     activity_id: activityId,
-    activity_date: activityDate,
+    activity_date_id: activityDateId,
     user_id: profile.userId,
     display_name: profile.displayName,
     picture_url: profile.pictureUrl ?? null,
@@ -280,7 +279,7 @@ serve(async req => {
 
       const existingQuery = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
       const { data: existingRaw, error: existingError } =
-        activityDate === null ? await existingQuery.is('activity_date', null).maybeSingle() : await existingQuery.eq('activity_date_id', activityDateId).maybeSingle()
+        activityDate === null ? await existingQuery.is('activity_date_id', null).maybeSingle() : await existingQuery.eq('activity_date_id', activityDateId).maybeSingle()
       if (existingError) throw existingError
       const existing = await hydrateRegistrationCollections(supabase, existingRaw, { guests: true, cancelledMembers: true })
 
@@ -292,7 +291,7 @@ serve(async req => {
       }
 
       assertRegistrationWindow(activity, activityDate, now, admin)
-      const payload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, existing, submitTime)
+      const payload = registrationPayload(activityId, activityDateId, profile, selfCount, normalizedGuests, existing, submitTime)
       if (existing) {
         const removedMembers = []
         if ((existing.self_count || 0) > 0 && selfCount === 0) removedMembers.push(cancellationEntryFromSelf(existing))
@@ -310,11 +309,11 @@ serve(async req => {
           if (!isUniqueViolation(error)) throw error
           const retryQuery = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).eq('status', 'active')
           const { data: retryExistingRaw, error: retryReadError } =
-            activityDate === null ? await retryQuery.is('activity_date', null).maybeSingle() : await retryQuery.eq('activity_date_id', activityDateId).maybeSingle()
+            activityDate === null ? await retryQuery.is('activity_date_id', null).maybeSingle() : await retryQuery.eq('activity_date_id', activityDateId).maybeSingle()
           if (retryReadError) throw retryReadError
           const retryExisting = await hydrateRegistrationCollections(supabase, retryExistingRaw, { guests: true })
           if (!retryExisting) throw error
-          const retryPayload = registrationPayload(activityId, activityDate, profile, selfCount, normalizedGuests, retryExisting, submitTime)
+          const retryPayload = registrationPayload(activityId, activityDateId, profile, selfCount, normalizedGuests, retryExisting, submitTime)
           await writeRegistration(supabase, retryExisting.id, retryPayload)
         }
       }
@@ -342,7 +341,7 @@ serve(async req => {
         .select(REGISTRATION_FIELDS)
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
-        .is('activity_date', null)
+        .is('activity_date_id', null)
         .eq('status', 'active')
         .maybeSingle()
       if (seasonError) throw seasonError
@@ -351,7 +350,7 @@ serve(async req => {
       const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(supabase, [seasonReg.id], activityDateId)
       const isCurrentlyOnLeave = seasonDateStatuses.get(seasonReg.id)?.is_on_leave ?? false
       if ((selfCount === 0) !== isCurrentlyOnLeave) {
-        await setSeasonRegistrationDateStatus(supabase, seasonReg.id, activityDate, selfCount === 0, submitTime)
+        await setSeasonRegistrationDateStatus(supabase, seasonReg.id, activityDateId, selfCount === 0, submitTime)
       }
 
       const { data: pickupRegRaw, error: pickupError } = await supabase
@@ -366,7 +365,7 @@ serve(async req => {
       const pickupReg = await hydrateRegistrationCollections(supabase, pickupRegRaw, { guests: true, cancelledMembers: true })
 
       if (guestCount > 0) {
-        const payload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, pickupReg, submitTime)
+        const payload = registrationPayload(activityId, activityDateId, profile, 0, normalizedGuests, pickupReg, submitTime)
         if (pickupReg) {
           const previousGuests = Array.isArray(pickupReg.guests) ? pickupReg.guests : []
           const removedGuests = previousGuests.slice(guestCount).map((guest: Record<string, any>) => cancellationEntryFromGuest(guest, pickupReg))
@@ -390,7 +389,7 @@ serve(async req => {
             if (retryReadError) throw retryReadError
             const retryPickupReg = await hydrateRegistrationCollections(supabase, retryPickupRegRaw, { guests: true })
             if (!retryPickupReg) throw error
-            const retryPayload = registrationPayload(activityId, activityDate, profile, 0, normalizedGuests, retryPickupReg, submitTime)
+            const retryPayload = registrationPayload(activityId, activityDateId, profile, 0, normalizedGuests, retryPickupReg, submitTime)
             await writeRegistration(supabase, retryPickupReg.id, retryPayload)
           }
         }
@@ -413,13 +412,20 @@ serve(async req => {
         .select(REGISTRATION_FIELDS)
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
-        .is('activity_date', null)
+        .is('activity_date_id', null)
         .eq('status', 'active')
         .maybeSingle()
       if (activeError) throw activeError
       const { data: cancelledReg, error: cancelledError } = activeReg
         ? { data: null, error: null }
-        : await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', profile.userId).is('activity_date', null).eq('status', 'cancelled').maybeSingle()
+        : await supabase
+            .from('registrations')
+            .select(REGISTRATION_FIELDS)
+            .eq('activity_id', activityId)
+            .eq('user_id', profile.userId)
+            .is('activity_date_id', null)
+            .eq('status', 'cancelled')
+            .maybeSingle()
       if (cancelledError) throw cancelledError
 
       const existingSeasonReg = activeReg || cancelledReg
@@ -433,7 +439,7 @@ serve(async req => {
           .select(REGISTRATION_FIELDS)
           .eq('activity_id', activityId)
           .eq('user_id', profile.userId)
-          .is('activity_date', null)
+          .is('activity_date_id', null)
           .eq('status', 'active')
           .maybeSingle()
         if (retryReadError) throw retryReadError
@@ -454,7 +460,7 @@ serve(async req => {
         .select('id')
         .eq('activity_id', activityId)
         .eq('user_id', profile.userId)
-        .is('activity_date', null)
+        .is('activity_date_id', null)
         .eq('status', 'active')
         .maybeSingle()
       if (activeError) throw activeError

@@ -182,7 +182,7 @@ serve(async req => {
 
     if (action === 'create') {
       const payload = cleanActivityPayload(body?.payload)
-      const { data, error } = await supabase.rpc('write_activity_v2', { p_activity_id: null, p_payload: payload }).single()
+      const { data, error } = await supabase.rpc('write_activity_v3', { p_activity_id: null, p_payload: payload }).single()
       if (error) throw error
       return jsonResponse({ data }, 200, origin)
     }
@@ -191,7 +191,7 @@ serve(async req => {
       const id = normalizeId(body?.id)
       if (!id) return jsonResponse({ error: 'invalid_activity_id' }, 400, origin)
       const payload = cleanActivityPayload(body?.payload)
-      const { data, error } = await supabase.rpc('write_activity_v2', { p_activity_id: id, p_payload: payload }).single()
+      const { data, error } = await supabase.rpc('write_activity_v3', { p_activity_id: id, p_payload: payload }).single()
       if (error) throw error
       return jsonResponse({ data }, 200, origin)
     }

@@ -80,7 +80,7 @@ serve(async req => {
             .select('id')
             .eq('activity_id', latestSeason.id)
             .eq('user_id', profile.userId)
-            .is('activity_date', null)
+            .is('activity_date_id', null)
             .eq('status', 'active')
             .maybeSingle()
           const nextIsSeason = !!seasonReg

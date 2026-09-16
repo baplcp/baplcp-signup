@@ -115,7 +115,7 @@ serve(async _req => {
           .from('registrations')
           .select('id, user_id, display_name, self_count, created_at')
           .eq('activity_id', activity.id)
-          .is('activity_date', null)
+          .is('activity_date_id', null)
           .eq('status', 'active')
         if (sErr) throw sErr
         const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(
