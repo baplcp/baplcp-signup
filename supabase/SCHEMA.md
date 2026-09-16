@@ -19,12 +19,12 @@ under `supabase/migrations/`.
 
 ## Normalized-write Rollout
 
-Deploy `20260917000000_prepare_legacy_collection_retirement.sql` before
-deploying the v3 `activity-admin` and `registration-action` Edge Functions.
-It archives every current legacy collection value, then changes v3 RPCs to
-write only normalized rows. Keep the compatibility columns and fallback
-triggers until the new functions have passed production validation; the later
-retirement migration can then drop them without losing historical data.
+After v3 `activity-admin` and `registration-action` Edge Functions have passed
+production validation, deploy
+`20260918000000_retire_legacy_collection_columns.sql`. It verifies archive
+coverage before removing the old collection columns, fallback triggers, and v2
+RPCs. Historical raw values remain in
+`normalization_legacy_collection_archives`.
 
 ## Local Dev Admin
 
@@ -52,8 +52,6 @@ Fields used by the app:
 - `game_type text`
 - `title text`
 - `location text`
-- `dates jsonb date list` — temporary compatibility snapshot archived before
-  retirement; `activity_dates` is the canonical representation.
 - `start_time time/text`
 - `end_time time/text`
 - `season_fee_per_session numeric`
@@ -83,13 +81,11 @@ Fields used by the app:
 - `ac_enabled boolean`
 - `created_at timestamptz`
 
-Normalized compatibility tables:
+Normalized tables:
 
 - `activity_dates` is the canonical table for activity dates. It keeps an
   active flag rather than deleting retired dates, so historical registrations
-  and attendance states retain their references. `write_activity_v3` updates
-  only this table; the former `activities.dates` value is retained in
-  `normalization_legacy_collection_archives` before its column is retired.
+  and attendance states retain their references.
 
 ### `registrations`
 
@@ -100,25 +96,15 @@ Primary key:
 Fields used by the app:
 
 - `activity_id bigint`
-- `activity_date date/text, nullable for season registrations` — temporary
-  compatibility field; `activity_date_id` is the canonical discriminator.
 - `user_id text`
 - `display_name text`
 - `picture_url text`
 - `self_count integer`
 - `self_added_at timestamptz`
-- `guest_count integer, derived from guests by trigger`
-- `guests jsonb array` — temporary compatibility snapshot;
-  `registration_guests` is the canonical representation.
+- `guest_count integer, derived from registration_guests by trigger`
 - `status text`
 - `paid_court boolean`
 - `paid_ac boolean`
-- `leave_dates text[]`, `leave_times json/jsonb object`, and
-  `rejoin_times json/jsonb object` — temporary compatibility fields superseded by
-  `season_registration_date_statuses`.
-- `cancelled_members jsonb array` and `cancelled_guests jsonb array` —
-  temporary compatibility fields superseded by
-  `registration_cancellation_events`.
 - `season_plan text` — `'quarter'` (一季) or `'half-year'` (半年), only meaningful for season registrations
 - `activity_date_id bigint, nullable` — canonical pickup reference. A null
   value identifies a season registration.
@@ -132,20 +118,17 @@ Database invariants:
 - Capacity checks run in a trigger that locks the related activity row.
 - `guest_count` is a cached count of `registration_guests`.
 
-Normalized compatibility tables:
+Normalized tables:
 
 - `registration_guests` is the canonical per-guest data, including guest
-  payment state. `write_registration_v3` writes only this representation.
+  payment state. `write_registration_v3` writes this representation.
 - `season_registration_date_statuses` is the canonical season-member
   leave/rejoin state per activity date.
 - `registration_cancellation_events` stores cancelled-member history. Its
-  `legacy_payload` preserves the original JSON object; both
-  `cancelled_members` and the older `cancelled_guests` are retained.
+  `legacy_payload` preserves the original event JSON object.
 - These normalized tables have RLS enabled. Browser roles can read them under
   the same public-read model as their parent records; only `service_role` can
-  execute the normalized-write RPCs. Legacy-to-normalized triggers remain as
-  a temporary fallback for older writers, guarded so an RPC cannot overwrite
-  its own canonical writes.
+  execute the normalized-write RPCs.
 - Browser read services and scheduled notification functions query the
   normalized tables. `normalization_legacy_collection_archives` has no browser
   read policy and preserves the pre-retirement raw values for recovery.
@@ -214,3 +197,6 @@ Roles:
 - `20260917000000_prepare_legacy_collection_retirement.sql`: archives legacy
   collection values, introduces normalized-only v3 write RPCs, and switches
   registration identity and season capacity rules to `activity_date_id`.
+- `20260918000000_retire_legacy_collection_columns.sql`: verifies archive
+  coverage, then removes legacy collection columns, fallback triggers, old
+  indexes, and v2 RPCs.

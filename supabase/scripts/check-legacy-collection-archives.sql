@@ -1,7 +1,7 @@
--- Run immediately after 20260917000000_prepare_legacy_collection_retirement.sql
--- and before deploying v3 Edge Functions. No rows means the pre-retirement
--- legacy values were copied to the archive exactly. Do not run this after v3
--- writes have occurred: legacy columns intentionally stop receiving updates.
+-- Run after 20260917000000_prepare_legacy_collection_retirement.sql and
+-- before 20260918000000_retire_legacy_collection_columns.sql. No rows means
+-- the legacy columns still match their archive. v3 does not update legacy
+-- columns, so this remains valid throughout the final validation period.
 
 with expected as (
   select
