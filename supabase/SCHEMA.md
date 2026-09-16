@@ -131,7 +131,8 @@ Database invariants:
 - One active season registration per `(activity_id, user_id)` where
   `activity_date is null`.
 - Capacity checks run in a trigger that locks the related activity row.
-- `guest_count` is synchronized from `guests` by trigger.
+- `guest_count` is a cached count of `registration_guests`. Legacy writers
+  continue to derive it from `guests` during the compatibility period.
 
 Normalized compatibility tables:
 
@@ -214,3 +215,7 @@ Roles:
   RPCs that write normalized data as the canonical representation and update
   legacy columns in the same transaction. Legacy writers remain supported
   during Edge Function deployment through trigger guards.
+- `20260916000000_normalize_registration_integrity_rules.sql`: derives
+  `guest_count` from `registration_guests` for canonical writes, counts season
+  capacity from normalized guests, and adds the canonical pickup uniqueness
+  index while retaining legacy trigger and index fallbacks.

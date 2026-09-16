@@ -1,7 +1,7 @@
 -- Read-only reconciliation for the normalized collection migration.
 --
--- Run this after deploying 20260907000000_add_normalized_write_rpcs.sql and
--- the matching Edge Functions. No returned rows means all checked snapshots
+-- Run this before and after deploying 20260916000000_normalize_registration_integrity_rules.sql
+-- and the matching Edge Functions. No returned rows means all checked snapshots
 -- and normalized rows agree. Run it only from the Supabase SQL editor or an
 -- administrator connection; its output may include registration data.
 
@@ -227,6 +227,27 @@ with legacy_migration_issues as (
      or actual.is_on_leave is distinct from expected.is_on_leave
      or actual.leave_submitted_at is distinct from expected.leave_submitted_at
      or actual.rejoined_at is distinct from expected.rejoined_at
+
+  union all
+
+  select
+    'registrations',
+    registration.id::text,
+    'registration_guest_count_mismatch',
+    jsonb_build_object(
+      'legacy_guest_count', registration.guest_count,
+      'normalized_guest_count', (
+        select count(*)::integer
+        from public.registration_guests as guest
+        where guest.registration_id = registration.id
+      )
+    )
+  from public.registrations as registration
+  where registration.guest_count is distinct from (
+    select count(*)::integer
+    from public.registration_guests as guest
+    where guest.registration_id = registration.id
+  )
 
   union all
 
