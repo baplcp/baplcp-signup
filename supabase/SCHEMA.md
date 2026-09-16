@@ -200,3 +200,5 @@ Roles:
 - `20260918000000_retire_legacy_collection_columns.sql`: verifies archive
   coverage, then removes legacy collection columns, fallback triggers, old
   indexes, and v2 RPCs.
+- `20260919000000_drop_member_pickup_summary_view.sql`: removes the unused
+  `member_pickup_summary` reporting view.
