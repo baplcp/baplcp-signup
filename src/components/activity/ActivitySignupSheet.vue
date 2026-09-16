@@ -112,7 +112,6 @@ defineExpose({
               </div>
             </div>
             <div class="guest-fields" aria-live="polite">
-              <p v-if="!isAdmin && signupState.guest > 2" class="guest-over-limit-notice">每人限帶 2 位優先報名，超過 2 位將依序遞補</p>
               <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
                 <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
                 <select
@@ -339,17 +338,6 @@ defineExpose({
 
 .guest-fields:empty {
   display: none;
-}
-
-.guest-over-limit-notice {
-  margin: 0;
-  padding: 8px 10px;
-  background: #fff7e6;
-  border: 1px solid #ffd591;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #ad6800;
-  line-height: 1.5;
 }
 
 .guest-row {

@@ -99,8 +99,6 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       return members.map(({ _ts, ...member }, index) => ({ ...member, status: index >= (activityData.value?.single_capacity ?? Infinity) ? '候補' : undefined }))
     }
 
-    const overflowGuests = []
-
     registrations.value.forEach(reg => {
       if (reg.self_count > 0) {
         const ts = reg.self_added_at || reg.created_at
@@ -108,18 +106,12 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       }
 
       ;(reg.guests || []).forEach((guest, guestIndex) => {
-        const entry = guestEntry(reg, guest, guestIndex)
-        if (guestIndex >= 2) {
-          overflowGuests.push(entry)
-        } else {
-          members.push(entry)
-        }
+        members.push(guestEntry(reg, guest, guestIndex))
       })
     })
 
     members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-    overflowGuests.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-    return [...members, ...overflowGuests].map(({ _ts, ...member }, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
+    return members.map(({ _ts, ...member }, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
   })
 
   const cancelledMemberList = computed(() => {

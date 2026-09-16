@@ -150,7 +150,6 @@ serve(async _req => {
         }
 
         const mainSlots: FlatSlot[] = []
-        const overflowSlots: FlatSlot[] = [] // guestIndex >= 2 的賓客排在最後（同前端）
 
         for (const reg of seasonRegs ?? []) {
           const dateStatus = seasonDateStatuses.get(reg.id)
@@ -168,7 +167,7 @@ serve(async _req => {
             mainSlots.push({ kind: 'pickup_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
           }
           const allGuests = guestsByRegistrationId.get(reg.id) || []
-          allGuests.forEach((guest, i) => {
+          allGuests.forEach(guest => {
             const slot: FlatSlot = {
               kind: 'guest',
               userId: reg.user_id,
@@ -176,16 +175,12 @@ serve(async _req => {
               ts: guest.joined_at || reg.created_at,
               guestData: { gender: guest.gender ?? undefined, name: guest.display_name ?? undefined },
             }
-            if (i >= 2) overflowSlots.push(slot)
-            else mainSlots.push(slot)
+            mainSlots.push(slot)
           })
         }
 
         mainSlots.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-        overflowSlots.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-
-        const allSlots = [...mainSlots, ...overflowSlots]
-        const confirmedSlots = totalCapacity > 0 ? allSlots.slice(0, totalCapacity) : allSlots
+        const confirmedSlots = totalCapacity > 0 ? mainSlots.slice(0, totalCapacity) : mainSlots
 
         // ── 重組 confirmedSeason / confirmedPickup ─────────────────
         const confirmedSeason: ConfirmedUser[] = []
