@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId, requireOrganizer } from '../_shared/function-utils.ts'
+import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
 
 const ACTIVITY_FIELDS = [
   'game_type',
@@ -37,6 +37,11 @@ const ACTIVITY_FIELDS = [
 
 const GAME_TYPES = ['season']
 const DEADLINE_TYPES = ['unlimited', 'custom']
+
+type OrganizerIdentity = {
+  userId: string | null
+  isDevAdmin: boolean
+}
 
 function isDateString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -144,7 +149,7 @@ function cleanActivityPayload(input: unknown) {
   return payload
 }
 
-async function resolveOrganizerIdentity(req: Request, origin: string) {
+async function resolveOrganizerIdentity(req: Request, origin: string): Promise<OrganizerIdentity> {
   const lineAccessToken = req.headers.get('x-line-access-token')
   if (lineAccessToken) {
     const profile = await getLineProfile(lineAccessToken)
@@ -156,6 +161,23 @@ async function resolveOrganizerIdentity(req: Request, origin: string) {
   }
 
   throw new Error('missing_line_token')
+}
+
+async function writeActivity(supabase: any, organizerIdentity: OrganizerIdentity, activityId: string | number | null, payload: Record<string, unknown>) {
+  const result = organizerIdentity.isDevAdmin
+    ? supabase.rpc('write_activity_v3', { p_activity_id: activityId, p_payload: payload }).single()
+    : supabase.rpc('write_activity_v4', { p_activity_id: activityId, p_organizer_user_id: organizerIdentity.userId, p_payload: payload }).single()
+  const { data, error } = await result
+  if (error) throw error
+  return data
+}
+
+async function deleteActivity(supabase: any, organizerIdentity: OrganizerIdentity, activityId: string | number) {
+  const result = organizerIdentity.isDevAdmin
+    ? supabase.from('activities').delete().eq('id', activityId)
+    : supabase.rpc('delete_activity_v1', { p_activity_id: activityId, p_organizer_user_id: organizerIdentity.userId })
+  const { error } = await result
+  if (error) throw error
 }
 
 serve(async req => {
@@ -178,12 +200,10 @@ serve(async req => {
     const body = await req.json()
     const action = body?.action
     const supabase = createClient(supabaseUrl, supabaseKey)
-    if (!organizerIdentity.isDevAdmin) await requireOrganizer(supabase, organizerIdentity.userId)
 
     if (action === 'create') {
       const payload = cleanActivityPayload(body?.payload)
-      const { data, error } = await supabase.rpc('write_activity_v3', { p_activity_id: null, p_payload: payload }).single()
-      if (error) throw error
+      const data = await writeActivity(supabase, organizerIdentity, null, payload)
       return jsonResponse({ data }, 200, origin)
     }
 
@@ -191,16 +211,14 @@ serve(async req => {
       const id = normalizeId(body?.id)
       if (!id) return jsonResponse({ error: 'invalid_activity_id' }, 400, origin)
       const payload = cleanActivityPayload(body?.payload)
-      const { data, error } = await supabase.rpc('write_activity_v3', { p_activity_id: id, p_payload: payload }).single()
-      if (error) throw error
+      const data = await writeActivity(supabase, organizerIdentity, id, payload)
       return jsonResponse({ data }, 200, origin)
     }
 
     if (action === 'delete') {
       const id = normalizeId(body?.id)
       if (!id) return jsonResponse({ error: 'invalid_activity_id' }, 400, origin)
-      const { error } = await supabase.from('activities').delete().eq('id', id)
-      if (error) throw error
+      await deleteActivity(supabase, organizerIdentity, id)
       return jsonResponse({ ok: true }, 200, origin)
     }
 

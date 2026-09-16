@@ -8,6 +8,7 @@ function corsHeaders(origin: string) {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '3600',
   }
 }
 

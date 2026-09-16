@@ -187,6 +187,14 @@ async function requireAdmin(supabase: any, profile: AdminLineProfile) {
   await requireOrganizer(supabase, profile.userId)
 }
 
+async function updateActivityAcEnabled(supabase: any, profile: AdminLineProfile, activityId: string | number, enabled: boolean) {
+  const result = profile.isDevAdmin
+    ? supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
+    : supabase.rpc('set_activity_ac_enabled_v1', { p_activity_id: activityId, p_organizer_user_id: profile.userId, p_enabled: enabled })
+  const { error } = await result
+  if (error) throw error
+}
+
 async function isAdminProfile(supabase: any, profile: AdminLineProfile): Promise<boolean> {
   if (profile.isDevAdmin) return true
   return isOrganizer(supabase, profile.userId)
@@ -533,11 +541,12 @@ serve(async req => {
     }
 
     if (action === 'admin-update-ac') {
-      await requireAdmin(supabase, profile)
       const enabled = body?.enabled
-      if (typeof enabled !== 'boolean') return jsonResponse({ error: 'invalid_enabled' }, 400, origin)
-      const { error } = await supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
-      if (error) throw error
+      if (typeof enabled !== 'boolean') {
+        await requireAdmin(supabase, profile)
+        return jsonResponse({ error: 'invalid_enabled' }, 400, origin)
+      }
+      await updateActivityAcEnabled(supabase, profile, activityId, enabled)
       return jsonResponse({ ok: true }, 200, origin)
     }
 

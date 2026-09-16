@@ -202,3 +202,8 @@ Roles:
   indexes, and v2 RPCs.
 - `20260919000000_drop_member_pickup_summary_view.sql`: removes the unused
   `member_pickup_summary` reporting view.
+- `20260920000000_authorize_activity_writes_in_rpc.sql`: moves organizer
+  authorization for activity create, update, and delete into service-role-only
+  RPCs so each production action uses one database request.
+- `20260921000000_authorize_activity_ac_update_in_rpc.sql`: moves organizer
+  authorization for the admin AC toggle into a service-role-only RPC.
