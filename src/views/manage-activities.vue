@@ -10,17 +10,27 @@ const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const activities = ref([])
 const isLoading = ref(true)
+const loadError = ref(false)
 
-onMounted(async () => {
-  await liffStore.initialize()
-  if (!isOrganizer.value) {
-    router.replace('/')
-    return
+async function loadActivities() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    await liffStore.initialize()
+    if (!isOrganizer.value) {
+      router.replace('/')
+      return
+    }
+
+    activities.value = await listManagedActivities()
+  } catch {
+    loadError.value = true
+  } finally {
+    isLoading.value = false
   }
+}
 
-  activities.value = await listManagedActivities()
-  isLoading.value = false
-})
+onMounted(loadActivities)
 
 // 左滑刪除
 const SWIPE_OPEN_WIDTH = 72
@@ -128,6 +138,11 @@ async function confirmDelete() {
 
     <p v-if="isLoading" class="hint">載入中…</p>
 
+    <div v-else-if="loadError" class="load-error" role="alert">
+      <p class="hint">無法載入球局資料，請確認網路後再試一次。</p>
+      <button class="retry-button" type="button" @click="loadActivities">重新載入</button>
+    </div>
+
     <template v-else>
       <p v-if="activities.length === 0" class="hint">尚無球局資料</p>
 
@@ -208,6 +223,22 @@ async function confirmDelete() {
   font-size: 14px;
   line-height: 1.5;
   color: var(--muted-soft);
+}
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.retry-button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .activity-list {

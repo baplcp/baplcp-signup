@@ -6,6 +6,7 @@ import { listSeasonActivitiesForRefund } from '~/services/activityService'
 const router = useRouter()
 const activities = ref([])
 const isLoading = ref(true)
+const loadError = ref(false)
 
 function formatDateRange(dates) {
   if (!dates || dates.length === 0) return '—'
@@ -21,10 +22,19 @@ function goToDetail(actId) {
   router.push({ name: 'season-refund-detail', params: { id: actId } })
 }
 
-onMounted(async () => {
-  activities.value = await listSeasonActivitiesForRefund()
-  isLoading.value = false
-})
+async function loadActivities() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    activities.value = await listSeasonActivitiesForRefund()
+  } catch {
+    loadError.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadActivities)
 </script>
 
 <template>
@@ -34,7 +44,7 @@ onMounted(async () => {
       <p class="page-sub">選擇球季查看成員請假與應退金額</p>
     </div>
 
-    <template v-if="!isLoading">
+    <template v-if="!isLoading && !loadError">
       <div v-if="activities.length > 0" class="activity-list">
         <button
           v-for="act in activities"
@@ -56,6 +66,10 @@ onMounted(async () => {
     </template>
 
     <p v-if="isLoading" class="loading-hint">載入中…</p>
+    <div v-else-if="loadError" class="load-error" role="alert">
+      <p class="loading-hint">無法載入季打資料，請確認網路後再試一次。</p>
+      <button class="retry-button" type="button" @click="loadActivities">重新載入</button>
+    </div>
   </main>
 </template>
 
@@ -133,5 +147,21 @@ onMounted(async () => {
   font-size: 14px;
   line-height: 1.5;
   color: var(--muted-soft);
+}
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.retry-button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

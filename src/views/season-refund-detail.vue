@@ -10,6 +10,7 @@ const activityId = Number(route.params.id)
 const activity = ref(null)
 const registrations = ref([])
 const isLoading = ref(true)
+const loadError = ref(false)
 const selectedQuarterIndex = ref(0)
 
 const QUARTER_DEFS = [
@@ -69,15 +70,24 @@ function avatarChar(name) {
   return name ? name.charAt(0) : '?'
 }
 
-onMounted(async () => {
-  const [act, regs] = await Promise.all([
-    getActivity(activityId),
-    listSeasonRegistrations(activityId),
-  ])
-  activity.value = act
-  registrations.value = regs
-  isLoading.value = false
-})
+async function loadRefundDetail() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    const [act, regs] = await Promise.all([
+      getActivity(activityId),
+      listSeasonRegistrations(activityId),
+    ])
+    activity.value = act
+    registrations.value = regs
+  } catch {
+    loadError.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadRefundDetail)
 </script>
 
 <template>
@@ -86,7 +96,7 @@ onMounted(async () => {
       <h1 class="page-title">{{ activity?.title || '季打退費' }}</h1>
     </div>
 
-    <template v-if="!isLoading">
+    <template v-if="!isLoading && !loadError">
       <div v-if="activeQuarters.length > 1" class="segment-tabs">
         <button
           v-for="(q, i) in activeQuarters"
@@ -124,6 +134,10 @@ onMounted(async () => {
     </template>
 
     <p v-if="isLoading" class="loading-hint">載入中…</p>
+    <div v-else-if="loadError" class="load-error" role="alert">
+      <p class="loading-hint">無法載入退費資料，請確認網路後再試一次。</p>
+      <button class="retry-button" type="button" @click="loadRefundDetail">重新載入</button>
+    </div>
   </main>
 </template>
 
@@ -270,5 +284,21 @@ onMounted(async () => {
   font-size: 14px;
   line-height: 1.5;
   color: var(--muted-soft);
+}
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.retry-button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>
