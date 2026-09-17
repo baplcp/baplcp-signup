@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { INPUT_LIMITS } from '~/config/inputLimits'
 
 defineProps({
   open: {
@@ -54,6 +55,10 @@ const GENDER_OPTIONS = [
 
 const closeButton = ref(null)
 const confirmButton = ref(null)
+
+function isGuestNameTooLong(name) {
+  return name.length > INPUT_LIMITS.guestName
+}
 
 defineExpose({
   focusClose: () => closeButton.value?.focus({ preventScroll: true }),
@@ -113,7 +118,22 @@ defineExpose({
             </div>
             <div class="guest-fields" aria-live="polite">
               <div v-for="(guest, index) in signupState.guests" :key="index" class="guest-row">
-                <input v-model="guest.name" class="guest-input" type="text" :name="`guest-name-${index + 1}`" placeholder="群外朋友姓名" :aria-label="`第 ${index + 1} 位群外朋友姓名`" />
+                <div class="guest-name-field">
+                  <input
+                    v-model="guest.name"
+                    class="guest-input"
+                    :class="{ 'is-error': isGuestNameTooLong(guest.name) }"
+                    type="text"
+                    :name="`guest-name-${index + 1}`"
+                    placeholder="群外朋友姓名"
+                    :maxlength="INPUT_LIMITS.guestName"
+                    :aria-label="`第 ${index + 1} 位群外朋友姓名`"
+                    :aria-describedby="`guest-name-limit-${index + 1}`"
+                    :aria-invalid="isGuestNameTooLong(guest.name)"
+                  />
+                  <p v-if="isGuestNameTooLong(guest.name)" :id="`guest-name-limit-${index + 1}`" class="guest-name-error" role="alert">姓名最多 {{ INPUT_LIMITS.guestName }} 字</p>
+                  <p v-else :id="`guest-name-limit-${index + 1}`" class="guest-name-limit">{{ guest.name.length }} / {{ INPUT_LIMITS.guestName }}</p>
+                </div>
                 <select
                   v-model="guest.gender"
                   class="guest-select"
@@ -133,7 +153,15 @@ defineExpose({
       </div>
       <div class="signup-sheet-footer">
         <p class="signup-count">共報名 {{ signupTotal }} 位</p>
-        <button ref="confirmButton" class="confirm-signup" type="button" :disabled="!(isRegistrationOpen || (isSeasonLeaveMode && signupState.guest === 0)) || isSubmitting || !isSignupChanged" @click="emit('submit')">確認報名</button>
+        <button
+          ref="confirmButton"
+          class="confirm-signup"
+          type="button"
+          :disabled="!(isRegistrationOpen || (isSeasonLeaveMode && signupState.guest === 0)) || isSubmitting || !isSignupChanged"
+          @click="emit('submit')"
+        >
+          確認報名
+        </button>
         <p v-if="registrationCountdown && !(isSeasonLeaveMode && signupState.guest === 0)" class="signup-countdown">{{ registrationCountdown }}</p>
         <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
       </div>
@@ -346,6 +374,11 @@ defineExpose({
   gap: 9px;
 }
 
+.guest-name-field {
+  display: grid;
+  gap: 4px;
+}
+
 .guest-input,
 .guest-select {
   width: 100%;
@@ -373,6 +406,27 @@ defineExpose({
 .guest-select.is-error {
   border-color: #d14343;
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}
+
+.guest-input.is-error {
+  border-color: #d14343;
+  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}
+
+.guest-name-limit,
+.guest-name-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.guest-name-limit {
+  color: #8f95b2;
+  text-align: right;
+}
+
+.guest-name-error {
+  color: #d14343;
 }
 
 .guest-select {

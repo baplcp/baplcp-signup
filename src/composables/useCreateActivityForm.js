@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from '~/config/inputLimits'
+
 export function createActivityFormDefaults() {
   return {
     gameType: 'season',
@@ -67,8 +69,9 @@ function parseDaysBefore(raw) {
 
 export function getActivityFormErrors(form, selectedDates, seasonEnabled) {
   const checks = [
-    { field: 'activityTitle', ok: form.activityTitle.trim() !== '' },
-    { field: 'location', ok: form.location.trim() !== '' },
+    { field: 'activityTitle', ok: form.activityTitle.trim() !== '' && form.activityTitle.length <= INPUT_LIMITS.activityTitle },
+    { field: 'location', ok: form.location.trim() !== '' && form.location.length <= INPUT_LIMITS.activityLocation },
+    { field: 'pickupLabel', ok: form.pickupLabel.length <= INPUT_LIMITS.pickupLabel },
     { field: 'activityDates', ok: selectedDates.value.length > 0 },
     { field: 'activityStartTime', ok: form.activityStartTime !== '' },
     { field: 'activityEndTime', ok: form.activityEndTime !== '' },

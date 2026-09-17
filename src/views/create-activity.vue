@@ -146,7 +146,7 @@ function validate() {
   if (!validateForm()) {
     openCreateDialog({
       title: '報名尚未完成',
-      copy: '有部分必填欄位尚未填寫，請確認標示的欄位後再送出。',
+      copy: '有部分欄位尚未填寫或超過字數限制，請確認標示的欄位後再送出。',
       buttonText: '確認',
       returnAfterClose: false,
     })

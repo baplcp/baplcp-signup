@@ -1,4 +1,5 @@
 <script setup>
+import { INPUT_LIMITS } from '~/config/inputLimits'
 import CreateActivityMoneyField from './CreateActivityMoneyField.vue'
 import CreateActivityTimeSelect from './CreateActivityTimeSelect.vue'
 
@@ -34,6 +35,10 @@ defineProps({
 })
 
 const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker'])
+
+function getTextFieldError(value, maxLength, requiredMessage, maxLengthMessage) {
+  return value.length > maxLength ? maxLengthMessage : requiredMessage
+}
 </script>
 
 <template>
@@ -43,12 +48,40 @@ const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker'])
 
     <label class="field">
       <span class="field-label">標題</span>
-      <input v-model="form.activityTitle" name="activityTitle" type="text" autocomplete="off" :class="{ 'is-error': isError('activityTitle') }" @input="emit('clear-error', 'activityTitle')" />
+      <input
+        v-model="form.activityTitle"
+        name="activityTitle"
+        type="text"
+        autocomplete="off"
+        :maxlength="INPUT_LIMITS.activityTitle"
+        :class="{ 'is-error': isError('activityTitle') }"
+        :aria-invalid="isError('activityTitle')"
+        aria-describedby="activity-title-limit"
+        @input="emit('clear-error', 'activityTitle')"
+      />
+      <p v-if="isError('activityTitle')" id="activity-title-limit" class="field-error" role="alert">
+        {{ getTextFieldError(form.activityTitle, INPUT_LIMITS.activityTitle, '請填寫標題', `標題最多 ${INPUT_LIMITS.activityTitle} 字`) }}
+      </p>
+      <p v-else id="activity-title-limit" class="field-limit">最多 {{ INPUT_LIMITS.activityTitle }} 字</p>
     </label>
 
     <label class="field">
       <span class="field-label">地點</span>
-      <input v-model="form.location" name="location" type="text" autocomplete="off" :class="{ 'is-error': isError('location') }" @input="emit('clear-error', 'location')" />
+      <input
+        v-model="form.location"
+        name="location"
+        type="text"
+        autocomplete="off"
+        :maxlength="INPUT_LIMITS.activityLocation"
+        :class="{ 'is-error': isError('location') }"
+        :aria-invalid="isError('location')"
+        aria-describedby="activity-location-limit"
+        @input="emit('clear-error', 'location')"
+      />
+      <p v-if="isError('location')" id="activity-location-limit" class="field-error" role="alert">
+        {{ getTextFieldError(form.location, INPUT_LIMITS.activityLocation, '請填寫地點', `地點最多 ${INPUT_LIMITS.activityLocation} 字`) }}
+      </p>
+      <p v-else id="activity-location-limit" class="field-limit">最多 {{ INPUT_LIMITS.activityLocation }} 字</p>
     </label>
 
     <div class="field">
@@ -205,6 +238,21 @@ const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker'])
   font-size: 13px;
   line-height: 1.35;
   font-weight: 400;
+}
+
+.field-limit,
+.field-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.field-limit {
+  color: var(--muted);
+}
+
+.field-error {
+  color: var(--danger-500);
 }
 
 .time-row {
