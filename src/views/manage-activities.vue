@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 import { deleteActivity, listManagedActivities } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
 
@@ -184,13 +185,15 @@ async function confirmDelete() {
       </button>
     </div>
 
-    <div
-      class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
-      :class="{ 'is-open': deleteTarget !== null }"
-      :aria-hidden="String(deleteTarget === null)"
-      :inert="deleteTarget === null"
+    <AccessibleDialog
+      :open="deleteTarget !== null"
+      title="確定刪除此球局？"
+      overlay-class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
+      content-class="confirm-dialog shared-dialog"
+      :close-on-outside="!isDeleting"
+      :close-on-escape="!isDeleting"
+      @close="cancelDelete"
     >
-      <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true">
         <h2 class="shared-dialog-title">確定刪除此球局？</h2>
         <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
         <p v-if="deleteError" class="delete-error" role="alert">刪除失敗，請確認網路後再試一次。</p>
@@ -198,8 +201,7 @@ async function confirmDelete() {
           {{ isDeleting ? '刪除中...' : '確認刪除' }}
         </button>
         <button class="confirm-cancel-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="cancelDelete">取消</button>
-      </section>
-    </div>
+    </AccessibleDialog>
   </main>
 </template>
 

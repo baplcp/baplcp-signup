@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 
 defineProps({
   open: {
@@ -62,61 +63,43 @@ defineExpose({ reset })
 </script>
 
 <template>
-  <div
-    class="plan-overlay phone-container modal-frame"
-    :class="{ 'is-open': open }"
-    :aria-hidden="String(!open)"
-    :inert="!open"
-  >
-    <button class="plan-backdrop" type="button" aria-label="關閉方案選擇" @click="emit('close')"></button>
-    <section class="plan-sheet" role="dialog" aria-modal="true" aria-labelledby="plan-sheet-title">
-      <div class="drag-handle" aria-hidden="true"></div>
-      <h2 id="plan-sheet-title" class="plan-title">選擇報名方案</h2>
+  <AccessibleDialog :open="open" title="選擇報名方案" overlay-class="plan-overlay phone-container modal-frame" content-class="plan-sheet" @close="emit('close')">
+    <div class="drag-handle" aria-hidden="true"></div>
+    <h2 id="plan-sheet-title" class="plan-title">選擇報名方案</h2>
 
-      <div class="plan-options">
-        <button
-          class="plan-card"
-          :class="{ 'is-selected': selectedPlan === 'quarter' }"
-          type="button"
-          @click="selectedPlan = 'quarter'"
-        >
-          <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'quarter' }" aria-hidden="true"></div>
-          <div class="plan-card-body">
-            <p class="plan-card-name">一季</p>
-            <p class="plan-card-meta">{{ quarterDateRange }}・{{ quarterCount }} 次</p>
-            <p class="plan-card-fee">${{ quarterFeePerSession.toLocaleString() }} / 次</p>
-          </div>
-          <div class="plan-card-total">
-            <p class="plan-card-price">${{ quarterTotal.toLocaleString() }}</p>
-            <p class="plan-card-unit">/人</p>
-          </div>
-        </button>
+    <div class="plan-options">
+      <button class="plan-card" :class="{ 'is-selected': selectedPlan === 'quarter' }" type="button" @click="selectedPlan = 'quarter'">
+        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'quarter' }" aria-hidden="true"></div>
+        <div class="plan-card-body">
+          <p class="plan-card-name">一季</p>
+          <p class="plan-card-meta">{{ quarterDateRange }}・{{ quarterCount }} 次</p>
+          <p class="plan-card-fee">${{ quarterFeePerSession.toLocaleString() }} / 次</p>
+        </div>
+        <div class="plan-card-total">
+          <p class="plan-card-price">${{ quarterTotal.toLocaleString() }}</p>
+          <p class="plan-card-unit">/人</p>
+        </div>
+      </button>
 
-        <button
-          class="plan-card"
-          :class="{ 'is-selected': selectedPlan === 'half-year' }"
-          type="button"
-          @click="selectedPlan = 'half-year'"
-        >
-          <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'half-year' }" aria-hidden="true"></div>
-          <div class="plan-card-body">
-            <p class="plan-card-name">半年</p>
-            <p class="plan-card-meta">{{ halfYearDateRange }}・{{ halfYearCount }} 次</p>
-            <p class="plan-card-fee">${{ halfYearFeePerSession.toLocaleString() }} / 次</p>
-          </div>
-          <div class="plan-card-total">
-            <p class="plan-card-price">${{ halfYearTotal.toLocaleString() }}</p>
-            <p class="plan-card-unit">/人</p>
-          </div>
-        </button>
-      </div>
+      <button class="plan-card" :class="{ 'is-selected': selectedPlan === 'half-year' }" type="button" @click="selectedPlan = 'half-year'">
+        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'half-year' }" aria-hidden="true"></div>
+        <div class="plan-card-body">
+          <p class="plan-card-name">半年</p>
+          <p class="plan-card-meta">{{ halfYearDateRange }}・{{ halfYearCount }} 次</p>
+          <p class="plan-card-fee">${{ halfYearFeePerSession.toLocaleString() }} / 次</p>
+        </div>
+        <div class="plan-card-total">
+          <p class="plan-card-price">${{ halfYearTotal.toLocaleString() }}</p>
+          <p class="plan-card-unit">/人</p>
+        </div>
+      </button>
+    </div>
 
-      <button class="plan-confirm" type="button" @click="confirm">確認報名</button>
-    </section>
-  </div>
+    <button class="plan-confirm" type="button" @click="confirm">確認報名</button>
+  </AccessibleDialog>
 </template>
 
-<style scoped>
+<style>
 .plan-overlay {
   position: fixed;
   overflow: hidden;
@@ -124,25 +107,15 @@ defineExpose({ reset })
   right: 0;
   margin: auto;
   z-index: 10003;
-  pointer-events: none;
-}
-
-.plan-overlay.is-open {
-  pointer-events: auto;
-}
-
-.plan-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.28s ease;
 }
 
-.plan-overlay.is-open .plan-backdrop {
+.plan-overlay.is-open {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .plan-sheet {

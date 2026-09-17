@@ -1,5 +1,6 @@
 <script setup>
 import ActivityAllDatesDialog from '~/components/activity/ActivityAllDatesDialog.vue'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 import ConfirmDialog from '~/components/activity/ConfirmDialog.vue'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivityMemberSubList from '~/components/activity/ActivityMemberSubList.vue'
@@ -119,20 +120,21 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       @submit="actions.submitSignup"
     />
 
-    <div
-      class="success-dialog-overlay shared-dialog-overlay"
-      :class="{ 'is-open': dialogs.successDialog.open }"
-      :aria-hidden="String(!dialogs.successDialog.open)"
-      :inert="!dialogs.successDialog.open"
+    <AccessibleDialog
+      :open="dialogs.successDialog.open"
+      :title="dialogs.successDialog.title"
+      overlay-class="success-dialog-overlay shared-dialog-overlay"
+      content-class="success-dialog shared-dialog"
+      :z-index="10000"
+      :close-on-outside="false"
+      @close="actions.closeSuccessDialog"
     >
-      <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
         <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ dialogs.successDialog.title }}</h2>
         <p class="success-dialog-copy shared-dialog-copy">{{ dialogs.successDialog.copy }}</p>
         <button :ref="elementRefs.successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="actions.handleDialogButtonClick">
           {{ dialogs.successDialog.buttonText }}
         </button>
-      </section>
-    </div>
+    </AccessibleDialog>
 
     <ConfirmDialog
       :open="dialogs.removeDialog.open"
@@ -177,22 +179,20 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
     />
 
     <!-- 取消季打報名確認 sheet -->
-    <div
-      class="season-cancel-overlay phone-container modal-frame"
-      :class="{ 'is-open': dialogs.seasonCancelOpen }"
-      :aria-hidden="String(!dialogs.seasonCancelOpen)"
-      :inert="!dialogs.seasonCancelOpen"
-      @click.self="dialogs.seasonCancelOpen = false"
+    <AccessibleDialog
+      :open="dialogs.seasonCancelOpen"
+      title="確認取消季打報名？"
+      overlay-class="season-cancel-overlay phone-container modal-frame"
+      content-class="season-cancel-sheet"
+      @close="dialogs.seasonCancelOpen = false"
     >
-      <section class="season-cancel-sheet" role="dialog" aria-modal="true">
         <p class="season-cancel-title">確認取消季打報名？</p>
         <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
         <div class="season-cancel-actions">
           <button class="season-cancel-btn is-muted" type="button" @click="dialogs.seasonCancelOpen = false">保留報名</button>
           <button class="season-cancel-btn is-danger" type="button" @click="actions.confirmSeasonCancel">確認取消</button>
         </div>
-      </section>
-    </div>
+    </AccessibleDialog>
 
     <ActivityAllDatesDialog
       :open="dialogs.showAllDatesDialog"
@@ -327,12 +327,6 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
   cursor: default;
 }
 
-.success-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-}
-
 .empty-member-hint {
   padding: 0 16px 80px;
   text-align: center;
@@ -445,65 +439,6 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
   color: #fff;
   font-size: 16px;
   font-weight: 600;
-}
-
-.season-cancel-overlay {
-  position: fixed;
-  z-index: 10002;
-  overflow: hidden;
-  margin: auto;
-  display: none;
-  align-items: flex-end;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.season-cancel-overlay.is-open {
-  display: flex;
-}
-
-.season-cancel-sheet {
-  width: 100%;
-  padding: 28px 20px 24px;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
-}
-
-.season-cancel-title {
-  margin: 0 0 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #101840;
-  line-height: 1.36;
-}
-
-.season-cancel-copy {
-  margin: 0 0 24px;
-  font-size: 14px;
-  color: #474d66;
-  line-height: 1.6;
-}
-
-.season-cancel-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.season-cancel-btn {
-  min-height: 48px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.season-cancel-btn.is-muted {
-  background: #f4f6fa;
-  color: #474d66;
-}
-
-.season-cancel-btn.is-danger {
-  background: #d14343;
-  color: #fff;
 }
 
 @media (min-width: 768px) {

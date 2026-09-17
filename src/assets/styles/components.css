@@ -58,3 +58,62 @@
   font-weight: 600;
   line-height: 1.4;
 }
+
+.season-cancel-overlay {
+  position: fixed;
+  z-index: 10002;
+  overflow: hidden;
+  margin: auto;
+  display: none;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.season-cancel-overlay.is-open {
+  display: flex;
+}
+
+.season-cancel-sheet {
+  width: 100%;
+  padding: 28px 20px 24px;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+}
+
+.season-cancel-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #101840;
+  line-height: 1.36;
+}
+
+.season-cancel-copy {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #474d66;
+  line-height: 1.6;
+}
+
+.season-cancel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.season-cancel-btn {
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.season-cancel-btn.is-muted {
+  background: #f4f6fa;
+  color: #474d66;
+}
+
+.season-cancel-btn.is-danger {
+  background: #d14343;
+  color: #fff;
+}

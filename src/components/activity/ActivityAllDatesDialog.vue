@@ -1,4 +1,5 @@
 <script setup>
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 import { getTaiwanWeekday } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
@@ -33,38 +34,36 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-  <div class="all-dates-overlay phone-container modal-frame" :class="{ 'is-open': open }" :aria-hidden="String(!open)" :inert="!open" @click.self="emit('close')">
-    <section class="all-dates-sheet" role="dialog" aria-modal="true" aria-labelledby="all-dates-title">
-      <div class="all-dates-header">
-        <h2 id="all-dates-title" class="all-dates-title">所有場次日期</h2>
-        <span v-if="quarterCount > 0 && quarterCount < sessionCount" class="all-dates-count">
-          <span class="count-quarter">{{ quarterCount }} 次</span>
-          <span class="count-sep">／</span>
-          <span class="count-half">半年 {{ sessionCount }} 次</span>
-        </span>
-        <span v-else class="all-dates-count">共 {{ sessionCount }} 次</span>
-      </div>
-      <div class="all-dates-list">
-        <template v-for="(date, index) in dates" :key="date">
-          <div v-if="quarterCount > 0 && index === quarterCount" class="all-dates-separator">
-            <span class="all-dates-separator-line"></span>
-            <span class="all-dates-separator-text">以下為半年打場次</span>
-            <span class="all-dates-separator-line"></span>
-          </div>
-          <div class="all-dates-row" :class="{ 'is-half-year': quarterCount > 0 && index >= quarterCount }">
-            <span class="all-dates-index">{{ index + 1 }}</span>
-            <span class="all-dates-label">{{ formatDate(date) }}</span>
-          </div>
-        </template>
-      </div>
-      <div class="all-dates-actions">
-        <button class="all-dates-close-btn" type="button" @click="emit('close')">關閉</button>
-      </div>
-    </section>
-  </div>
+  <AccessibleDialog :open="open" title="所有場次日期" overlay-class="all-dates-overlay phone-container modal-frame" content-class="all-dates-sheet" @close="emit('close')">
+    <div class="all-dates-header">
+      <h2 id="all-dates-title" class="all-dates-title">所有場次日期</h2>
+      <span v-if="quarterCount > 0 && quarterCount < sessionCount" class="all-dates-count">
+        <span class="count-quarter">{{ quarterCount }} 次</span>
+        <span class="count-sep">／</span>
+        <span class="count-half">半年 {{ sessionCount }} 次</span>
+      </span>
+      <span v-else class="all-dates-count">共 {{ sessionCount }} 次</span>
+    </div>
+    <div class="all-dates-list">
+      <template v-for="(date, index) in dates" :key="date">
+        <div v-if="quarterCount > 0 && index === quarterCount" class="all-dates-separator">
+          <span class="all-dates-separator-line"></span>
+          <span class="all-dates-separator-text">以下為半年打場次</span>
+          <span class="all-dates-separator-line"></span>
+        </div>
+        <div class="all-dates-row" :class="{ 'is-half-year': quarterCount > 0 && index >= quarterCount }">
+          <span class="all-dates-index">{{ index + 1 }}</span>
+          <span class="all-dates-label">{{ formatDate(date) }}</span>
+        </div>
+      </template>
+    </div>
+    <div class="all-dates-actions">
+      <button class="all-dates-close-btn" type="button" @click="emit('close')">關閉</button>
+    </div>
+  </AccessibleDialog>
 </template>
 
-<style scoped>
+<style>
 .all-dates-overlay {
   position: fixed;
   z-index: 10002;

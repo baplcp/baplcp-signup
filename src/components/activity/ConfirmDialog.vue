@@ -1,4 +1,6 @@
 <script setup>
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
+
 defineProps({
   open: {
     type: Boolean,
@@ -46,20 +48,17 @@ const emit = defineEmits(['cancel', 'confirm'])
 </script>
 
 <template>
-  <div class="confirm-dialog-overlay shared-dialog-overlay" :class="{ 'is-open': open }" :style="{ zIndex }" :aria-hidden="String(!open)" :inert="!open">
-    <button class="confirm-dialog-backdrop" type="button" :aria-label="cancelAriaLabel" @click="emit('cancel')"></button>
-    <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true" :aria-labelledby="dialogId">
-      <h2 :id="dialogId" class="confirm-dialog-title shared-dialog-title" :class="`is-${tone}`">{{ title }}</h2>
-      <p class="confirm-dialog-copy shared-dialog-copy">{{ copy }}</p>
-      <div class="confirm-dialog-actions">
-        <button type="button" class="confirm-dialog-cancel" @click="emit('cancel')">{{ cancelText }}</button>
-        <button :ref="confirmButtonRef" type="button" class="confirm-dialog-confirm" :class="`is-${tone}`" @click="emit('confirm')">{{ confirmText }}</button>
-      </div>
-    </section>
-  </div>
+  <AccessibleDialog :open="open" :title="title" overlay-class="confirm-dialog-overlay shared-dialog-overlay" content-class="confirm-dialog shared-dialog" :z-index="zIndex" @close="emit('cancel')">
+    <h2 :id="dialogId" class="confirm-dialog-title shared-dialog-title" :class="`is-${tone}`">{{ title }}</h2>
+    <p class="confirm-dialog-copy shared-dialog-copy">{{ copy }}</p>
+    <div class="confirm-dialog-actions">
+      <button type="button" class="confirm-dialog-cancel" @click="emit('cancel')">{{ cancelText }}</button>
+      <button :ref="confirmButtonRef" type="button" class="confirm-dialog-confirm" :class="`is-${tone}`" @click="emit('confirm')">{{ confirmText }}</button>
+    </div>
+  </AccessibleDialog>
 </template>
 
-<style scoped>
+<style>
 .confirm-dialog-overlay {
   position: fixed;
   inset: 0;

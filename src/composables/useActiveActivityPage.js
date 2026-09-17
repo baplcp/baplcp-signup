@@ -236,6 +236,7 @@ export function useActiveActivityPage() {
     handleCtaClick: signupFlow.handleCtaClick,
     handleSeasonPlanConfirm: signupFlow.handleSeasonPlanConfirm,
     confirmSeasonCancel: signupFlow.confirmSeasonCancel,
+    closeSuccessDialog: () => signupFlow.setSuccessDialogOpen(false),
     handleEscape,
   }
 

@@ -1,5 +1,6 @@
 <script setup>
 import { nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 
 const props = defineProps({
   open: {
@@ -120,98 +121,96 @@ function onTimeWheelScroll(event, key, values) {
 </script>
 
 <template>
-  <div class="time-overlay phone-container modal-frame" :class="{ 'is-open': open }" :aria-hidden="String(!open)" @click.self="emit('close')">
-    <section class="time-sheet" role="dialog" aria-modal="true" aria-labelledby="time-title">
-      <div class="time-header">
-        <h2 id="time-title" class="time-title">選擇時間</h2>
-        <button class="time-close" type="button" @click="commitTimePicker">完成</button>
-      </div>
-      <div class="time-wheels" aria-label="時間選擇器">
-        <div class="time-wheel-column">
-          <button class="time-wheel-arrow" type="button" aria-label="小時減少" @click="stepTime('hour', -1, hours)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <div :ref="el => (timeWheelRefs.hour.value = el)" class="time-wheel" aria-label="小時" @scroll.passive="onTimeWheelScroll($event, 'hour', hours)">
-            <button
-              v-for="hour in hours"
-              :key="`hour-${hour}`"
-              class="time-wheel-option"
-              :class="{ 'is-selected': pickerValue.hour === hour }"
-              type="button"
-              :data-value="hour"
-              @click="selectTimeValue('hour', hour)"
-            >
-              {{ hour }}
-            </button>
-          </div>
-          <button class="time-wheel-arrow" type="button" aria-label="小時增加" @click="stepTime('hour', 1, hours)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+  <AccessibleDialog :open="open" title="選擇時間" overlay-class="time-overlay phone-container modal-frame" content-class="time-sheet" @close="emit('close')">
+    <div class="time-header">
+      <h2 id="time-title" class="time-title">選擇時間</h2>
+      <button class="time-close" type="button" @click="commitTimePicker">完成</button>
+    </div>
+    <div class="time-wheels" aria-label="時間選擇器">
+      <div class="time-wheel-column">
+        <button class="time-wheel-arrow" type="button" aria-label="小時減少" @click="stepTime('hour', -1, hours)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div :ref="el => (timeWheelRefs.hour.value = el)" class="time-wheel" aria-label="小時" @scroll.passive="onTimeWheelScroll($event, 'hour', hours)">
+          <button
+            v-for="hour in hours"
+            :key="`hour-${hour}`"
+            class="time-wheel-option"
+            :class="{ 'is-selected': pickerValue.hour === hour }"
+            type="button"
+            :data-value="hour"
+            @click="selectTimeValue('hour', hour)"
+          >
+            {{ hour }}
           </button>
         </div>
-        <div class="time-wheel-column">
-          <button class="time-wheel-arrow" type="button" aria-label="分鐘減少" @click="stepTime('minute', -1, hourOnly ? minutesHourOnly : minutes)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', hourOnly ? minutesHourOnly : minutes)">
-            <button
-              v-for="minute in (hourOnly ? minutesHourOnly : minutes)"
-              :key="`minute-${minute}`"
-              class="time-wheel-option"
-              :class="{ 'is-selected': pickerValue.minute === minute }"
-              type="button"
-              :data-value="minute"
-              @click="selectTimeValue('minute', minute)"
-            >
-              {{ minute }}
-            </button>
-          </div>
-          <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, hourOnly ? minutesHourOnly : minutes)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+        <button class="time-wheel-arrow" type="button" aria-label="小時增加" @click="stepTime('hour', 1, hours)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="time-wheel-column">
+        <button class="time-wheel-arrow" type="button" aria-label="分鐘減少" @click="stepTime('minute', -1, hourOnly ? minutesHourOnly : minutes)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div :ref="el => (timeWheelRefs.minute.value = el)" class="time-wheel" aria-label="分鐘" @scroll.passive="onTimeWheelScroll($event, 'minute', hourOnly ? minutesHourOnly : minutes)">
+          <button
+            v-for="minute in hourOnly ? minutesHourOnly : minutes"
+            :key="`minute-${minute}`"
+            class="time-wheel-option"
+            :class="{ 'is-selected': pickerValue.minute === minute }"
+            type="button"
+            :data-value="minute"
+            @click="selectTimeValue('minute', minute)"
+          >
+            {{ minute }}
           </button>
         </div>
-        <div class="time-wheel-column">
-          <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', -1, periods)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
-          <div :ref="el => (timeWheelRefs.period.value = el)" class="time-wheel" aria-label="上午或下午" @scroll.passive="onTimeWheelScroll($event, 'period', periods)">
-            <button
-              v-for="period in periods"
-              :key="`period-${period}`"
-              class="time-wheel-option"
-              :class="{ 'is-selected': pickerValue.period === period }"
-              type="button"
-              :data-value="period"
-              @click="selectTimeValue('period', period)"
-            >
-              {{ period }}
-            </button>
-          </div>
-          <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', 1, periods)">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+        <button class="time-wheel-arrow" type="button" aria-label="分鐘增加" @click="stepTime('minute', 1, hourOnly ? minutesHourOnly : minutes)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="time-wheel-column">
+        <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', -1, periods)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 14L12 9L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div :ref="el => (timeWheelRefs.period.value = el)" class="time-wheel" aria-label="上午或下午" @scroll.passive="onTimeWheelScroll($event, 'period', periods)">
+          <button
+            v-for="period in periods"
+            :key="`period-${period}`"
+            class="time-wheel-option"
+            :class="{ 'is-selected': pickerValue.period === period }"
+            type="button"
+            :data-value="period"
+            @click="selectTimeValue('period', period)"
+          >
+            {{ period }}
           </button>
         </div>
+        <button class="time-wheel-arrow" type="button" aria-label="上午下午切換" @click="stepTime('period', 1, periods)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
-      <div class="time-actions">
-        <button class="time-action is-muted" type="button" @click="emit('close')">取消</button>
-        <button class="time-action is-primary" type="button" @click="commitTimePicker">完成</button>
-      </div>
-    </section>
-  </div>
+    </div>
+    <div class="time-actions">
+      <button class="time-action is-muted" type="button" @click="emit('close')">取消</button>
+      <button class="time-action is-primary" type="button" @click="commitTimePicker">完成</button>
+    </div>
+  </AccessibleDialog>
 </template>
 
-<style scoped>
+<style>
 .time-overlay {
   position: fixed;
   z-index: 20;
