@@ -147,7 +147,12 @@ export function useActiveActivityPage() {
       activityData.value = data
       acEnabled.value = data.ac_enabled ?? false
       acFeePerSession.value = data.ac_fee ?? 0
-      await fetchRegistrations()
+      try {
+        await fetchRegistrations()
+      } catch (error) {
+        // 球局資料已成功取得時，名單的附屬查詢失敗不應覆蓋整個頁面。
+        console.warn('Unable to load activity registrations', error)
+      }
       activityLoadState.value = 'ready'
       nowTickInterval = setInterval(() => {
         nowTick.value = new Date()
