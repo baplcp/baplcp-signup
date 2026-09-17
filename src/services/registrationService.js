@@ -217,8 +217,13 @@ export async function countPastParticipations(userId) {
   return pickupCount + seasonCount
 }
 
-export function subscribeToRegistrationChanges(onChange) {
-  return supabase.channel('registrations-live').on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, onChange).subscribe()
+export function subscribeToRegistrationChanges(activityId, onChange) {
+  if (!activityId) return null
+
+  return supabase
+    .channel(`registrations-live-${activityId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${activityId}` }, onChange)
+    .subscribe()
 }
 
 export function removeRegistrationSubscription(channel) {

@@ -20,6 +20,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   const myRegistration = ref(null)
   const mySeasonRegistration = ref(null)
   const memberGenders = ref({})
+  let latestFetchId = 0
 
   watch(
     () => liffStore.gender,
@@ -33,12 +34,16 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
 
     const active = data.filter(registration => registration.status === 'active')
     const cancelled = data.filter(registration => registration.status === 'cancelled')
-    registrations.value = active
-    cancelledRegistrations.value = cancelled
-    myRegistration.value = active.find(registration => registration.user_id === liffStore.userId) || null
-    seasonRegistrations.value = active
-    mySeasonRegistration.value = myRegistration.value
-    memberGenders.value = await mergeMemberGenders(active, liffStore)
+    const myRegistration = active.find(registration => registration.user_id === liffStore.userId) || null
+
+    return {
+      registrations: active,
+      cancelledRegistrations: cancelled,
+      seasonRegistrations: active,
+      myRegistration,
+      mySeasonRegistration: myRegistration,
+      memberGenders: await mergeMemberGenders(active, liffStore),
+    }
   }
 
   async function fetchPickupRegistrations(activityId) {
@@ -47,34 +52,45 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
 
     const data = await listPickupRegistrations(activityId, date, ['active', 'cancelled'])
     const active = data.filter(registration => registration.status === 'active')
-    registrations.value = active
-    cancelledRegistrations.value = data.filter(registration => registration.status === 'cancelled')
-    myRegistration.value = active.find(registration => registration.user_id === liffStore.userId) || null
-    memberGenders.value = await mergeMemberGenders(active, liffStore)
+    const myRegistration = active.find(registration => registration.user_id === liffStore.userId) || null
+    let genders = await mergeMemberGenders(active, liffStore)
 
     const seasonData = await listSeasonRegistrations(activityId)
-    seasonRegistrations.value = seasonData || []
-    mySeasonRegistration.value = seasonData?.find(registration => registration.user_id === liffStore.userId) || null
+    const seasonRegistrations = seasonData || []
+    const mySeasonRegistration = seasonRegistrations.find(registration => registration.user_id === liffStore.userId) || null
 
-    const seasonUserIds = [...new Set((seasonData || []).map(registration => registration.user_id))].filter(id => !(id in memberGenders.value))
-    if (!seasonUserIds.length) return
+    const seasonUserIds = [...new Set(seasonRegistrations.map(registration => registration.user_id))].filter(id => !(id in genders))
+    if (seasonUserIds.length) {
+      genders = {
+        ...genders,
+        ...(await getMemberGenderMap(seasonUserIds)),
+      }
+    }
 
-    memberGenders.value = {
-      ...memberGenders.value,
-      ...(await getMemberGenderMap(seasonUserIds)),
+    return {
+      registrations: active,
+      cancelledRegistrations: data.filter(registration => registration.status === 'cancelled'),
+      seasonRegistrations,
+      myRegistration,
+      mySeasonRegistration,
+      memberGenders: genders,
     }
   }
 
   async function fetchRegistrations() {
+    const fetchId = ++latestFetchId
     const activityId = getActivityId() || activityData.value?.id
     if (!activityId) return
 
-    if (activityType.value === 'season') {
-      await fetchSeasonRegistrations(activityId)
-      return
-    }
+    const nextState = activityType.value === 'season' ? await fetchSeasonRegistrations(activityId) : await fetchPickupRegistrations(activityId)
+    if (fetchId !== latestFetchId || !nextState) return
 
-    await fetchPickupRegistrations(activityId)
+    registrations.value = nextState.registrations
+    cancelledRegistrations.value = nextState.cancelledRegistrations
+    seasonRegistrations.value = nextState.seasonRegistrations
+    myRegistration.value = nextState.myRegistration
+    mySeasonRegistration.value = nextState.mySeasonRegistration
+    memberGenders.value = nextState.memberGenders
   }
 
   return {

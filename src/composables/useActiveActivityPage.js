@@ -470,6 +470,15 @@ export function useActiveActivityPage() {
 
   let nowTickInterval = null
   let realtimeChannel = null
+  let registrationRefreshTimer = null
+
+  function scheduleRegistrationRefresh() {
+    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    registrationRefreshTimer = setTimeout(() => {
+      registrationRefreshTimer = null
+      fetchRegistrations()
+    }, 200)
+  }
 
   onMounted(async () => {
     const id = route.query.id
@@ -490,13 +499,12 @@ export function useActiveActivityPage() {
     nowTickInterval = setInterval(() => {
       nowTick.value = new Date()
     }, 1000)
-    realtimeChannel = subscribeToRegistrationChanges(() => {
-      fetchRegistrations()
-    })
+    realtimeChannel = subscribeToRegistrationChanges(activityData.value?.id, scheduleRegistrationRefresh)
   })
 
   onUnmounted(() => {
     if (nowTickInterval) clearInterval(nowTickInterval)
+    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
     removeRegistrationSubscription(realtimeChannel)
   })
 
