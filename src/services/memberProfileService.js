@@ -3,7 +3,9 @@ import { supabase } from '~/utils/supabase'
 export async function getMemberGenderMap(userIds) {
   if (!userIds.length) return {}
 
-  const { data } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
+  const { data, error } = await supabase.from('members').select('user_id, gender').in('user_id', userIds)
+  if (error) throw error
+
   return data ? Object.fromEntries(data.map(member => [member.user_id, member.gender || null])) : {}
 }
 

@@ -1,14 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-
-const showComingSoon = ref(false)
-let comingSoonTimer = null
-
-function handleMyRecordClick() {
-  if (comingSoonTimer) clearTimeout(comingSoonTimer)
-  showComingSoon.value = true
-  comingSoonTimer = setTimeout(() => { showComingSoon.value = false }, 2500)
-}
+import { onMounted, onUnmounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
@@ -19,6 +10,9 @@ import { listHomeActivityCandidates } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
+
+const showComingSoon = ref(false)
+let comingSoonTimer = null
 
 const liffStore = useLiffStore()
 const latestActivityTo = ref('/group-list')
@@ -37,20 +31,22 @@ function isDateExpired(dateStr, endTime) {
   return now > end
 }
 
-onMounted(async () => {
-  const [data] = await Promise.all([
-    listHomeActivityCandidates(),
-    liffStore.initialize().then(() => countPastParticipations(liffStore.userId)).then(n => {
-      participationCount.value = n
-      participationLoading.value = false
-    }),
-  ])
+function handleMyRecordClick() {
+  if (comingSoonTimer) clearTimeout(comingSoonTimer)
+  showComingSoon.value = true
+  comingSoonTimer = setTimeout(() => {
+    showComingSoon.value = false
+    comingSoonTimer = null
+  }, 2500)
+}
 
-  if (data && data.length > 0) {
+async function loadLatestActivity() {
+  try {
+    const activities = await listHomeActivityCandidates()
     let nearestDate = null
     let nearestActivity = null
 
-    for (const activity of data) {
+    for (const activity of activities) {
       const sorted = (activity.dates || []).slice().sort()
       const candidate = sorted.find(d => !isDateExpired(d, activity.end_time))
       if (candidate && (!nearestDate || candidate < nearestDate)) {
@@ -62,7 +58,29 @@ onMounted(async () => {
     if (nearestDate && nearestActivity) {
       latestActivityTo.value = `/active-activity?id=${nearestActivity.id}&date=${nearestDate}&type=latest`
     }
+  } catch (error) {
+    console.warn('Unable to load the latest activity', error)
   }
+}
+
+async function loadParticipationCount() {
+  try {
+    await liffStore.initialize()
+    participationCount.value = await countPastParticipations(liffStore.userId)
+  } catch (error) {
+    console.warn('Unable to load participation count', error)
+  } finally {
+    participationLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadLatestActivity()
+  void loadParticipationCount()
+})
+
+onUnmounted(() => {
+  if (comingSoonTimer) clearTimeout(comingSoonTimer)
 })
 
 const faqs = [
