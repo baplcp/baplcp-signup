@@ -1,0 +1,33 @@
+/* 跨頁版型原語：行動優先的手機容器與彈窗邊界。 */
+.phone-container {
+  width: 100%;
+}
+
+.modal-frame {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+}
+
+.app-version-note {
+  margin-top: 18px;
+  color: #7a84a7;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 768px) {
+  .phone-container {
+    width: 24.375rem;
+  }
+
+  .modal-frame {
+    top: 24px;
+    bottom: 24px;
+    border-radius: 24px;
+  }
+}

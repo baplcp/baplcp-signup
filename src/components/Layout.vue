@@ -94,7 +94,7 @@ watch(
 </script>
 
 <template>
-  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl">
+  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container">
     <header v-if="isShowSimpleHeader" class="simple-header">
       <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -109,7 +109,7 @@ watch(
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink to="/" class="brand mr-auto" aria-label="回到首頁 BAPLCP"></RouterLink>
+      <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <span id="nav-extra"></span>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -117,7 +117,7 @@ watch(
         </svg>
       </button>
 
-      <div class="menu-overlay h-screen md:h-[calc(100vh-48px)]" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
+      <div class="menu-overlay" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
         <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
@@ -268,9 +268,12 @@ watch(
 
 <style>
 .layout {
+  height: 100vh;
   box-shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
   background: var(--surface);
   -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
   overflow-anchor: none;
   overscroll-behavior-y: none;
@@ -341,6 +344,7 @@ watch(
   height: 22px;
   background: url('/images/logo-white.svg') center/contain no-repeat;
   flex: 0 0 auto;
+  margin-right: auto;
   transition: filter 0.25s ease;
 }
 
@@ -382,6 +386,7 @@ watch(
   position: absolute;
   inset: 0;
   z-index: 40;
+  height: 100vh;
   pointer-events: none;
 }
 
@@ -701,6 +706,17 @@ watch(
 
   .drawer-section {
     padding-right: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .layout {
+    height: calc(100vh - 48px);
+    border-radius: 24px;
+  }
+
+  .menu-overlay {
+    height: calc(100vh - 48px);
   }
 }
 </style>
