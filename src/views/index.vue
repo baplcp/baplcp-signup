@@ -18,6 +18,7 @@ import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { listHomeActivityCandidates } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
+import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const liffStore = useLiffStore()
 const latestActivityTo = ref('/group-list')
@@ -28,12 +29,11 @@ const now = new Date()
 
 function isDateExpired(dateStr, endTime) {
   if (!endTime) {
-    const todayStr = now.toISOString().split('T')[0]
+    const todayStr = getTaiwanDateString(now)
     return dateStr < todayStr
   }
-  const [hours, minutes] = endTime.split(':').map(Number)
-  const end = new Date(dateStr + 'T00:00:00')
-  end.setHours(hours + 1, minutes, 0, 0)
+  const end = parseTaiwanDateTime(dateStr, endTime)
+  end.setUTCHours(end.getUTCHours() + 1)
   return now > end
 }
 

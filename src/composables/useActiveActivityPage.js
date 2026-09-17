@@ -7,6 +7,7 @@ import { fetchActivityDetail } from '~/services/activityService'
 import { invokeRegistrationAction, removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { startLineOAuth } from '~/utils/lineOAuth'
+import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 function toGuestForm(guests = []) {
   return guests.map(g => ({ name: g.name || '', gender: g.gender || '', added_at: g.added_at || null }))
@@ -58,7 +59,7 @@ export function useActiveActivityPage() {
   const resolvedDate = computed(() => {
     if (route.query.date) return route.query.date
     if (!activityData.value?.dates) return null
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTaiwanDateString()
     const sorted = activityData.value.dates.slice().sort()
     return sorted.find(date => date >= today) || sorted[sorted.length - 1] || null
   })

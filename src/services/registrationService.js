@@ -1,6 +1,7 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
 import { fetchActivityDateId, fetchActivityDates, fetchActivityDatesByIds, fetchActivityDatesInRange } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
+import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
@@ -171,7 +172,7 @@ const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
 
 export async function countPastParticipations(userId) {
   if (!userId) return 0
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTaiwanDateString()
   const pastActivityDates = await fetchActivityDatesInRange(PARTICIPATION_COUNT_START_DATE, today)
   const pastActivityDateIds = pastActivityDates.map(activityDate => activityDate.id)
 

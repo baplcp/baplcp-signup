@@ -1,6 +1,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { listGroupActivities } from '~/services/activityService'
 import { listRegistrationsForActivitySpots, listRegistrationsForLatestSpots } from '~/services/registrationService'
+import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
@@ -31,13 +32,12 @@ function formatDateRow(dateStr, startTime, endTime) {
 
 function isDateExpired(dateStr, endTime, now) {
   if (!endTime) {
-    const todayStr = now.toISOString().split('T')[0]
+    const todayStr = getTaiwanDateString(now)
     return dateStr < todayStr
   }
 
-  const [hours, minutes] = endTime.split(':').map(Number)
-  const end = new Date(dateStr + 'T00:00:00')
-  end.setHours(hours + 1, minutes, 0, 0)
+  const end = parseTaiwanDateTime(dateStr, endTime)
+  end.setUTCHours(end.getUTCHours() + 1)
   return now > end
 }
 
