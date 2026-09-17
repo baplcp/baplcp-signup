@@ -1,4 +1,6 @@
 <script setup>
+import { getTaiwanWeekday } from '~/utils/taiwanDate'
+
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 defineProps({
@@ -25,7 +27,7 @@ const emit = defineEmits(['close'])
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const [, month, day] = dateStr.split('-')
-  const weekday = WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+  const weekday = WEEKDAYS[getTaiwanWeekday(dateStr)]
   return `${Number(month)} 月 ${Number(day)} 日（${weekday}）`
 }
 </script>

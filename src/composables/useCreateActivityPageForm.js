@@ -1,13 +1,15 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { createActivityFormDefaults, getActivityFormErrors } from './useCreateActivityForm'
-import { formatDate, formatDateLabel } from './useCreateActivityCalendar'
+import { formatDateLabel } from './useCreateActivityCalendar'
+import { addTaiwanDays, formatTaiwanDate, parseTaiwanDate } from '~/utils/taiwanDate'
 
 function getQuarterSessionCount(dates) {
   const sortedDates = [...new Set(dates)].sort()
   if (!sortedDates.length) return 0
 
-  const [year, month] = sortedDates[0].split('-').map(Number)
-  const cutoff = new Date(Date.UTC(year, month + 2, 1)).toISOString().slice(0, 10)
+  const cutoffDate = parseTaiwanDate(sortedDates[0])
+  cutoffDate.setUTCMonth(cutoffDate.getUTCMonth() + 3, 1)
+  const cutoff = formatTaiwanDate(cutoffDate)
   return sortedDates.filter(date => date < cutoff).length
 }
 
@@ -61,9 +63,7 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
       isSeasonDisabledNoteAlert.value = false
 
       if (dates.length > 0) {
-        const earliest = new Date(dates[0])
-        earliest.setDate(earliest.getDate() - 30)
-        form.seasonOpenDate = formatDate(earliest)
+        form.seasonOpenDate = addTaiwanDays(dates[0], -30)
         clearError('seasonOpenDate')
       }
 

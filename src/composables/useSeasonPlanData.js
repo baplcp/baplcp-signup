@@ -1,21 +1,20 @@
 import { computed } from 'vue'
+import { parseTaiwanDate } from '~/utils/taiwanDate'
 
 function monthRange(dates) {
   if (!dates.length) return ''
-  const first = new Date(dates[0])
-  const last = new Date(dates[dates.length - 1])
-  const firstMonth = `${first.getMonth() + 1}月`
-  const lastMonth = `${last.getMonth() + 1}月`
-  return firstMonth === lastMonth ? firstMonth : `${first.getMonth() + 1}-${last.getMonth() + 1}月`
+  const firstMonth = parseTaiwanDate(dates[0]).getUTCMonth() + 1
+  const lastMonth = parseTaiwanDate(dates[dates.length - 1]).getUTCMonth() + 1
+  return firstMonth === lastMonth ? `${firstMonth}月` : `${firstMonth}-${lastMonth}月`
 }
 
 export function useSeasonPlanData(activityData) {
   return computed(() => {
     const dates = [...(activityData.value?.dates || [])].sort()
     if (!dates.length) return { quarterCount: 0, quarterDateRange: '', quarterTotal: 0, quarterFeePerSession: 0, halfYearCount: 0, halfYearDateRange: '', halfYearTotal: 0, halfYearFeePerSession: 0 }
-    const first = new Date(dates[0])
-    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
-    const quarterDates = dates.filter(date => new Date(date) < cutoff)
+    const cutoff = parseTaiwanDate(dates[0])
+    cutoff.setUTCMonth(cutoff.getUTCMonth() + 3, 1)
+    const quarterDates = dates.filter(date => parseTaiwanDate(date) < cutoff)
     return {
       quarterCount: quarterDates.length,
       quarterDateRange: monthRange(quarterDates),

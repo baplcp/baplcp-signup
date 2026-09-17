@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { addTaiwanDays, getTaiwanWeekday, parseTaiwanDate, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -36,7 +37,7 @@ export function useActiveActivityViewModels({
     const [, month, day] = resolvedDate.value.split('-')
     return `${Number(month)}.${day}`
   })
-  const summaryWeekday = computed(() => (resolvedDate.value ? WEEKDAYS[new Date(resolvedDate.value + 'T00:00:00').getDay()] : '—'))
+  const summaryWeekday = computed(() => (resolvedDate.value ? WEEKDAYS[getTaiwanWeekday(resolvedDate.value)] : '—'))
   const summaryTime = computed(() => {
     if (!activityData.value) return '—'
     const fmt = time => (time || '').replace(/^0/, '').slice(0, 5)
@@ -49,9 +50,9 @@ export function useActiveActivityViewModels({
   const seasonQuarterSessionCount = computed(() => {
     const dates = [...(activityData.value?.dates || [])].sort()
     if (!dates.length) return 0
-    const first = new Date(dates[0])
-    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
-    return dates.filter(d => new Date(d) < cutoff).length
+    const cutoff = parseTaiwanDate(dates[0])
+    cutoff.setUTCMonth(cutoff.getUTCMonth() + 3, 1)
+    return dates.filter(date => parseTaiwanDate(date) < cutoff).length
   })
 
   const seasonDisplaySessionCount = computed(() => {
@@ -74,22 +75,16 @@ export function useActiveActivityViewModels({
     if (!activity) return null
     if (activityType.value === 'season') {
       if (!activity.season_open_date || !activity.season_open_time) return null
-      const [year, month, day] = activity.season_open_date.split('-').map(Number)
-      const [hour, minute] = activity.season_open_time.split(':').map(Number)
-      return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, 0))
+      return parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)
     }
     if (!resolvedDate.value || activity.pickup_open_days_before == null || !activity.pickup_open_time) return null
-    const [year, month, day] = resolvedDate.value.split('-').map(Number)
-    const [hour, minute] = activity.pickup_open_time.split(':').map(Number)
-    return new Date(Date.UTC(year, month - 1, day - activity.pickup_open_days_before, hour - 8, minute, 0))
+    return parseTaiwanDateTime(addTaiwanDays(resolvedDate.value, -activity.pickup_open_days_before), activity.pickup_open_time)
   })
 
   const registrationCloseAt = computed(() => {
     const activity = activityData.value
     if (!activity || activityType.value !== 'season' || !activity.season_close_date || !activity.season_close_time) return null
-    const [year, month, day] = activity.season_close_date.split('-').map(Number)
-    const [hour, minute] = activity.season_close_time.split(':').map(Number)
-    return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, 0))
+    return parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)
   })
 
   const isSeasonRegistrationClosed = computed(() => (registrationCloseAt.value ? nowTick.value >= registrationCloseAt.value : false))

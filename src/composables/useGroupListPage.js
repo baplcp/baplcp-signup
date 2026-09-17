@@ -1,7 +1,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { listGroupActivities } from '~/services/activityService'
 import { listRegistrationsForActivitySpots, listRegistrationsForLatestSpots } from '~/services/registrationService'
-import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
@@ -17,7 +17,7 @@ export const groupListSegmentTabs = [
 
 export function formatGroupDateLabel(dateStr) {
   const [, month, day] = dateStr.split('-')
-  const weekday = WEEKDAYS[new Date(dateStr + 'T00:00:00').getDay()]
+  const weekday = WEEKDAYS[getTaiwanWeekday(dateStr)]
   return `${Number(month)}.${day} (${weekday})`
 }
 

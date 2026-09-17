@@ -21,6 +21,28 @@ export function getTaiwanDateString(date = new Date()) {
   return `${year}-${month}-${day}`
 }
 
+export function parseTaiwanDate(dateString) {
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day))
+}
+
+export function formatTaiwanDate(date) {
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function addTaiwanDays(dateString, days) {
+  const date = parseTaiwanDate(dateString)
+  date.setUTCDate(date.getUTCDate() + days)
+  return formatTaiwanDate(date)
+}
+
+export function getTaiwanWeekday(dateString) {
+  return parseTaiwanDate(dateString).getUTCDay()
+}
+
 export function parseTaiwanDateTime(dateString, timeString) {
   const [year, month, day] = dateString.split('-').map(Number)
   const [hour, minute, second = 0] = timeString.split(':').map(Number)

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { addTaiwanDays, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDate } from '~/utils/taiwanDate'
 import CreateActivityChoiceCard from './CreateActivityChoiceCard.vue'
 import CreateActivityTimeSelect from './CreateActivityTimeSelect.vue'
 
@@ -56,16 +57,15 @@ const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 function calcNextDateHint(daysBefore, timeStr) {
   if (daysBefore === null || !timeStr || !props.selectedDates.length) return null
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = parseTaiwanDate(getTaiwanDateString())
 
   const sorted = [...props.selectedDates].sort()
 
   for (const dateStr of sorted) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    const target = new Date(y, m - 1, d - daysBefore)
+    const targetDate = addTaiwanDays(dateStr, -daysBefore)
+    const target = parseTaiwanDate(targetDate)
     if (target >= today) {
-      return `${target.getMonth() + 1}月${target.getDate()}日（週${WEEKDAY_LABELS[target.getDay()]}）${timeStr}`
+      return `${target.getUTCMonth() + 1}月${target.getUTCDate()}日（週${WEEKDAY_LABELS[getTaiwanWeekday(targetDate)]}）${timeStr}`
     }
   }
   return null
