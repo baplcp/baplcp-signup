@@ -1,12 +1,8 @@
 import type { LineProfile } from '../_shared/function-utils.ts'
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
+import { parseSaveRegistrationInput, parseSeasonLeaveInput } from '../_shared/input-validation.ts'
 import { findRegistration, getActivityForRegistration, setSeasonRegistrationDateStatus, writeRegistration, writeRegistrationWithRetry, type Registration } from './registrationRepository.ts'
-
-type GuestInput = {
-  name?: string
-  gender?: string
-}
 
 export type RegistrationCommandContext = {
   supabase: any
@@ -18,24 +14,6 @@ export type RegistrationCommandContext = {
 }
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
-
-function isDateString(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-}
-
-function normalizeGuests(value: unknown, count: number, maxCount = 6): Array<{ name: string; gender: string }> {
-  if (!Array.isArray(value)) throw new Error('invalid_guests')
-  if (!Number.isInteger(count) || count < 0 || count > maxCount) throw new Error('invalid_guest_count')
-  if (value.length < count) throw new Error('guest_count_mismatch')
-  return value.slice(0, count).map((guest: GuestInput) => {
-    const name = String(guest?.name ?? '')
-      .trim()
-      .slice(0, 40)
-    const gender = String(guest?.gender ?? '')
-    if (gender !== 'male' && gender !== 'female') throw new Error('invalid_guest_gender')
-    return { name, gender }
-  })
-}
 
 function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>, previousGuests: Array<{ added_at?: string }> | null | undefined, submitTime: string) {
   return guests.map((guest, index) => ({
@@ -125,13 +103,8 @@ function assertRegistrationWindow(activity: Registration, activityDate: string |
 
 export async function saveRegistration(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, profile, activityId, submitTime, now, isAdmin } = context
-  const activityDate = body.activityDate === null ? null : body.activityDate
-  if (activityDate !== null && !isDateString(activityDate)) return { error: 'invalid_activity_date', status: 400 }
-
-  const selfCount = Number(body.selfCount ?? 0)
-  const guestCount = Number(body.guestCount ?? 0)
-  if (![0, 1].includes(selfCount)) return { error: 'invalid_self_count', status: 400 }
-  const normalizedGuests = normalizeGuests(body.guests, guestCount, isAdmin ? Infinity : 6)
+  const { activityDate, selfCount, guestCount, guests } = parseSaveRegistrationInput(body, isAdmin ? 100 : 6)
+  const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   if (activityDate === null) assertSeasonEnabled(activity)
 
@@ -167,13 +140,8 @@ export async function saveRegistration(context: RegistrationCommandContext, body
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, profile, activityId, submitTime, now, isAdmin } = context
-  const activityDate = body.activityDate
-  if (!isDateString(activityDate)) return { error: 'invalid_activity_date', status: 400 }
-
-  const selfCount = Number(body.selfCount ?? 0)
-  const guestCount = Number(body.guestCount ?? 0)
-  if (![0, 1].includes(selfCount)) return { error: 'invalid_self_count', status: 400 }
-  const normalizedGuests = normalizeGuests(body.guests, guestCount, isAdmin ? Infinity : 6)
+  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? 100 : 6)
+  const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
   if (guestCount > 0) assertRegistrationWindow(activity, activityDate, now, isAdmin)
