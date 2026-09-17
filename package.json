@@ -22,16 +22,16 @@
   },
   "homepage": "https://github.com/baplcp/baplcp-signup#readme",
   "dependencies": {
-    "@line/liff": "^2.29.0",
+    "@line/liff": "^2.29.2",
     "@supabase/supabase-js": "^2.103.3",
-    "@vitejs/plugin-vue": "^6.0.6",
+    "@vitejs/plugin-vue": "^6.0.9",
     "pinia": "^3.0.4",
-    "prettier": "^3.8.3",
-    "vite": "^8.0.8",
-    "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "prettier": "^3.8.5",
+    "vite": "^8.0.16",
+    "vue": "^3.5.42",
+    "vue-router": "^5.0.7"
   },
   "devDependencies": {
-    "vite-plugin-vue-devtools": "^8.1.2"
+    "vite-plugin-vue-devtools": "^8.1.5"
   }
 }
