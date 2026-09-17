@@ -18,6 +18,7 @@ const liffStore = useLiffStore()
 const latestActivityTo = ref('/group-list')
 const participationCount = ref(0)
 const participationLoading = ref(true)
+const imagesBaseUrl = import.meta.env.BASE_URL + 'images/'
 
 const now = new Date()
 
@@ -114,13 +115,13 @@ const infoCards = [
   {
     title: '球局列表',
     subtitle: '各週人員名單',
-    imageSrc: import.meta.env.BASE_URL + '/images/card-party.png',
+    imageSrc: imagesBaseUrl + 'card-party.png',
     to: '/group-list',
   },
   {
     title: '我的紀錄',
     subtitle: '報名與請假',
-    imageSrc: import.meta.env.BASE_URL + '/images/card-calendar.png',
+    imageSrc: imagesBaseUrl + 'card-calendar.png',
     pending: true,
   },
 ]
@@ -128,23 +129,23 @@ const infoCards = [
 const utilityItems = [
   {
     label: '球局列表',
-    imageSrc: import.meta.env.BASE_URL + 'images/Registration list.png',
+    imageSrc: imagesBaseUrl + 'Registration list.png',
     to: '/group-list',
   },
   {
     label: '季打報名',
-    imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
+    imageSrc: imagesBaseUrl + 'ball.png',
     to: '/season-list',
   },
   {
     label: '打球影片',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-video.png',
+    imageSrc: imagesBaseUrl + 'icon-video.png',
     href: 'https://www.youtube.com/@okayder',
     external: true,
   },
   {
     label: '贊助胖貓貓',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
+    imageSrc: imagesBaseUrl + 'icon-donate.png',
     href: 'https://store.line.me/stickershop/product/30532466/',
     external: true,
     warm: true,

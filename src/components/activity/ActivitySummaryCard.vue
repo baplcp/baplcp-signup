@@ -85,6 +85,8 @@ const emit = defineEmits(['update:acEnabled', 'view-dates'])
 const showDropdown = ref(false)
 const acToggleRef = ref(null)
 const dropdownStyle = ref({})
+const moneyIcon = import.meta.env.BASE_URL + 'images/money-icon.png'
+const airconditionerIcon = import.meta.env.BASE_URL + 'images/airconditioner-icon.png'
 
 function updateDropdownPosition() {
   if (!acToggleRef.value) return
@@ -156,8 +158,8 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
       </p>
       <div class="summary-fee activity-summary-fee" :aria-label="feeAriaLabel">
         <div v-if="isAdmin" class="ac-control" @click.stop="toggleDropdown">
-          <img class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-          <img v-if="acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+          <img class="summary-fee-money activity-summary-fee-money" :src="moneyIcon" alt="" aria-hidden="true" />
+          <img v-if="acEnabled" class="summary-fee-air activity-summary-fee-air" :src="airconditionerIcon" alt="" aria-hidden="true" />
           <button ref="acToggleRef" class="ac-toggle-btn" type="button" :aria-label="acEnabled ? '已開冷氣，點擊更改' : '未開冷氣，點擊更改'" aria-haspopup="menu" :aria-expanded="showDropdown">
             <svg class="ac-chevron" :class="{ 'is-open': showDropdown }" viewBox="0 0 12 8" fill="none" aria-hidden="true">
               <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -170,8 +172,8 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
             </div>
           </Teleport>
         </div>
-        <img v-else class="summary-fee-money activity-summary-fee-money" src="/images/money-icon.png" alt="" aria-hidden="true" />
-        <img v-if="!isAdmin && acEnabled" class="summary-fee-air activity-summary-fee-air" src="/images/airconditioner-icon.png" alt="" aria-hidden="true" />
+        <img v-else class="summary-fee-money activity-summary-fee-money" :src="moneyIcon" alt="" aria-hidden="true" />
+        <img v-if="!isAdmin && acEnabled" class="summary-fee-air activity-summary-fee-air" :src="airconditionerIcon" alt="" aria-hidden="true" />
         <template v-if="isLoading">
           <span class="summary-skel summary-skel-fee" aria-hidden="true"></span>
         </template>
