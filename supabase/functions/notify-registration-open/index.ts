@@ -1,18 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchActiveActivityDates, groupActivityDatesByActivityId } from '../_shared/normalized-collection-data.ts'
-
-// Taiwan is UTC+8, no DST — all time arithmetic uses fixed +8 offset
-function getSeasonOpenAt(openDateStr: string, openTimeStr: string): Date {
-  const [y, mo, d] = openDateStr.split('-').map(Number)
-  const [h, m] = openTimeStr.split(':').map(Number)
-  return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
-}
+import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 
 function getPickupOpenAt(activityDateStr: string, openDaysBefore: number, openTimeStr: string): Date {
-  const [y, mo, d] = activityDateStr.split('-').map(Number)
-  const [h, m] = openTimeStr.split(':').map(Number)
-  return new Date(Date.UTC(y, mo - 1, d - openDaysBefore, h - 8, m, 0))
+  return parseTaiwanDateTime(addTaiwanDays(activityDateStr, -openDaysBefore), openTimeStr)
 }
 
 // 檢查時間是否落在「now+4min ~ now+5min」窗口內（避免每分鐘重複通知）
@@ -187,7 +179,7 @@ serve(async _req => {
 
       // 季打報名通知
       if (activity.season_enabled && activity.season_open_date && activity.season_open_time) {
-        const openAt = getSeasonOpenAt(activity.season_open_date, activity.season_open_time)
+        const openAt = parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)
         if (isInNotifyWindow(openAt, now)) {
           notifications.push({
             id: activity.id,

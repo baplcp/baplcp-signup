@@ -1,21 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchActiveActivityDates, fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses, groupActivityDatesByActivityId } from '../_shared/normalized-collection-data.ts'
-
-function getTaiwanNow(): { date: string; hour: number } {
-  const now = new Date()
-  const tw = new Date(now.getTime() + 8 * 60 * 60 * 1000)
-  const y = tw.getUTCFullYear()
-  const m = String(tw.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(tw.getUTCDate()).padStart(2, '0')
-  return { date: `${y}-${m}-${d}`, hour: tw.getUTCHours() }
-}
-
-function addDays(dateStr: string, days: number): string {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d + days))
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
-}
+import { addTaiwanDays, getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
 
 async function pushMessage(token: string, groupId: string, message: Record<string, unknown>): Promise<void> {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -80,7 +66,7 @@ serve(async _req => {
     if (!lineToken || !lineGroupId) return new Response('Missing LINE config', { status: 500 })
 
     const supabase = createClient(supabaseUrl, supabaseKey)
-    const { date: todayTw, hour: hourTw } = getTaiwanNow()
+    const { date: todayTw, hour: hourTw } = getTaiwanDateAndHour()
 
     const { data: activities, error: actErr } = await supabase
       .from('activities')
@@ -105,7 +91,7 @@ serve(async _req => {
       if (hourTw !== reminderHour) continue
 
       // 找出「今天 + reminder_days_before 天」是哪些場次日期
-      const targetActivityDates = (datesByActivityId.get(activity.id) || []).filter(activityDate => addDays(todayTw, activity.reminder_days_before) === activityDate.activity_date)
+      const targetActivityDates = (datesByActivityId.get(activity.id) || []).filter(activityDate => addTaiwanDays(todayTw, activity.reminder_days_before) === activityDate.activity_date)
       if (targetActivityDates.length === 0) continue
 
       for (const targetActivityDate of targetActivityDates) {

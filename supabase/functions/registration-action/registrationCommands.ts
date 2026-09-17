@@ -1,5 +1,6 @@
 import type { LineProfile } from '../_shared/function-utils.ts'
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
+import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { findRegistration, getActivityForRegistration, setSeasonRegistrationDateStatus, writeRegistration, writeRegistrationWithRetry, type Registration } from './registrationRepository.ts'
 
 type GuestInput = {
@@ -20,18 +21,6 @@ export type RegistrationCommandResult = { ok: true } | { error: string; status: 
 
 function isDateString(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-}
-
-function parseTaiwanDateTime(dateStr: string, timeStr: string): Date {
-  const [y, mo, d] = dateStr.split('-').map(Number)
-  const [h, m] = timeStr.split(':').map(Number)
-  return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
-}
-
-function addDays(dateStr: string, days: number): string {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d + days))
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
 }
 
 function normalizeGuests(value: unknown, count: number, maxCount = 6): Array<{ name: string; gender: string }> {
@@ -120,14 +109,14 @@ function assertRegistrationWindow(activity: Registration, activityDate: string |
   }
 
   if (activity.pickup_open_days_before != null && activity.pickup_open_time) {
-    const openDate = addDays(activityDate, -Number(activity.pickup_open_days_before))
+    const openDate = addTaiwanDays(activityDate, -Number(activity.pickup_open_days_before))
     if (now < parseTaiwanDateTime(openDate, activity.pickup_open_time)) {
       throw new Error('registration_not_open')
     }
   }
 
   if (!isAdmin && activity.pickup_deadline_type === 'custom' && activity.pickup_close_days_before != null && activity.pickup_close_time) {
-    const closeDate = addDays(activityDate, -Number(activity.pickup_close_days_before))
+    const closeDate = addTaiwanDays(activityDate, -Number(activity.pickup_close_days_before))
     if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) {
       throw new Error('registration_closed')
     }
