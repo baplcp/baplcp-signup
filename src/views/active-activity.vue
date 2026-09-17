@@ -21,6 +21,15 @@ const { router } = navigation
     </div>
   </div>
 
+  <div v-else-if="activity.activityLoadState === 'error'" class="not-found-page">
+    <div class="not-found-content">
+      <p class="not-found-icon" aria-hidden="true">⚠️</p>
+      <h1 class="not-found-title">無法載入球局</h1>
+      <p class="not-found-desc">目前無法取得球局資料，請確認網路後再試一次。</p>
+      <button class="not-found-btn" type="button" @click="actions.loadActivityPage">重新載入</button>
+    </div>
+  </div>
+
   <main v-else class="active-activity-page" :class="activity.pageClasses" @keydown.esc="actions.handleEscape">
     <Teleport v-if="admin.isAdmin" to="#nav-extra">
       <button class="admin-mode-toggle" :class="{ 'is-active': admin.adminMode }" type="button" :aria-pressed="String(admin.adminMode)" @click="admin.adminMode = !admin.adminMode">

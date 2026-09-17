@@ -24,8 +24,9 @@ export function useActiveActivityPage() {
   const liffStore = useLiffStore()
 
   const activityData = ref(null)
-  const activityNotFound = ref(false)
-  const isLoading = ref(true)
+  const activityLoadState = ref('loading')
+  const activityNotFound = computed(() => activityLoadState.value === 'not-found')
+  const isLoading = computed(() => activityLoadState.value === 'loading')
   const acEnabled = ref(false)
   const acFeePerSession = ref(0)
   const showAllDatesDialog = ref(false)
@@ -362,13 +363,22 @@ export function useActiveActivityPage() {
   }
 
   async function updateAcEnabled(enabled) {
+    const previousEnabled = acEnabled.value
     acEnabled.value = enabled
     const activityId = route.query.id || activityData.value?.id
-    if (!activityId) return
+    if (!activityId) {
+      acEnabled.value = previousEnabled
+      return
+    }
     try {
       await invokeRegistrationAction(liffStore, { action: 'admin-update-ac', activityId, enabled })
     } catch {
-      // Older deployments may not have the AC column yet.
+      acEnabled.value = previousEnabled
+      setSuccessDialogOpen(true, {
+        title: '冷氣設定更新失敗',
+        copy: '設定尚未變更，請稍後再試。',
+        buttonText: '確認',
+      })
     }
   }
 
@@ -480,27 +490,39 @@ export function useActiveActivityPage() {
     }, 200)
   }
 
-  onMounted(async () => {
+  async function loadActivityPage() {
+    activityLoadState.value = 'loading'
+    activityData.value = null
+
     const id = route.query.id
     const activityFetchPromise = fetchActivityDetail(id)
-    await liffStore.initialize()
-    const { data } = await activityFetchPromise
-    if (data) {
+    try {
+      await liffStore.initialize()
+      const { data, error } = await activityFetchPromise
+      if (error) {
+        activityLoadState.value = 'error'
+        return
+      }
+      if (!data) {
+        activityLoadState.value = 'not-found'
+        return
+      }
+
       activityData.value = data
       acEnabled.value = data.ac_enabled ?? false
       acFeePerSession.value = data.ac_fee ?? 0
-    } else if (id) {
-      activityNotFound.value = true
-      return
+      await fetchRegistrations()
+      activityLoadState.value = 'ready'
+      nowTickInterval = setInterval(() => {
+        nowTick.value = new Date()
+      }, 1000)
+      realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh)
+    } catch {
+      activityLoadState.value = 'error'
     }
+  }
 
-    await fetchRegistrations()
-    isLoading.value = false
-    nowTickInterval = setInterval(() => {
-      nowTick.value = new Date()
-    }, 1000)
-    realtimeChannel = subscribeToRegistrationChanges(activityData.value?.id, scheduleRegistrationRefresh)
-  })
+  onMounted(loadActivityPage)
 
   onUnmounted(() => {
     if (nowTickInterval) clearInterval(nowTickInterval)
@@ -514,6 +536,7 @@ export function useActiveActivityPage() {
 
   const activity = reactive({
     activityData,
+    activityLoadState,
     activityNotFound,
     activityType,
     pageClasses: computed(() => viewModels.activity.pageClasses),
@@ -579,6 +602,7 @@ export function useActiveActivityPage() {
     cancelLeaveConfirm,
     confirmLeaveConfirm,
     updateAcEnabled,
+    loadActivityPage,
     handleCtaClick,
     handleSeasonPlanConfirm,
     confirmSeasonCancel,
