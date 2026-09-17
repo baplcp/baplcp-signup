@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { calculateSeasonTotals } from '../_shared/activity-fees.ts'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
 
 const ACTIVITY_FIELDS = [
@@ -16,8 +17,6 @@ const ACTIVITY_FIELDS = [
   'single_capacity',
   'season_enabled',
   'season_include_ac',
-  'season_total_fee',
-  'season_half_year_total_fee',
   'season_capacity',
   'season_open_date',
   'season_open_time',
@@ -118,7 +117,8 @@ function cleanActivityPayload(input: unknown) {
   payload.game_type = cleanEnum(payload.game_type, GAME_TYPES, 'season', 'invalid_game_type')
   payload.title = title
   payload.location = location
-  payload.dates = payload.dates
+  const dates = [...new Set(payload.dates as string[])].sort()
+  payload.dates = dates
   payload.start_time = cleanNullableTime(payload.start_time)
   payload.end_time = cleanNullableTime(payload.end_time)
   payload.season_fee_per_session = cleanInteger(payload.season_fee_per_session, 0, 0, 100000)
@@ -128,8 +128,15 @@ function cleanActivityPayload(input: unknown) {
   payload.single_capacity = cleanInteger(payload.single_capacity, 18, 1, 100)
   payload.season_enabled = cleanBoolean(payload.season_enabled)
   payload.season_include_ac = cleanBoolean(payload.season_include_ac)
-  payload.season_total_fee = cleanInteger(payload.season_total_fee, 0, 0, 5000000)
-  payload.season_half_year_total_fee = cleanInteger(payload.season_half_year_total_fee, 0, 0, 5000000)
+  const seasonTotals = calculateSeasonTotals(
+    dates,
+    Number(payload.season_fee_per_session),
+    Number(payload.season_half_year_fee_per_session),
+    Number(payload.ac_fee),
+    Boolean(payload.season_include_ac)
+  )
+  payload.season_total_fee = cleanInteger(seasonTotals.quarter, 0, 0, 5000000)
+  payload.season_half_year_total_fee = cleanInteger(seasonTotals.halfYear, 0, 0, 5000000)
   payload.season_capacity = cleanSeasonCapacity(payload.season_capacity)
   payload.season_open_date = cleanNullableDate(payload.season_open_date)
   payload.season_open_time = cleanNullableTime(payload.season_open_time)

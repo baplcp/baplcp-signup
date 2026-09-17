@@ -2,6 +2,15 @@ import { computed, reactive, ref, watch } from 'vue'
 import { createActivityFormDefaults, getActivityFormErrors } from './useCreateActivityForm'
 import { formatDate, formatDateLabel } from './useCreateActivityCalendar'
 
+function getQuarterSessionCount(dates) {
+  const sortedDates = [...new Set(dates)].sort()
+  if (!sortedDates.length) return 0
+
+  const [year, month] = sortedDates[0].split('-').map(Number)
+  const cutoff = new Date(Date.UTC(year, month + 2, 1)).toISOString().slice(0, 10)
+  return sortedDates.filter(date => date < cutoff).length
+}
+
 export function useCreateActivityPageForm({ isPopulatingForm }) {
   const form = reactive(createActivityFormDefaults())
   const selectedDates = ref([])
@@ -20,11 +29,7 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
   const seasonFee = computed(() => {
     const base = Number(form.seasonSingleFee || 0)
     const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
-    const dates = [...selectedDates.value].sort()
-    if (dates.length === 0) return ''
-    const first = new Date(dates[0])
-    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
-    const count = dates.filter(d => new Date(d) < cutoff).length
+    const count = getQuarterSessionCount(selectedDates.value)
     return count > 0 ? String((base + ac) * count) : ''
   })
   const seasonFeeDigits = computed(() => Math.max(seasonFee.value.length, 1))

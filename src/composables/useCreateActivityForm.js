@@ -100,7 +100,7 @@ export function getActivityFormErrors(form, selectedDates, seasonEnabled) {
   return new Set(checks.filter(({ ok }) => !ok).map(({ field }) => field))
 }
 
-export function buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee, halfYearFee) {
+export function buildActivityPayload(form, selectedDates, seasonEnabled) {
   return {
     game_type: form.gameType || 'season',
     title: form.activityTitle || '',
@@ -115,8 +115,6 @@ export function buildActivityPayload(form, selectedDates, seasonEnabled, seasonF
     single_capacity: Number(form.singleCapacity) || 18,
     season_enabled: seasonEnabled.value,
     season_include_ac: form.seasonIncludeAc,
-    season_total_fee: Number(seasonFee) || 0,
-    season_half_year_total_fee: Number(halfYearFee) || 0,
     season_capacity: form.seasonCapacity || null,
     season_open_date: form.seasonOpenDate || null,
     season_open_time: form.seasonOpenTime || null,

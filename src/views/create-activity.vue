@@ -158,7 +158,7 @@ function validate() {
 
 async function handleSubmitActivity() {
   if (!validate()) return
-  const payload = buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee.value, halfYearFee.value)
+  const payload = buildActivityPayload(form, selectedDates, seasonEnabled)
 
   isSubmitting.value = true
   try {
