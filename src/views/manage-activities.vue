@@ -106,26 +106,34 @@ function handleRowClick(act, index) {
 // 刪除確認
 const deleteTarget = ref(null)
 const isDeleting = ref(false)
+const deleteError = ref(false)
 
 function openDeleteConfirm(act, index) {
   setOffset(index, 0)
+  deleteError.value = false
   deleteTarget.value = { act, index }
 }
 
 function cancelDelete() {
+  deleteError.value = false
   deleteTarget.value = null
 }
 
 async function confirmDelete() {
-  if (!deleteTarget.value) return
+  const target = deleteTarget.value
+  if (!target) return
+
   isDeleting.value = true
+  deleteError.value = false
   try {
-    await deleteActivity(liffStore, deleteTarget.value.act.id)
-    activities.value = activities.value.filter(a => a.id !== deleteTarget.value.act.id)
+    await deleteActivity(liffStore, target.act.id)
+    activities.value = activities.value.filter(a => a.id !== target.act.id)
     rowOffsets.value = {}
+    deleteTarget.value = null
+  } catch {
+    deleteError.value = true
   } finally {
     isDeleting.value = false
-    deleteTarget.value = null
   }
 }
 </script>
@@ -185,10 +193,11 @@ async function confirmDelete() {
       <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true">
         <h2 class="shared-dialog-title">確定刪除此球局？</h2>
         <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
+        <p v-if="deleteError" class="delete-error" role="alert">刪除失敗，請確認網路後再試一次。</p>
         <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="confirmDelete">
           {{ isDeleting ? '刪除中...' : '確認刪除' }}
         </button>
-        <button class="confirm-cancel-btn shared-dialog-button" type="button" @click="cancelDelete">取消</button>
+        <button class="confirm-cancel-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="cancelDelete">取消</button>
       </section>
     </div>
   </main>
@@ -299,11 +308,23 @@ async function confirmDelete() {
   cursor: default;
 }
 
+.delete-error {
+  margin: 0 0 12px;
+  color: #d14343;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .confirm-cancel-btn {
   width: 100%;
   margin-top: 4px;
   background: #f5f6fa;
   color: #474d66;
+}
+
+.confirm-cancel-btn:disabled {
+  cursor: default;
+  opacity: 0.65;
 }
 
 .activity-title {
