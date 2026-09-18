@@ -19,6 +19,7 @@ const ROLE_CONFIG = {
   engineer: { label: '苦命的工程師', modifier: 'is-engineer' },
   member: { label: '一般會員', modifier: 'is-member' },
 }
+const defaultAvatar = import.meta.env.BASE_URL + 'images/cookie.png'
 const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.member)
 const isOrganizer = computed(() => liffStore.role === 'organizer')
 const navScrollProgress = ref(0)
@@ -122,7 +123,7 @@ watch(
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
             <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
-            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
+            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
             <!-- 未登入：灰色人頭預設圖 -->
             <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
               <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
