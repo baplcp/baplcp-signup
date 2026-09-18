@@ -129,11 +129,11 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       :close-on-outside="false"
       @close="actions.closeSuccessDialog"
     >
-        <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ dialogs.successDialog.title }}</h2>
-        <p class="success-dialog-copy shared-dialog-copy">{{ dialogs.successDialog.copy }}</p>
-        <button :ref="elementRefs.successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="actions.handleDialogButtonClick">
-          {{ dialogs.successDialog.buttonText }}
-        </button>
+      <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ dialogs.successDialog.title }}</h2>
+      <p class="success-dialog-copy shared-dialog-copy">{{ dialogs.successDialog.copy }}</p>
+      <button :ref="elementRefs.successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="actions.handleDialogButtonClick">
+        {{ dialogs.successDialog.buttonText }}
+      </button>
     </AccessibleDialog>
 
     <ConfirmDialog
@@ -186,12 +186,12 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       content-class="season-cancel-sheet"
       @close="dialogs.seasonCancelOpen = false"
     >
-        <p class="season-cancel-title">確認取消季打報名？</p>
-        <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
-        <div class="season-cancel-actions">
-          <button class="season-cancel-btn is-muted" type="button" @click="dialogs.seasonCancelOpen = false">保留報名</button>
-          <button class="season-cancel-btn is-danger" type="button" @click="actions.confirmSeasonCancel">確認取消</button>
-        </div>
+      <p class="season-cancel-title">確認取消季打報名？</p>
+      <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
+      <div class="season-cancel-actions">
+        <button class="season-cancel-btn is-muted" type="button" @click="dialogs.seasonCancelOpen = false">保留報名</button>
+        <button class="season-cancel-btn is-danger" type="button" @click="actions.confirmSeasonCancel">確認取消</button>
+      </div>
     </AccessibleDialog>
 
     <ActivityAllDatesDialog

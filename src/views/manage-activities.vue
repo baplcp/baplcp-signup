@@ -194,13 +194,13 @@ async function confirmDelete() {
       :close-on-escape="!isDeleting"
       @close="cancelDelete"
     >
-        <h2 class="shared-dialog-title">確定刪除此球局？</h2>
-        <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
-        <p v-if="deleteError" class="delete-error" role="alert">刪除失敗，請確認網路後再試一次。</p>
-        <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="confirmDelete">
-          {{ isDeleting ? '刪除中...' : '確認刪除' }}
-        </button>
-        <button class="confirm-cancel-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="cancelDelete">取消</button>
+      <h2 class="shared-dialog-title">確定刪除此球局？</h2>
+      <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
+      <p v-if="deleteError" class="delete-error" role="alert">刪除失敗，請確認網路後再試一次。</p>
+      <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="confirmDelete">
+        {{ isDeleting ? '刪除中...' : '確認刪除' }}
+      </button>
+      <button class="confirm-cancel-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="cancelDelete">取消</button>
     </AccessibleDialog>
   </main>
 </template>

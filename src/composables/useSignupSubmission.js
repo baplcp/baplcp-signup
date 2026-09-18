@@ -3,9 +3,7 @@ import { invokeRegistrationAction } from '~/services/registrationService'
 import { startLineOAuth } from '~/utils/lineOAuth'
 
 function formatRegistrationOpenTime(viewModels) {
-  return viewModels.registrationOpenAt.value
-    ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' })
-    : '—'
+  return viewModels.registrationOpenAt.value ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
 }
 
 export function useSignupSubmission({

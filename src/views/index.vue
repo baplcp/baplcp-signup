@@ -159,12 +159,7 @@ const utilityItems = [
 
     <section class="content">
       <div class="top-cards">
-        <HomeInfoCard
-          title="我的紀錄"
-          subtitle="報名與請假"
-          :image-src="infoCards[1].imageSrc"
-          @click="handleMyRecordClick"
-        />
+        <HomeInfoCard title="我的紀錄" subtitle="報名與請假" :image-src="infoCards[1].imageSrc" @click="handleMyRecordClick" />
         <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
       </div>
 
@@ -194,9 +189,7 @@ const utilityItems = [
   </div>
 
   <Transition name="snackbar">
-    <div v-if="showComingSoon" class="snackbar">
-      即將開放，敬請期待
-    </div>
+    <div v-if="showComingSoon" class="snackbar">即將開放，敬請期待</div>
   </Transition>
 </template>
 
@@ -271,7 +264,9 @@ const utilityItems = [
 
 .snackbar-enter-active,
 .snackbar-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .snackbar-enter-from,

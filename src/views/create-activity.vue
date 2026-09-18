@@ -270,7 +270,13 @@ async function handleSubmitActivity() {
       @select-date="selectCalendarDate"
     />
 
-    <CreateActivityTimePickerDialog :open="isTimePickerOpen" :model-value="activeTimePickerValue" :hour-only="activeTimePickerField === 'reminderTime'" @close="closeTimePicker" @commit="commitTimePicker" />
+    <CreateActivityTimePickerDialog
+      :open="isTimePickerOpen"
+      :model-value="activeTimePickerValue"
+      :hour-only="activeTimePickerField === 'reminderTime'"
+      @close="closeTimePicker"
+      @commit="commitTimePicker"
+    />
 
     <CreateActivityResultDialog :open="dialog.isOpen" :title="dialog.title" :copy="dialog.copy" :button-text="dialog.buttonText" @close="closeCreateDialog" />
   </main>

@@ -26,9 +26,7 @@ const activeQuarters = computed(() => {
   return QUARTER_DEFS.filter(q => q.months.some(m => months.has(m)))
 })
 
-const selectedMonths = computed(
-  () => activeQuarters.value[selectedQuarterIndex.value]?.months ?? []
-)
+const selectedMonths = computed(() => activeQuarters.value[selectedQuarterIndex.value]?.months ?? [])
 
 const membersWithLeave = computed(() => {
   if (!activity.value) return []
@@ -45,10 +43,13 @@ const membersWithLeave = computed(() => {
       const leaveCount = leaveDates.length
       const refundAmount = leaveCount * feePerSession
 
-      const formattedDates = leaveDates.slice().sort().map(d => {
-        const [, m, day] = d.split('-')
-        return `${Number(m)}/${Number(day)}`
-      })
+      const formattedDates = leaveDates
+        .slice()
+        .sort()
+        .map(d => {
+          const [, m, day] = d.split('-')
+          return `${Number(m)}/${Number(day)}`
+        })
 
       return {
         userId: reg.user_id,
@@ -62,9 +63,7 @@ const membersWithLeave = computed(() => {
     .sort((a, b) => b.refundAmount - a.refundAmount)
 })
 
-const totalRefund = computed(() =>
-  membersWithLeave.value.reduce((sum, m) => sum + m.refundAmount, 0)
-)
+const totalRefund = computed(() => membersWithLeave.value.reduce((sum, m) => sum + m.refundAmount, 0))
 
 function avatarChar(name) {
   return name ? name.charAt(0) : '?'
@@ -74,10 +73,7 @@ async function loadRefundDetail() {
   isLoading.value = true
   loadError.value = false
   try {
-    const [act, regs] = await Promise.all([
-      getActivity(activityId),
-      listSeasonRegistrations(activityId),
-    ])
+    const [act, regs] = await Promise.all([getActivity(activityId), listSeasonRegistrations(activityId)])
     activity.value = act
     registrations.value = regs
   } catch {
@@ -98,14 +94,7 @@ onMounted(loadRefundDetail)
 
     <template v-if="!isLoading && !loadError">
       <div v-if="activeQuarters.length > 1" class="segment-tabs">
-        <button
-          v-for="(q, i) in activeQuarters"
-          :key="q.label"
-          class="segment-tab"
-          :class="{ 'is-active': selectedQuarterIndex === i }"
-          type="button"
-          @click="selectedQuarterIndex = i"
-        >
+        <button v-for="(q, i) in activeQuarters" :key="q.label" class="segment-tab" :class="{ 'is-active': selectedQuarterIndex === i }" type="button" @click="selectedQuarterIndex = i">
           {{ q.label }}
         </button>
       </div>
@@ -180,7 +169,9 @@ onMounted(loadRefundDetail)
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
   white-space: nowrap;
 }
 

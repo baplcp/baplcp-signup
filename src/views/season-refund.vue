@@ -46,13 +46,7 @@ onMounted(loadActivities)
 
     <template v-if="!isLoading && !loadError">
       <div v-if="activities.length > 0" class="activity-list">
-        <button
-          v-for="act in activities"
-          :key="act.id"
-          class="season-row"
-          type="button"
-          @click="goToDetail(act.id)"
-        >
+        <button v-for="act in activities" :key="act.id" class="season-row" type="button" @click="goToDetail(act.id)">
           <div class="season-info">
             <div class="season-name">{{ act.title || '季打' }}</div>
             <div class="season-sub">{{ formatDateRange(act.dates) }}</div>
