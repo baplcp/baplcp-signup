@@ -66,12 +66,6 @@ export async function listSeasonActivitiesForRefund() {
   return fetchActivities(supabase.from('activities').select('id, title, season_fee_per_session').eq('season_enabled', true).order('created_at', { ascending: false }))
 }
 
-export async function listGroupActivities() {
-  return fetchActivities(
-    supabase.from('activities').select('id, title, location, start_time, end_time, single_capacity, pickup_fee_per_session, season_fee_per_session').order('created_at', { ascending: false })
-  )
-}
-
 export async function fetchActivityDetail(id) {
   try {
     const activities = await fetchActivities(

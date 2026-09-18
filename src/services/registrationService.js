@@ -3,7 +3,6 @@ import { fetchActivityDateId, fetchActivityDates, fetchActivityDatesByIds, fetch
 import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
 
 function groupBy(items, key) {
@@ -145,27 +144,15 @@ export async function listPickupRegistrations(activityId, activityDate, statuses
   )
 }
 
-export async function listRegistrationsForLatestSpots(activityId, activityDate) {
-  if (!ISO_DATE_PATTERN.test(activityDate || '')) return []
-  const activityDateId = await fetchActivityDateId(activityId, activityDate)
-  if (activityDateId === null) return []
-
-  return listRegistrations(
-    supabase
-      .from('registrations')
-      .select('id, activity_date_id, self_count, guest_count')
-      .eq('activity_id', activityId)
-      .or(`activity_date_id.eq.${activityDateId},activity_date_id.is.null`)
-      .eq('status', 'active'),
-    { includeGuests: false, includeCancellations: false }
-  )
-}
-
-export async function listRegistrationsForActivitySpots(activityId) {
-  return listRegistrations(supabase.from('registrations').select('id, activity_date_id, self_count, guest_count').eq('activity_id', activityId).eq('status', 'active'), {
-    includeGuests: false,
-    includeCancellations: false,
+export async function listGroupActivitySessions(segment, { limit, offset, now }) {
+  const { data, error } = await supabase.rpc('list_group_activity_sessions', {
+    p_segment: segment,
+    p_limit: limit,
+    p_offset: offset,
+    p_now: now.toISOString(),
   })
+  if (error) throw error
+  return data || []
 }
 
 const PARTICIPATION_COUNT_START_DATE = '2026-07-03'

@@ -1,12 +1,11 @@
 import { computed, onMounted, ref } from 'vue'
-import { listGroupActivities } from '~/services/activityService'
-import { listRegistrationsForActivitySpots, listRegistrationsForLatestSpots } from '~/services/registrationService'
-import { getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { listGroupActivitySessions } from '~/services/registrationService'
+import { getTaiwanWeekday } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
-const UPCOMING_PREVIEW_COUNT = 5
-const ENDED_PREVIEW_COUNT = 5
+const PAGE_SIZE = 5
+const INITIAL_UPCOMING_LIMIT = PAGE_SIZE + 1
 
 export const groupListSegmentTabs = [
   { label: '全部', value: SEGMENT_ALL },
@@ -30,126 +29,103 @@ function formatDateRow(dateStr, startTime, endTime) {
   return `${formatGroupDateLabel(dateStr)}｜${formatTimeRange(startTime, endTime)}`
 }
 
-function isDateExpired(dateStr, endTime, now) {
-  if (!endTime) {
-    const todayStr = getTaiwanDateString(now)
-    return dateStr < todayStr
-  }
-
-  const end = parseTaiwanDateTime(dateStr, endTime)
-  end.setUTCHours(end.getUTCHours() + 1)
-  return now > end
-}
-
-function getSortedDates(activity) {
-  return (activity.dates || []).slice().sort()
-}
-
 function createActivityRoute(activityId, dateStr, type) {
   return `/active-activity?id=${activityId}&date=${dateStr}&type=${type}`
 }
 
-// 季打報名（activity_date 為 null）當天請假就不占用名額，且季打報名不含來賓人數
-function computeVacancy(registrations, dateStr, capacity) {
-  const totalPeople = registrations.reduce((sum, registration) => {
-    if (registration.activity_date === null) {
-      if ((registration.leave_dates || []).includes(dateStr)) return sum
-      return sum + (registration.self_count || 0)
-    }
-    if (registration.activity_date !== dateStr) return sum
-    return sum + (registration.self_count || 0) + (registration.guest_count || 0)
-  }, 0)
-  return Math.max(0, (capacity || 0) - totalPeople)
+function computeVacancy(capacity, occupiedCount) {
+  return Math.max(0, (capacity || 0) - (occupiedCount || 0))
+}
+
+function toUpcomingActivity(session) {
+  const vacancy = computeVacancy(session.single_capacity, session.occupied_count)
+  return {
+    date: formatDateRow(session.activity_date, session.start_time, session.end_time),
+    location: `缺 ${vacancy}・${session.location || '—'}`,
+    to: createActivityRoute(session.activity_id, session.activity_date, 'upcoming'),
+    badge: '未開放報名',
+    badgeVariant: 'muted',
+  }
+}
+
+function toEndedActivity(session) {
+  return {
+    date: formatGroupDateLabel(session.activity_date),
+    location: session.location || '—',
+    to: createActivityRoute(session.activity_id, session.activity_date, 'ended'),
+  }
 }
 
 export function useGroupListPage() {
   const activeSegment = ref(SEGMENT_ALL)
-  const activities = ref([])
+  const upcomingSessions = ref([])
+  const endedSessions = ref([])
   const isLoading = ref(true)
-  const latestSpots = ref(null)
-  const upcomingSpots = ref({})
+  const isLoadingUpcomingMore = ref(false)
+  const isLoadingEndedMore = ref(false)
+  const hasMoreUpcoming = ref(true)
+  const hasMoreEnded = ref(true)
+  const hasExpandedUpcoming = ref(false)
+  const hasExpandedEnded = ref(false)
   const now = new Date()
 
-  const latestInfo = computed(() => {
-    const futureDates = []
-
-    for (const activity of activities.value) {
-      const nearestDate = getSortedDates(activity).find(dateStr => !isDateExpired(dateStr, activity.end_time, now))
-      if (nearestDate) futureDates.push({ activity, date: nearestDate })
-    }
-
-    if (futureDates.length === 0) return null
-    futureDates.sort((a, b) => a.date.localeCompare(b.date))
-    return futureDates[0]
-  })
+  const latestSession = computed(() => upcomingSessions.value[0] || null)
 
   const latestActivity = computed(() => {
-    if (!latestInfo.value) return null
-
-    const { activity, date } = latestInfo.value
-    const spots = latestSpots.value
+    if (!latestSession.value) return null
+    const session = latestSession.value
+    const vacancy = computeVacancy(session.single_capacity, session.occupied_count)
 
     return {
       countLabel: '臨打缺',
-      countValue: spots !== null ? spots : '—',
-      countAriaLabel: `臨打缺 ${spots !== null ? spots : '—'} 人`,
-      date: formatDateRow(date, activity.start_time, activity.end_time),
-      location: activity.location || '—',
-      to: createActivityRoute(activity.id, date, 'latest'),
+      countValue: vacancy,
+      countAriaLabel: `臨打缺 ${vacancy} 人`,
+      date: formatDateRow(session.activity_date, session.start_time, session.end_time),
+      location: session.location || '—',
+      to: createActivityRoute(session.activity_id, session.activity_date, 'latest'),
     }
   })
 
-  const upcomingActivities = computed(() => {
-    if (!latestInfo.value) return []
+  const upcomingActivities = computed(() => upcomingSessions.value.slice(1).map(toUpcomingActivity))
+  const endedActivities = computed(() => endedSessions.value.map(toEndedActivity))
+  const visibleUpcomingActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? upcomingActivities.value.slice(0, PAGE_SIZE) : upcomingActivities.value))
+  const visibleEndedActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? endedActivities.value.slice(0, PAGE_SIZE) : endedActivities.value))
 
-    const { activity: latestActivityInfo, date: latestDate } = latestInfo.value
-    const rows = []
+  async function fetchSessionPage(segment, limit) {
+    const isUpcoming = segment === 'upcoming'
+    const sessions = isUpcoming ? upcomingSessions : endedSessions
+    const isLoadingMore = isUpcoming ? isLoadingUpcomingMore : isLoadingEndedMore
+    const hasMore = isUpcoming ? hasMoreUpcoming : hasMoreEnded
+    if (isLoadingMore.value || !hasMore.value) return
 
-    for (const activity of activities.value) {
-      for (const dateStr of getSortedDates(activity)) {
-        const isLatest = activity.id === latestActivityInfo.id && dateStr === latestDate
-        if (!isDateExpired(dateStr, activity.end_time, now) && !isLatest) {
-          rows.push({ activity, dateStr })
-        }
-      }
+    isLoadingMore.value = true
+    try {
+      const data = await listGroupActivitySessions(segment, { limit, offset: sessions.value.length, now })
+      sessions.value = [...sessions.value, ...data]
+      hasMore.value = data.length === limit
+    } finally {
+      isLoadingMore.value = false
     }
+  }
 
-    rows.sort((a, b) => a.dateStr.localeCompare(b.dateStr))
-    return rows.map(({ activity, dateStr }) => {
-      const vacancy = upcomingSpots.value[`${activity.id}_${dateStr}`]
-      const locationText = activity.location || '—'
-      return {
-        date: formatDateRow(dateStr, activity.start_time, activity.end_time),
-        location: vacancy !== undefined ? `缺 ${vacancy}・${locationText}` : locationText,
-        to: createActivityRoute(activity.id, dateStr, 'upcoming'),
-        badge: '未開放報名',
-        badgeVariant: 'muted',
-      }
-    })
-  })
+  async function loadMoreUpcoming() {
+    await fetchSessionPage('upcoming', PAGE_SIZE)
+  }
 
-  const endedActivities = computed(() => {
-    const rows = []
-
-    for (const activity of activities.value) {
-      for (const dateStr of getSortedDates(activity)) {
-        if (isDateExpired(dateStr, activity.end_time, now)) rows.push({ activity, dateStr })
-      }
-    }
-
-    rows.sort((a, b) => b.dateStr.localeCompare(a.dateStr))
-    return rows.map(({ activity, dateStr }) => ({
-      date: formatGroupDateLabel(dateStr),
-      location: activity.location || '—',
-      to: createActivityRoute(activity.id, dateStr, 'ended'),
-    }))
-  })
-
-  const visibleUpcomingActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? upcomingActivities.value.slice(0, UPCOMING_PREVIEW_COUNT) : upcomingActivities.value))
-  const visibleEndedActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? endedActivities.value.slice(0, ENDED_PREVIEW_COUNT) : endedActivities.value))
+  async function loadMoreEnded() {
+    await fetchSessionPage('ended', PAGE_SIZE)
+  }
 
   function setSegment(segment) {
     activeSegment.value = segment
+    if (segment === 'upcoming' && !hasExpandedUpcoming.value) {
+      hasExpandedUpcoming.value = true
+      void loadMoreUpcoming()
+    }
+    if (segment === 'ended' && !hasExpandedEnded.value) {
+      hasExpandedEnded.value = true
+      void loadMoreEnded()
+    }
   }
 
   function isSegmentActive(segment) {
@@ -160,34 +136,9 @@ export function useGroupListPage() {
     return activeSegment.value === SEGMENT_ALL || activeSegment.value === segment
   }
 
-  async function fetchLatestSpots() {
-    if (!latestInfo.value) return
-
-    const { activity, date } = latestInfo.value
-    const registrations = await listRegistrationsForLatestSpots(activity.id, date)
-    latestSpots.value = computeVacancy(registrations, date, activity.single_capacity)
-  }
-
-  async function fetchUpcomingSpots() {
-    const uniqueActivityIds = [...new Set(activities.value.map(activity => activity.id))]
-    const registrationsByActivityId = Object.fromEntries(
-      await Promise.all(uniqueActivityIds.map(async id => [id, await listRegistrationsForActivitySpots(id)]))
-    )
-
-    const spots = {}
-    for (const activity of activities.value) {
-      const registrations = registrationsByActivityId[activity.id] || []
-      for (const dateStr of getSortedDates(activity)) {
-        spots[`${activity.id}_${dateStr}`] = computeVacancy(registrations, dateStr, activity.single_capacity)
-      }
-    }
-    upcomingSpots.value = spots
-  }
-
   async function fetchActivities() {
-    activities.value = await listGroupActivities()
+    await Promise.all([fetchSessionPage('upcoming', INITIAL_UPCOMING_LIMIT), fetchSessionPage('ended', PAGE_SIZE)])
     isLoading.value = false
-    await Promise.all([fetchLatestSpots(), fetchUpcomingSpots()])
   }
 
   onMounted(fetchActivities)
@@ -201,7 +152,13 @@ export function useGroupListPage() {
     endedActivities,
     visibleUpcomingActivities,
     visibleEndedActivities,
+    hasMoreUpcoming,
+    hasMoreEnded,
+    isLoadingUpcomingMore,
+    isLoadingEndedMore,
     setSegment,
+    loadMoreUpcoming,
+    loadMoreEnded,
     isSegmentActive,
     isSegmentVisible,
   }
