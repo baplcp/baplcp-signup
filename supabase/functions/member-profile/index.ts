@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
+const CORS_PRELIGHT_MAX_AGE_SECONDS = '86400'
 
 function corsHeaders(origin: string) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
@@ -9,7 +10,7 @@ function corsHeaders(origin: string) {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-line-access-token',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Max-Age': '3600',
+    'Access-Control-Max-Age': CORS_PRELIGHT_MAX_AGE_SECONDS,
   }
 }
 
