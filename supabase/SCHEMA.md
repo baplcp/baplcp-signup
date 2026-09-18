@@ -52,8 +52,8 @@ Fields used by the app:
 - `game_type text`
 - `title text`
 - `location text`
-- `start_time time/text`
-- `end_time time/text`
+- `start_time time without time zone`
+- `end_time time without time zone`
 - `season_fee_per_session numeric`
 - `season_half_year_fee_per_session numeric`
 - `pickup_fee_per_session numeric`
@@ -64,20 +64,20 @@ Fields used by the app:
 - `season_total_fee numeric`
 - `season_half_year_total_fee numeric`
 - `season_capacity text`
-- `season_open_date date/text`
-- `season_open_time time/text`
+- `season_open_date date`
+- `season_open_time time without time zone`
 - `season_deadline_type text`
-- `season_close_date date/text`
-- `season_close_time time/text`
+- `season_close_date date`
+- `season_close_time time without time zone`
 - `pickup_label text`
 - `pickup_open_days_before integer`
-- `pickup_open_time time/text`
+- `pickup_open_time time without time zone`
 - `pickup_deadline_type text`
 - `pickup_close_days_before integer`
-- `pickup_close_time time/text`
+- `pickup_close_time time without time zone`
 - `reminder_enabled boolean`
 - `reminder_days_before integer`
-- `reminder_time time/text`
+- `reminder_time time without time zone`
 - `ac_enabled boolean`
 - `created_at timestamptz`
 
@@ -207,3 +207,6 @@ Roles:
   RPCs so each production action uses one database request.
 - `20260921000000_authorize_activity_ac_update_in_rpc.sql`: moves organizer
   authorization for the admin AC toggle into a service-role-only RPC.
+- `20260927000000_use_native_activity_date_time_types.sql`: converts activity
+  calendar-date and wall-clock-time fields from legacy text storage to native
+  PostgreSQL `date` and `time without time zone` types.

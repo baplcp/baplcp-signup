@@ -7,6 +7,10 @@ function getPickupOpenAt(activityDateStr: string, openDaysBefore: number, openTi
   return parseTaiwanDateTime(addTaiwanDays(activityDateStr, -openDaysBefore), openTimeStr)
 }
 
+function formatTime(time: string | null): string {
+  return time?.slice(0, 5) ?? ''
+}
+
 // 檢查時間是否落在「now+4min ~ now+5min」窗口內（避免每分鐘重複通知）
 function isInNotifyWindow(dt: Date, now: Date): boolean {
   const windowStart = new Date(now.getTime() + 4 * 60 * 1000)
@@ -186,8 +190,8 @@ serve(async _req => {
             title: activity.title,
             pickupLabel: activity.pickup_label ?? null,
             location: activity.location ?? '',
-            startTime: activity.start_time ?? '',
-            endTime: activity.end_time ?? '',
+            startTime: formatTime(activity.start_time),
+            endTime: formatTime(activity.end_time),
             activityDate: dates[0] ?? '',
             type: 'season',
           })
@@ -204,8 +208,8 @@ serve(async _req => {
               title: activity.title,
               pickupLabel: activity.pickup_label ?? null,
               location: activity.location ?? '',
-              startTime: activity.start_time ?? '',
-              endTime: activity.end_time ?? '',
+              startTime: formatTime(activity.start_time),
+              endTime: formatTime(activity.end_time),
               activityDate: dateStr,
               type: 'pickup',
             })

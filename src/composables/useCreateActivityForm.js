@@ -1,5 +1,9 @@
 import { INPUT_LIMITS } from '~/config/inputLimits'
 
+function toTimeInputValue(value) {
+  return value ? value.slice(0, 5) : ''
+}
+
 export function createActivityFormDefaults() {
   return {
     gameType: 'season',
@@ -36,8 +40,8 @@ export function populateActivityForm(form, activity, selectedDates, seasonEnable
   form.activityTitle = activity.title || ''
   form.location = activity.location || ''
   selectedDates.value = activity.dates || []
-  form.activityStartTime = activity.start_time || ''
-  form.activityEndTime = activity.end_time || ''
+  form.activityStartTime = toTimeInputValue(activity.start_time)
+  form.activityEndTime = toTimeInputValue(activity.end_time)
   form.seasonSingleFee = String(activity.season_fee_per_session ?? '')
   form.halfYearSingleFee = String(activity.season_half_year_fee_per_session ?? '')
   form.pickupSingleFee = String(activity.pickup_fee_per_session ?? '')
@@ -47,19 +51,19 @@ export function populateActivityForm(form, activity, selectedDates, seasonEnable
   form.seasonIncludeAc = activity.season_include_ac ?? true
   form.seasonCapacity = activity.season_capacity || 'unlimited'
   form.seasonOpenDate = activity.season_open_date || ''
-  form.seasonOpenTime = activity.season_open_time || '00:00'
+  form.seasonOpenTime = toTimeInputValue(activity.season_open_time) || '00:00'
   form.seasonDeadlineType = activity.season_deadline_type || 'unlimited'
   form.seasonCloseDate = activity.season_close_date || ''
-  form.seasonCloseTime = activity.season_close_time || ''
+  form.seasonCloseTime = toTimeInputValue(activity.season_close_time)
   form.pickupLabel = activity.pickup_label || ''
   form.pickupOpenDate = activity.pickup_open_days_before ? `前 ${activity.pickup_open_days_before} 天` : '前 7 天'
-  form.pickupOpenTime = activity.pickup_open_time || '20:00'
+  form.pickupOpenTime = toTimeInputValue(activity.pickup_open_time) || '20:00'
   form.deadlineType = activity.pickup_deadline_type || 'unlimited'
   form.pickupCloseDate = activity.pickup_close_days_before ? `前 ${activity.pickup_close_days_before} 天` : '前 1 天'
-  form.pickupCloseTime = activity.pickup_close_time || ''
+  form.pickupCloseTime = toTimeInputValue(activity.pickup_close_time)
   form.reminderEnabled = activity.reminder_enabled ? 'enabled' : 'disabled'
   form.reminderDaysBefore = activity.reminder_days_before != null ? `前 ${activity.reminder_days_before} 天` : '前 3 天'
-  form.reminderTime = activity.reminder_time ? activity.reminder_time.slice(0, 5) : '09:00'
+  form.reminderTime = toTimeInputValue(activity.reminder_time) || '09:00'
 }
 
 function parseDaysBefore(raw) {

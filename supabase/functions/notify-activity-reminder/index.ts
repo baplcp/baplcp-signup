@@ -259,7 +259,7 @@ serve(async _req => {
         const feeStr = fee ? ` $${fee}💰` : ''
         const footer = `請儘量提早5～10分鐘進場熱身\n臨打費用請轉給 ${orgParts.join('、') || '管理員'}${feeStr}`
 
-        const header = `🏐 活動前 ${activity.reminder_days_before} 天提醒！\n\n【${activityLabel}】\n📅 ${targetDate} ${activity.start_time ?? ''}\n📍 ${activity.location ?? ''}\n\n`
+        const header = `🏐 活動前 ${activity.reminder_days_before} 天提醒！\n\n【${activityLabel}】\n📅 ${targetDate} ${activity.start_time?.slice(0, 5) ?? ''}\n📍 ${activity.location ?? ''}\n\n`
         const vacancyLine = remainingSlots > 0 ? `目前還缺 ${remainingSlots} 人，歡迎再報名！\n\n` : ''
         const messageText = (header + (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') + (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') + genderLine + vacancyLine + footer).trimEnd()
 
