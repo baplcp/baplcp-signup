@@ -36,13 +36,14 @@ export function useActiveActivityPage() {
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
 
-  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, memberGenders, fetchRegistrations } = useActiveActivityRegistrations({
-    activityData,
-    activityType,
-    resolvedDate,
-    getActivityId: () => route.query.id,
-    liffStore,
-  })
+  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, memberGenders, fetchRegistrations, applyRegistrationChange } =
+    useActiveActivityRegistrations({
+      activityData,
+      activityType,
+      resolvedDate,
+      getActivityId: () => route.query.id,
+      liffStore,
+    })
 
   const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
     activityData,
@@ -117,13 +118,35 @@ export function useActiveActivityPage() {
   let nowTickInterval = null
   let realtimeChannel = null
   let registrationRefreshTimer = null
+  let registrationRefreshInFlight = false
+  const pendingRegistrationChanges = new Map()
 
-  function scheduleRegistrationRefresh() {
+  async function flushRegistrationChanges() {
+    if (registrationRefreshInFlight) return
+
+    registrationRefreshInFlight = true
+    const changes = [...pendingRegistrationChanges.values()]
+    pendingRegistrationChanges.clear()
+    try {
+      await Promise.all(changes.map(change => applyRegistrationChange(change)))
+    } catch (error) {
+      console.warn('Unable to refresh activity registration', error)
+    } finally {
+      registrationRefreshInFlight = false
+      if (pendingRegistrationChanges.size) scheduleRegistrationRefresh()
+    }
+  }
+
+  function scheduleRegistrationRefresh(change) {
+    const registrationId = change.new?.id || change.old?.id
+    if (!registrationId) return
+
+    pendingRegistrationChanges.set(registrationId, change)
     if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
     registrationRefreshTimer = setTimeout(() => {
       registrationRefreshTimer = null
-      fetchRegistrations()
-    }, 200)
+      flushRegistrationChanges()
+    }, 750)
   }
 
   async function loadActivityPage() {
@@ -164,6 +187,7 @@ export function useActiveActivityPage() {
   onUnmounted(() => {
     if (nowTickInterval) clearInterval(nowTickInterval)
     if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    pendingRegistrationChanges.clear()
     removeRegistrationSubscription(realtimeChannel)
   })
 

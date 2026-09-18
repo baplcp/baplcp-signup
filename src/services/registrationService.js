@@ -129,6 +129,16 @@ export async function invokeRegistrationAction(liffStore, body) {
   await invokeLineFunction(liffStore, 'registration-action', body)
 }
 
+export async function getActivityRegistration(registrationId) {
+  if (!registrationId) return null
+
+  const { data, error } = await supabase.rpc('get_activity_registration', {
+    p_registration_id: registrationId,
+  })
+  if (error) throw error
+  return data || null
+}
+
 export async function listSeasonRegistrations(activityId, statuses = ['active']) {
   return listRegistrations(
     supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).in('status', statuses).order('created_at', { ascending: true })

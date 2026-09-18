@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue'
 import { getActivityPage } from '~/services/activityService'
+import { getActivityRegistration } from '~/services/registrationService'
 
 function mergeMemberGenders(registrations, liffStore) {
   const genders = Object.fromEntries(registrations.filter(registration => registration.member_gender).map(registration => [registration.user_id, registration.member_gender]))
@@ -62,6 +63,69 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     }
   }
 
+  function refreshDerivedState() {
+    if (activityType.value === 'season') {
+      myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId) || null
+      mySeasonRegistration.value = myRegistration.value
+      memberGenders.value = mergeMemberGenders(registrations.value, liffStore)
+      return
+    }
+
+    myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId) || null
+    mySeasonRegistration.value = seasonRegistrations.value.find(registration => registration.user_id === liffStore.userId) || null
+    memberGenders.value = mergeMemberGenders([...registrations.value, ...seasonRegistrations.value], liffStore)
+  }
+
+  function removeRegistration(registrationId) {
+    registrations.value = registrations.value.filter(registration => registration.id !== registrationId)
+    cancelledRegistrations.value = cancelledRegistrations.value.filter(registration => registration.id !== registrationId)
+    seasonRegistrations.value = seasonRegistrations.value.filter(registration => registration.id !== registrationId)
+  }
+
+  function replaceRegistration(list, registration) {
+    return [...list.filter(currentRegistration => currentRegistration.id !== registration.id), registration].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  }
+
+  function applyRegistration(registration) {
+    const selectedActivityDateId = getSelectedActivityDateId()
+    const isSeasonRegistration = registration.activity_date_id === null
+    const isCurrentPickupRegistration = registration.activity_date_id === selectedActivityDateId
+
+    removeRegistration(registration.id)
+    if (activityType.value === 'season') {
+      if (!isSeasonRegistration) return
+      if (registration.status === 'active') registrations.value = replaceRegistration(registrations.value, registration)
+      else if (registration.status === 'cancelled') cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
+      seasonRegistrations.value = registrations.value
+      return
+    }
+
+    if (isSeasonRegistration) {
+      if (registration.status === 'active') seasonRegistrations.value = replaceRegistration(seasonRegistrations.value, registration)
+      return
+    }
+
+    if (!isCurrentPickupRegistration) return
+    if (registration.status === 'active') registrations.value = replaceRegistration(registrations.value, registration)
+    else if (registration.status === 'cancelled') cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
+  }
+
+  async function applyRegistrationChange(change) {
+    const registrationId = change.new?.id || change.old?.id
+    if (!registrationId) return
+
+    if (change.eventType === 'DELETE') {
+      removeRegistration(registrationId)
+      refreshDerivedState()
+      return
+    }
+
+    const registration = await getActivityRegistration(registrationId)
+    if (!registration || registration.activity_id !== activityData.value?.id) return
+    applyRegistration(registration)
+    refreshDerivedState()
+  }
+
   async function fetchRegistrations(activityPage = null) {
     const fetchId = ++latestFetchId
     const activityId = getActivityId() || activityData.value?.id
@@ -91,5 +155,6 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     mySeasonRegistration,
     memberGenders,
     fetchRegistrations,
+    applyRegistrationChange,
   }
 }
