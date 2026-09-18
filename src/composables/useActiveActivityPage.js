@@ -5,7 +5,7 @@ import { useActiveActivityRegistrations } from '~/composables/useActiveActivityR
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { useRegistrationAdminActions } from '~/composables/useRegistrationAdminActions'
 import { useSignupFlow } from '~/composables/useSignupFlow'
-import { fetchActivityDetail } from '~/services/activityService'
+import { getActivityPage } from '~/services/activityService'
 import { removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
@@ -131,24 +131,20 @@ export function useActiveActivityPage() {
     activityData.value = null
 
     const id = route.query.id
-    const activityFetchPromise = fetchActivityDetail(id)
+    const activityPagePromise = getActivityPage(id)
     try {
       await liffStore.initialize()
-      const { data, error } = await activityFetchPromise
-      if (error) {
-        activityLoadState.value = 'error'
-        return
-      }
-      if (!data) {
+      const activityPage = await activityPagePromise
+      if (!activityPage?.activity) {
         activityLoadState.value = 'not-found'
         return
       }
 
-      activityData.value = data
-      acEnabled.value = data.ac_enabled ?? false
-      acFeePerSession.value = data.ac_fee ?? 0
+      activityData.value = activityPage.activity
+      acEnabled.value = activityPage.activity.ac_enabled ?? false
+      acFeePerSession.value = activityPage.activity.ac_fee ?? 0
       try {
-        await fetchRegistrations()
+        await fetchRegistrations(activityPage)
       } catch (error) {
         // 球局資料已成功取得時，名單的附屬查詢失敗不應覆蓋整個頁面。
         console.warn('Unable to load activity registrations', error)

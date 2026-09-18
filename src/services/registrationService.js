@@ -1,5 +1,5 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
-import { fetchActivityDateId, fetchActivityDates, fetchActivityDatesByIds, fetchActivityDatesInRange } from '~/services/activityDateService'
+import { fetchActivityDates, fetchActivityDatesByIds, fetchActivityDatesInRange } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
@@ -132,15 +132,6 @@ export async function invokeRegistrationAction(liffStore, body) {
 export async function listSeasonRegistrations(activityId, statuses = ['active']) {
   return listRegistrations(
     supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).in('status', statuses).order('created_at', { ascending: true })
-  )
-}
-
-export async function listPickupRegistrations(activityId, activityDate, statuses = ['active', 'cancelled']) {
-  const activityDateId = await fetchActivityDateId(activityId, activityDate)
-  if (activityDateId === null) return []
-
-  return listRegistrations(
-    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('activity_date_id', activityDateId).in('status', statuses).order('created_at', { ascending: true })
   )
 }
 
