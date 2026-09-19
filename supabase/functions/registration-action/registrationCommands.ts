@@ -196,7 +196,6 @@ export async function directSeasonRegister(context: Omit<RegistrationCommandCont
     findAfterConflict: () => findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null }),
     createPayload: registration => ({ ...registrationPayload(activityId, null, profile, 1, [], registration, submitTime), season_plan: seasonPlan }),
   })
-  await supabase.from('members').update({ is_season: true }).eq('user_id', profile.userId)
   return { ok: true }
 }
 
@@ -207,6 +206,5 @@ export async function cancelSeasonRegistration(context: Omit<RegistrationCommand
 
   const activeRegistration = await findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null })
   if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { status: 'cancelled' })
-  await supabase.from('members').update({ is_season: false }).eq('user_id', profile.userId)
   return { ok: true }
 }

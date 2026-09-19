@@ -216,3 +216,5 @@ Roles:
   registration-open and reminder notification candidates in the database.
 - `20260930000000_keyset_group_activity_sessions.sql`: replaces offset paging
   in the group session list with date-aware keyset pagination.
+- `20260931000000_optimize_member_season_status_sync.sql`: avoids member
+  writes when a registration cannot change season membership.
