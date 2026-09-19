@@ -145,12 +145,14 @@ export async function listSeasonRegistrations(activityId, statuses = ['active'])
   )
 }
 
-export async function listGroupActivitySessions(segment, { limit, offset, now }) {
+export async function listGroupActivitySessions(segment, { limit, cursor, now }) {
   const { data, error } = await supabase.rpc('list_group_activity_sessions', {
     p_segment: segment,
     p_limit: limit,
-    p_offset: offset,
     p_now: now.toISOString(),
+    p_cursor_activity_date: cursor?.activity_date ?? null,
+    p_cursor_created_at: cursor?.activity_created_at ?? null,
+    p_cursor_activity_date_id: cursor?.activity_date_id ?? null,
   })
   if (error) throw error
   return data || []

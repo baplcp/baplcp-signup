@@ -100,7 +100,8 @@ export function useGroupListPage() {
 
     isLoadingMore.value = true
     try {
-      const data = await listGroupActivitySessions(segment, { limit, offset: sessions.value.length, now })
+      const cursor = sessions.value[sessions.value.length - 1] || null
+      const data = await listGroupActivitySessions(segment, { limit, cursor, now })
       sessions.value = [...sessions.value, ...data]
       hasMore.value = data.length === limit
     } finally {

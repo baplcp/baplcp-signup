@@ -214,3 +214,5 @@ Roles:
   pickup and season participation in one database query.
 - `20260929000000_add_notification_candidate_rpcs.sql`: filters scheduled
   registration-open and reminder notification candidates in the database.
+- `20260930000000_keyset_group_activity_sessions.sql`: replaces offset paging
+  in the group session list with date-aware keyset pagination.
