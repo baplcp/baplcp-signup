@@ -220,3 +220,7 @@ Roles:
   writes when a registration cannot change season membership.
 - `20260932000000_optimize_season_capacity_trigger.sql`: skips unnecessary
   pickup locks and shortens the season-capacity check.
+- `20260933000000_fix_past_participation_season_plan.sql`: limits one-season
+  attendance totals to the first three calendar months of the activity.
+- `20260934000000_count_completed_today_participations.sql`: includes today's
+  registrations after the relevant activity has ended.
