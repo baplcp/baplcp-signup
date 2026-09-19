@@ -218,3 +218,5 @@ Roles:
   in the group session list with date-aware keyset pagination.
 - `20260931000000_optimize_member_season_status_sync.sql`: avoids member
   writes when a registration cannot change season membership.
+- `20260932000000_optimize_season_capacity_trigger.sql`: skips unnecessary
+  pickup locks and shortens the season-capacity check.
