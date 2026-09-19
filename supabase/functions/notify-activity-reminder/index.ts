@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { fetchActiveActivityDates, fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses, groupActivityDatesByActivityId } from '../_shared/normalized-collection-data.ts'
-import { addTaiwanDays, getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
+import { fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
+import { getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
 
 async function pushMessage(token: string, groupId: string, message: Record<string, unknown>): Promise<void> {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -68,31 +68,20 @@ serve(async _req => {
     const supabase = createClient(supabaseUrl, supabaseKey)
     const { date: todayTw, hour: hourTw } = getTaiwanDateAndHour()
 
-    const { data: activities, error: actErr } = await supabase
-      .from('activities')
-      .select('id, title, pickup_label, location, start_time, single_capacity, pickup_fee_per_session, ac_enabled, ac_fee, reminder_enabled, reminder_days_before, reminder_time')
-      .eq('reminder_enabled', true)
+    const { data: activities, error: actErr } = await supabase.rpc('list_activity_reminder_notification_candidates', {
+      p_today: todayTw,
+      p_hour: hourTw,
+    })
     if (actErr) throw actErr
-    const activityDates = await fetchActiveActivityDates(
-      supabase,
-      (activities || []).map(activity => activity.id)
-    )
-    const datesByActivityId = groupActivityDatesByActivityId(activityDates)
+
+    if (!activities?.length) return new Response(JSON.stringify({ notified: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
     const { data: organizers } = await supabase.from('members').select('user_id, display_name').eq('role', 'organizer')
 
     let notified = 0
 
     for (const activity of activities ?? []) {
-      if (!activity.reminder_days_before || !activity.reminder_time) continue
-
-      // 確認目前小時符合提醒時間（只取小時）
-      const reminderHour = parseInt(activity.reminder_time.slice(0, 2), 10)
-      if (hourTw !== reminderHour) continue
-
-      // 找出「今天 + reminder_days_before 天」是哪些場次日期
-      const targetActivityDates = (datesByActivityId.get(activity.id) || []).filter(activityDate => addTaiwanDays(todayTw, activity.reminder_days_before) === activityDate.activity_date)
-      if (targetActivityDates.length === 0) continue
+      const targetActivityDates = [{ id: activity.activity_date_id, activity_date: activity.activity_date }]
 
       for (const targetActivityDate of targetActivityDates) {
         const targetDate = targetActivityDate.activity_date

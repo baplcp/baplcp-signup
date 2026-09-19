@@ -212,3 +212,5 @@ Roles:
   PostgreSQL `date` and `time without time zone` types.
 - `20260928000000_add_past_participations_rpc.sql`: counts a member's past
   pickup and season participation in one database query.
+- `20260929000000_add_notification_candidate_rpcs.sql`: filters scheduled
+  registration-open and reminder notification candidates in the database.
