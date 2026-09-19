@@ -210,3 +210,5 @@ Roles:
 - `20260927000000_use_native_activity_date_time_types.sql`: converts activity
   calendar-date and wall-clock-time fields from legacy text storage to native
   PostgreSQL `date` and `time without time zone` types.
+- `20260928000000_add_past_participations_rpc.sql`: counts a member's past
+  pickup and season participation in one database query.

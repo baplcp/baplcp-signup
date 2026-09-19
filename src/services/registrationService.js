@@ -1,5 +1,5 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
-import { fetchActivityDates, fetchActivityDatesByIds, fetchActivityDatesInRange } from '~/services/activityDateService'
+import { fetchActivityDatesByIds } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
@@ -160,49 +160,13 @@ const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
 
 export async function countPastParticipations(userId) {
   if (!userId) return 0
-  const today = getTaiwanDateString()
-  const pastActivityDates = await fetchActivityDatesInRange(PARTICIPATION_COUNT_START_DATE, today)
-  const pastActivityDateIds = pastActivityDates.map(activityDate => activityDate.id)
-
-  let pickupCount = 0
-  if (pastActivityDateIds.length) {
-    const { count, error } = await supabase
-      .from('registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gt('self_count', 0)
-      .in('activity_date_id', pastActivityDateIds)
-    if (error) throw error
-    pickupCount = count || 0
-  }
-
-  const { data: seasonRegistrations, error: seasonError } = await supabase
-    .from('registrations')
-    .select('id, activity_id')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .gt('self_count', 0)
-    .is('activity_date_id', null)
-  if (seasonError) throw seasonError
-
-  if (!seasonRegistrations?.length) return pickupCount
-
-  const [activityDates, statesByRegistrationId] = await Promise.all([
-    fetchActivityDates([...new Set(seasonRegistrations.map(registration => registration.activity_id))], { activeOnly: false }),
-    fetchRegistrationDateStates(seasonRegistrations.map(registration => registration.id)),
-  ])
-  const datesByActivityId = groupBy(activityDates, 'activity_id')
-
-  const seasonCount = seasonRegistrations.reduce((count, registration) => {
-    const leaveDates = new Set(statesByRegistrationId.get(registration.id)?.leave_dates || [])
-    const attendedDates = (datesByActivityId.get(registration.activity_id) || []).filter(
-      activityDate => activityDate.activity_date >= PARTICIPATION_COUNT_START_DATE && activityDate.activity_date < today && !leaveDates.has(activityDate.activity_date)
-    )
-    return count + attendedDates.length
-  }, 0)
-
-  return pickupCount + seasonCount
+  const { data, error } = await supabase.rpc('count_past_participations', {
+    p_user_id: userId,
+    p_start_date: PARTICIPATION_COUNT_START_DATE,
+    p_end_date: getTaiwanDateString(),
+  })
+  if (error) throw error
+  return Number(data || 0)
 }
 
 export function subscribeToRegistrationChanges(activityId, onChange) {
