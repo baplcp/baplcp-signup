@@ -1,4 +1,5 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { listGroupActivitySessions } from '~/services/registrationService'
 import { formatTaiwanTime, getTaiwanWeekday } from '~/utils/taiwanDate'
 
@@ -13,6 +14,12 @@ export const groupListSegmentTabs = [
   { label: '即將到來', value: 'upcoming' },
   { label: '已結束', value: 'ended' },
 ]
+
+const GROUP_LIST_SEGMENTS = new Set(groupListSegmentTabs.map(tab => tab.value))
+
+function getSegmentFromQuery(segment) {
+  return typeof segment === 'string' && GROUP_LIST_SEGMENTS.has(segment) ? segment : SEGMENT_ALL
+}
 
 export function formatGroupDateLabel(dateStr) {
   const [, month, day] = dateStr.split('-')
@@ -56,6 +63,8 @@ function toEndedActivity(session) {
 }
 
 export function useGroupListPage() {
+  const route = useRoute()
+  const router = useRouter()
   const activeSegment = ref(SEGMENT_ALL)
   const upcomingSessions = ref([])
   const endedSessions = ref([])
@@ -116,7 +125,7 @@ export function useGroupListPage() {
     await fetchSessionPage('ended', PAGE_SIZE)
   }
 
-  function setSegment(segment) {
+  function expandSegment(segment) {
     activeSegment.value = segment
     if (segment === 'upcoming' && !hasExpandedUpcoming.value) {
       hasExpandedUpcoming.value = true
@@ -126,6 +135,18 @@ export function useGroupListPage() {
       hasExpandedEnded.value = true
       void loadMoreEnded()
     }
+  }
+
+  function setSegment(segment) {
+    const nextSegment = getSegmentFromQuery(segment)
+    if (route.query.segment === nextSegment) return
+
+    router.push({
+      query: {
+        ...route.query,
+        segment: nextSegment,
+      },
+    })
   }
 
   function isSegmentActive(segment) {
@@ -139,7 +160,18 @@ export function useGroupListPage() {
   async function fetchActivities() {
     await Promise.all([fetchSessionPage('upcoming', INITIAL_UPCOMING_LIMIT), fetchSessionPage('ended', PAGE_SIZE)])
     isLoading.value = false
+    expandSegment(activeSegment.value)
   }
+
+  watch(
+    () => route.query.segment,
+    segment => {
+      const nextSegment = getSegmentFromQuery(segment)
+      activeSegment.value = nextSegment
+      if (!isLoading.value) expandSegment(nextSegment)
+    },
+    { immediate: true }
+  )
 
   onMounted(fetchActivities)
 

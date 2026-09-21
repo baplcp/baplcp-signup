@@ -71,8 +71,11 @@ function goBack() {
   const fallbackFrom = state?.__inAppFallbackFrom
 
   if (typeof from === 'string' && from.startsWith('/')) {
+    const destination = router.resolve(from)
     router.replace({
-      path: from,
+      path: destination.path,
+      query: destination.query,
+      hash: destination.hash,
       state: {
         __inAppFrom: typeof fallbackFrom === 'string' && fallbackFrom.startsWith('/') ? fallbackFrom : '/',
         __inAppFallbackFrom: '/',
