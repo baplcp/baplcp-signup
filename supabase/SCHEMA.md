@@ -96,9 +96,7 @@ Primary key:
 Fields used by the app:
 
 - `activity_id bigint`
-- `user_id text`
-- `display_name text`
-- `picture_url text`
+- `member_id uuid` — required foreign key to `members.id`
 - `self_count integer`
 - `self_added_at timestamptz`
 - `guest_count integer, derived from registration_guests by trigger`
@@ -112,8 +110,8 @@ Fields used by the app:
 
 Database invariants:
 
-- One active pickup registration per `(activity_id, activity_date_id, user_id)`.
-- One active season registration per `(activity_id, user_id)` where
+- One active pickup registration per `(activity_id, activity_date_id, member_id)`.
+- One active season registration per `(activity_id, member_id)` where
   `activity_date_id is null`.
 - Capacity checks run in a trigger that locks the related activity row.
 - `guest_count` is a cached count of `registration_guests`.
@@ -124,8 +122,9 @@ Normalized tables:
   payment state. `write_registration_v3` writes this representation.
 - `season_registration_date_statuses` is the canonical season-member
   leave/rejoin state per activity date.
-- `registration_cancellation_events` stores cancelled-member history. Its
-  `legacy_payload` preserves the original event JSON object.
+- `registration_cancellation_events` stores cancellation history through a
+  required `member_id` relationship. Only guest cancellation events retain a
+  guest name; member names and photos are read from `members`.
 - These normalized tables have RLS enabled. Browser roles can read them under
   the same public-read model as their parent records; only `service_role` can
   execute the normalized-write RPCs.
@@ -144,6 +143,7 @@ Fields used by the app:
 - `user_id text unique`
 - `role text`
 - `display_name text`
+- `picture_url text`
 - `gender text`
 - `is_season boolean`
 - `created_at timestamptz`
@@ -224,3 +224,6 @@ Roles:
   attendance totals to the first three calendar months of the activity.
 - `20260934000000_count_completed_today_participations.sql`: includes today's
   registrations after the relevant activity has ended.
+- `20260935000000_normalize_registration_members.sql`: replaces registration
+  profile snapshots with a required `member_id` relationship and moves profile
+  images to `members`.

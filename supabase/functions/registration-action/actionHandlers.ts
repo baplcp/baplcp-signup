@@ -10,7 +10,7 @@ import {
   type RegistrationCommandContext,
   type RegistrationCommandResult,
 } from './registrationCommands.ts'
-import { findRegistrationById, writeRegistration } from './registrationRepository.ts'
+import { findRegistrationById, syncRegistrationMember, writeRegistration } from './registrationRepository.ts'
 
 export type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -52,20 +52,24 @@ export async function handleRegistrationAction(context: RegistrationActionContex
 
   if (action === 'save-registration') {
     const isAdmin = await isAdminProfile(supabase, profile)
-    return toActionResult(await saveRegistration({ ...context, isAdmin }, body))
+    const memberId = await syncRegistrationMember(supabase, profile)
+    return toActionResult(await saveRegistration({ ...context, memberId, isAdmin }, body))
   }
 
   if (action === 'season-leave') {
     const isAdmin = await isAdminProfile(supabase, profile)
-    return toActionResult(await updateSeasonLeave({ ...context, isAdmin }, body))
+    const memberId = await syncRegistrationMember(supabase, profile)
+    return toActionResult(await updateSeasonLeave({ ...context, memberId, isAdmin }, body))
   }
 
   if (action === 'direct-season-register') {
-    return toActionResult(await directSeasonRegister(context, body))
+    const memberId = await syncRegistrationMember(supabase, profile)
+    return toActionResult(await directSeasonRegister({ ...context, memberId }, body))
   }
 
   if (action === 'season-cancel') {
-    return toActionResult(await cancelSeasonRegistration(context))
+    const memberId = await syncRegistrationMember(supabase, profile)
+    return toActionResult(await cancelSeasonRegistration({ ...context, memberId }))
   }
 
   if (action === 'admin-toggle-payment') {

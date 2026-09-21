@@ -24,7 +24,10 @@ type RegistrationGuest = {
 
 type RegistrationCancellationEvent = {
   registration_id: string
-  legacy_payload: Record<string, unknown>
+  participant_type: 'self' | 'guest'
+  guest_display_name: string | null
+  participant_added_at: string | null
+  member: { display_name: string | null; picture_url: string | null } | Array<{ display_name: string | null; picture_url: string | null }>
 }
 
 function uniqueIds(ids: Array<number | string | null | undefined>) {
@@ -96,7 +99,7 @@ export async function fetchRegistrationCancelledMemberSnapshots(supabase: any, r
 
   const { data, error } = await supabase
     .from('registration_cancellation_events')
-    .select('registration_id, legacy_payload')
+    .select('registration_id, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)')
     .in('registration_id', ids)
     .eq('legacy_source', 'cancelled_members')
     .order('legacy_position', { ascending: true })
@@ -104,7 +107,15 @@ export async function fetchRegistrationCancelledMemberSnapshots(supabase: any, r
 
   return (data || []).reduce((snapshotsByRegistrationId: Map<string, Record<string, unknown>[]>, event: RegistrationCancellationEvent) => {
     const snapshots = snapshotsByRegistrationId.get(event.registration_id) || []
-    snapshots.push(event.legacy_payload)
+    const member = Array.isArray(event.member) ? event.member[0] : event.member
+    const name = event.participant_type === 'guest' ? event.guest_display_name || '群外' : member?.display_name || '未命名'
+    snapshots.push({
+      name,
+      badge: name.charAt(0),
+      image: event.participant_type === 'self' ? member?.picture_url || null : null,
+      time: event.participant_added_at || null,
+      addedBy: event.participant_type === 'guest' ? member?.display_name || null : null,
+    })
     snapshotsByRegistrationId.set(event.registration_id, snapshots)
     return snapshotsByRegistrationId
   }, new Map<string, Array<Record<string, unknown>>>())

@@ -3,7 +3,8 @@ import { fetchActivityDatesByIds } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
-const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
+const REGISTRATION_FIELDS =
+  'id, activity_id, activity_date_id, member_id, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 function groupBy(items, key) {
   return (items || []).reduce((grouped, item) => {
@@ -61,7 +62,9 @@ async function fetchCancellationSnapshots(registrationIds) {
 
   const { data, error } = await supabase
     .from('registration_cancellation_events')
-    .select('registration_id, legacy_source, legacy_position, display_name, picture_url, added_by, participant_added_at')
+    .select(
+      'registration_id, legacy_source, legacy_position, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)'
+    )
     .in('registration_id', registrationIds)
     .eq('legacy_source', 'cancelled_members')
     .order('legacy_source', { ascending: true })
@@ -82,13 +85,24 @@ function toGuest(guest) {
 }
 
 function toCancellationSnapshot(cancellation) {
-  const name = cancellation.display_name || '群外'
+  const member = Array.isArray(cancellation.member) ? cancellation.member[0] : cancellation.member
+  const name = cancellation.participant_type === 'guest' ? cancellation.guest_display_name || '群外' : member?.display_name || '未命名'
   return {
     name,
     badge: name.charAt(0),
-    image: cancellation.picture_url || null,
+    image: cancellation.participant_type === 'self' ? member?.picture_url || null : null,
     time: cancellation.participant_added_at || null,
-    addedBy: cancellation.added_by || null,
+    addedBy: cancellation.participant_type === 'guest' ? member?.display_name || null : null,
+  }
+}
+
+function withMemberProfile(registration) {
+  const member = Array.isArray(registration.member) ? registration.member[0] : registration.member
+  return {
+    ...registration,
+    user_id: member?.user_id || null,
+    display_name: member?.display_name || null,
+    picture_url: member?.picture_url || null,
   }
 }
 
@@ -110,7 +124,7 @@ async function hydrateRegistrations(registrations, { includeGuests = true, inclu
     const cancelledMembers = (cancellationsByRegistrationId.get(registration.id) || []).map(toCancellationSnapshot)
 
     return {
-      ...registration,
+      ...withMemberProfile(registration),
       activity_date: registration.activity_date_id ? registrationActivityDatesById.get(registration.activity_date_id) || null : null,
       ...(includeGuests ? { guests, guest_count: guests.length } : {}),
       ...dateState,

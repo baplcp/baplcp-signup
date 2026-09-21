@@ -1,4 +1,3 @@
-import type { LineProfile } from '../_shared/function-utils.ts'
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSaveRegistrationInput, parseSeasonLeaveInput } from '../_shared/input-validation.ts'
@@ -6,7 +5,7 @@ import { findRegistration, getActivityForRegistration, setSeasonRegistrationDate
 
 export type RegistrationCommandContext = {
   supabase: any
-  profile: LineProfile
+  memberId: string
   activityId: string | number
   submitTime: string
   now: Date
@@ -25,7 +24,7 @@ function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>
 function registrationPayload(
   activityId: string | number,
   activityDateId: number | null,
-  profile: LineProfile,
+  memberId: string,
   selfCount: number,
   guests: Array<{ name: string; gender: string }>,
   existing: Registration | null | undefined,
@@ -34,9 +33,7 @@ function registrationPayload(
   return {
     activity_id: activityId,
     activity_date_id: activityDateId,
-    user_id: profile.userId,
-    display_name: profile.displayName,
-    picture_url: profile.pictureUrl ?? null,
+    member_id: memberId,
     self_count: selfCount,
     self_added_at: selfCount === 1 ? (existing?.self_count ? existing.self_added_at || submitTime : submitTime) : null,
     guest_count: guests.length,
@@ -102,7 +99,7 @@ function assertRegistrationWindow(activity: Registration, activityDate: string |
 }
 
 export async function saveRegistration(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
-  const { supabase, profile, activityId, submitTime, now, isAdmin } = context
+  const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
   const { activityDate, selfCount, guestCount, guests } = parseSaveRegistrationInput(body, isAdmin ? 100 : 6)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
@@ -111,7 +108,7 @@ export async function saveRegistration(context: RegistrationCommandContext, body
   const activityDateId = activityDate === null ? null : await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDate !== null && activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
 
-  const findExisting = () => findRegistration(supabase, { activityId, userId: profile.userId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
+  const findExisting = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
   const existing = await findExisting()
   if (selfCount + guestCount <= 0) {
     if (existing) await writeRegistration(supabase, existing.id, { status: 'cancelled' })
@@ -123,7 +120,7 @@ export async function saveRegistration(context: RegistrationCommandContext, body
     existing,
     findAfterConflict: findExisting,
     createPayload: registration => {
-      const payload = registrationPayload(activityId, activityDateId, profile, selfCount, normalizedGuests, registration, submitTime)
+      const payload = registrationPayload(activityId, activityDateId, memberId, selfCount, normalizedGuests, registration, submitTime)
       if (!registration) return payload
 
       const removedMembers = []
@@ -139,7 +136,7 @@ export async function saveRegistration(context: RegistrationCommandContext, body
 }
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
-  const { supabase, profile, activityId, submitTime, now, isAdmin } = context
+  const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
   const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? 100 : 6)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
@@ -149,7 +146,7 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   const activityDateId = await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
 
-  const seasonRegistration = await findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null })
+  const seasonRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
   if (!seasonRegistration) return { error: 'season_registration_not_found', status: 404 }
 
   const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
@@ -158,14 +155,14 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
     await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
   }
 
-  const findPickupRegistration = () => findRegistration(supabase, { activityId, userId: profile.userId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
+  const findPickupRegistration = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
   const pickupRegistration = await findPickupRegistration()
   if (guestCount > 0) {
     await writeRegistrationWithRetry(supabase, {
       existing: pickupRegistration,
       findAfterConflict: findPickupRegistration,
       createPayload: registration => {
-        const payload = registrationPayload(activityId, activityDateId, profile, 0, normalizedGuests, registration, submitTime)
+        const payload = registrationPayload(activityId, activityDateId, memberId, 0, normalizedGuests, registration, submitTime)
         if (!registration) return payload
 
         const previousGuests = Array.isArray(registration.guests) ? registration.guests : []
@@ -182,29 +179,29 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
 }
 
 export async function directSeasonRegister(context: Omit<RegistrationCommandContext, 'isAdmin'>, body: Record<string, any>): Promise<RegistrationCommandResult> {
-  const { supabase, profile, activityId, submitTime, now } = context
+  const { supabase, memberId, activityId, submitTime, now } = context
   const activity = await getActivityForRegistration(supabase, activityId)
   assertRegistrationWindow(activity, null, now)
 
   const seasonPlan = body?.seasonPlan === 'half-year' ? 'half-year' : 'quarter'
-  const activeRegistration = await findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null })
-  const cancelledRegistration = activeRegistration ? null : await findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null, status: 'cancelled' })
+  const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
+  const cancelledRegistration = activeRegistration ? null : await findRegistration(supabase, { activityId, memberId, activityDateId: null, status: 'cancelled' })
   const existingRegistration = activeRegistration || cancelledRegistration
 
   await writeRegistrationWithRetry(supabase, {
     existing: existingRegistration,
-    findAfterConflict: () => findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null }),
-    createPayload: registration => ({ ...registrationPayload(activityId, null, profile, 1, [], registration, submitTime), season_plan: seasonPlan }),
+    findAfterConflict: () => findRegistration(supabase, { activityId, memberId, activityDateId: null }),
+    createPayload: registration => ({ ...registrationPayload(activityId, null, memberId, 1, [], registration, submitTime), season_plan: seasonPlan }),
   })
   return { ok: true }
 }
 
 export async function cancelSeasonRegistration(context: Omit<RegistrationCommandContext, 'isAdmin'>): Promise<RegistrationCommandResult> {
-  const { supabase, profile, activityId } = context
+  const { supabase, memberId, activityId } = context
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
 
-  const activeRegistration = await findRegistration(supabase, { activityId, userId: profile.userId, activityDateId: null })
+  const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
   if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { status: 'cancelled' })
   return { ok: true }
 }

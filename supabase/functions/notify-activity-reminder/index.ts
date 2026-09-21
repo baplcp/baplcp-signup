@@ -56,6 +56,12 @@ async function sendWithGranularFallback(token: string, groupId: string, text: st
 
 type ConfirmedUser = { userId: string; displayName: string; guestCount: number; guests: Array<{ gender?: string }>; selfInPickup?: boolean }
 
+function registrationMember(registration: { member?: { user_id?: string; display_name?: string } | Array<{ user_id?: string; display_name?: string }> }) {
+  const member = Array.isArray(registration.member) ? registration.member[0] : registration.member
+  if (!member?.user_id) throw new Error('registration_member_not_found')
+  return member
+}
+
 serve(async _req => {
   try {
     const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
@@ -88,7 +94,7 @@ serve(async _req => {
         // ── 季打報名 ──────────────────────────────────────────────
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('id, user_id, display_name, self_count, created_at')
+          .select('id, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .is('activity_date_id', null)
           .eq('status', 'active')
@@ -102,7 +108,7 @@ serve(async _req => {
         // ── 臨打報名 ──────────────────────────────────────────────
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
-          .select('id, user_id, display_name, self_added_at, self_count, created_at')
+          .select('id, self_added_at, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .eq('activity_date_id', targetActivityDate.id)
           .eq('status', 'active')
@@ -127,26 +133,28 @@ serve(async _req => {
         const mainSlots: FlatSlot[] = []
 
         for (const reg of seasonRegs ?? []) {
+          const member = registrationMember(reg)
           const dateStatus = seasonDateStatuses.get(reg.id)
           if (dateStatus?.is_on_leave) continue
           if ((reg.self_count ?? 0) <= 0) continue
           // 同前端：有回歸時間則用回歸時間，否則用 created_at
           const ts = dateStatus?.rejoined_at || reg.created_at
-          mainSlots.push({ kind: 'season_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
+          mainSlots.push({ kind: 'season_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
         }
 
         for (const reg of pickupRegs ?? []) {
+          const member = registrationMember(reg)
           if ((reg.self_count ?? 0) > 0) {
             // 同前端：self_added_at 優先，null 時用 created_at（不排到最後）
             const ts = reg.self_added_at || reg.created_at
-            mainSlots.push({ kind: 'pickup_self', userId: reg.user_id, displayName: reg.display_name ?? reg.user_id, ts })
+            mainSlots.push({ kind: 'pickup_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
           }
           const allGuests = guestsByRegistrationId.get(reg.id) || []
           allGuests.forEach(guest => {
             const slot: FlatSlot = {
               kind: 'guest',
-              userId: reg.user_id,
-              displayName: reg.display_name ?? reg.user_id,
+              userId: member.user_id,
+              displayName: member.display_name ?? member.user_id,
               ts: guest.joined_at || reg.created_at,
               guestData: { gender: guest.gender ?? undefined, name: guest.display_name ?? undefined },
             }

@@ -1,6 +1,7 @@
 import { fetchRegistrationCancelledMemberSnapshots, fetchRegistrationGuests } from '../_shared/normalized-collection-data.ts'
 
-export const REGISTRATION_FIELDS = 'id, activity_id, activity_date_id, user_id, display_name, picture_url, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan'
+export const REGISTRATION_FIELDS =
+  'id, activity_id, activity_date_id, member_id, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 export type Registration = Record<string, any>
 
@@ -11,6 +12,17 @@ type HydrationOptions = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hydrateMemberProfile(registration: Registration | null | undefined) {
+  if (!registration) return registration
+  const member = Array.isArray(registration.member) ? registration.member[0] : registration.member
+  return {
+    ...registration,
+    user_id: member?.user_id ?? null,
+    display_name: member?.display_name ?? null,
+    picture_url: member?.picture_url ?? null,
+  }
 }
 
 function toLegacyGuestSnapshot(guest: {
@@ -41,7 +53,7 @@ export async function hydrateRegistrationCollections(supabase: any, registration
   ])
 
   return {
-    ...registration,
+    ...hydrateMemberProfile(registration),
     ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toLegacyGuestSnapshot) } : {}),
     ...(cancelledMembers ? { cancelled_members: cancelledMembersByRegistrationId.get(registration.id) || [] } : {}),
   }
@@ -49,14 +61,42 @@ export async function hydrateRegistrationCollections(supabase: any, registration
 
 export async function findRegistration(
   supabase: any,
-  { activityId, userId, activityDateId, status = 'active', hydration }: { activityId: string | number; userId: string; activityDateId: number | null; status?: string; hydration?: HydrationOptions }
+  {
+    activityId,
+    memberId,
+    activityDateId,
+    status = 'active',
+    hydration,
+  }: { activityId: string | number; memberId: string; activityDateId: number | null; status?: string; hydration?: HydrationOptions }
 ) {
-  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('user_id', userId).eq('status', status)
+  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('member_id', memberId).eq('status', status)
   query = activityDateId === null ? query.is('activity_date_id', null) : query.eq('activity_date_id', activityDateId)
 
   const { data, error } = await query.maybeSingle()
   if (error) throw error
   return hydrateRegistrationCollections(supabase, data, hydration)
+}
+
+export async function syncRegistrationMember(supabase: any, profile: { userId: string; displayName: string; pictureUrl?: string | null }) {
+  const { data: existing, error: findError } = await supabase.from('members').select('id').eq('user_id', profile.userId).maybeSingle()
+  if (findError) throw findError
+
+  if (existing) {
+    const { error } = await supabase
+      .from('members')
+      .update({ display_name: profile.displayName, picture_url: profile.pictureUrl ?? null })
+      .eq('id', existing.id)
+    if (error) throw error
+    return existing.id as string
+  }
+
+  const { data, error } = await supabase
+    .from('members')
+    .insert({ user_id: profile.userId, display_name: profile.displayName, picture_url: profile.pictureUrl ?? null, role: 'member' })
+    .select('id')
+    .single()
+  if (error) throw error
+  return data.id as string
 }
 
 export async function findRegistrationById(supabase: any, registrationId: string | number, hydration?: HydrationOptions) {

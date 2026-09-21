@@ -60,7 +60,7 @@ serve(async req => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     if (action === 'sync') {
-      const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', profile.userId).maybeSingle()
+      const { data, error } = await supabase.from('members').select('id, role, gender, is_season').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
       let role = data?.role ?? 'member'
@@ -71,17 +71,20 @@ serve(async req => {
         const { error: insertError } = await supabase.from('members').insert({
           user_id: profile.userId,
           display_name: profile.displayName,
+          picture_url: profile.pictureUrl,
           role: 'member',
         })
         if (insertError) throw insertError
       } else {
+        const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
+        if (profileError) throw profileError
         const { data: latestSeason } = await supabase.from('activities').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (latestSeason) {
           const { data: seasonReg } = await supabase
             .from('registrations')
             .select('id')
             .eq('activity_id', latestSeason.id)
-            .eq('user_id', profile.userId)
+            .eq('member_id', data.id)
             .is('activity_date_id', null)
             .eq('status', 'active')
             .maybeSingle()
