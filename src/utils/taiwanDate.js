@@ -48,3 +48,8 @@ export function parseTaiwanDateTime(dateString, timeString) {
   const [hour, minute, second = 0] = timeString.split(':').map(Number)
   return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, second))
 }
+
+export function formatTaiwanTime(timeString) {
+  const time = (timeString || '').slice(0, 5)
+  return time.replace(/^0/, '')
+}

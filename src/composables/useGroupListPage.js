@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { listGroupActivitySessions } from '~/services/registrationService'
-import { getTaiwanWeekday } from '~/utils/taiwanDate'
+import { formatTaiwanTime, getTaiwanWeekday } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEGMENT_ALL = 'all'
@@ -21,8 +21,7 @@ export function formatGroupDateLabel(dateStr) {
 }
 
 function formatTimeRange(startTime, endTime) {
-  const fmt = time => (time || '').replace(/^0/, '').slice(0, 5)
-  return `${fmt(startTime)}-${fmt(endTime)}`
+  return `${formatTaiwanTime(startTime)}-${formatTaiwanTime(endTime)}`
 }
 
 function formatDateRow(dateStr, startTime, endTime) {

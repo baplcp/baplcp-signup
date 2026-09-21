@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import { addTaiwanDays, getTaiwanWeekday, parseTaiwanDate, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { addTaiwanDays, formatTaiwanTime, getTaiwanWeekday, parseTaiwanDate, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -40,8 +40,7 @@ export function useActiveActivityViewModels({
   const summaryWeekday = computed(() => (resolvedDate.value ? WEEKDAYS[getTaiwanWeekday(resolvedDate.value)] : '—'))
   const summaryTime = computed(() => {
     if (!activityData.value) return '—'
-    const fmt = time => (time || '').replace(/^0/, '').slice(0, 5)
-    return `${fmt(activityData.value.start_time)}-${fmt(activityData.value.end_time)}`
+    return `${formatTaiwanTime(activityData.value.start_time)}-${formatTaiwanTime(activityData.value.end_time)}`
   })
   const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
