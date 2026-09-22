@@ -6,14 +6,26 @@ export function useRegistrationAdminActions({ liffStore, activityData, getActivi
   const removeConfirmButton = ref(null)
 
   async function togglePayment(member, field) {
+    if (member._memberType === 'guest') {
+      try {
+        await invokeRegistrationAction(liffStore, {
+          action: 'admin-toggle-payment',
+          activityId: activityData.value?.id,
+          registrationId: member._regId || null,
+          memberType: member._memberType,
+          guestId: member._guestId,
+          field,
+        })
+      } finally {
+        await fetchRegistrations()
+      }
+      return
+    }
     const targetList = member._memberType === 'season_self' ? seasonRegistrations : registrations
     const registrationIndex = targetList.value.findIndex(registration => registration.id === member._regId)
     if (registrationIndex === -1) return
     const registration = targetList.value[registrationIndex]
-    const updatedRegistration =
-      member._memberType === 'guest'
-        ? { ...registration, guests: (registration.guests || []).map((guest, index) => (index === member._guestIndex ? { ...guest, [field]: !(guest[field] ?? false) } : guest)) }
-        : { ...registration, [field]: !(registration[field] ?? false) }
+    const updatedRegistration = { ...registration, [field]: !(registration[field] ?? false) }
     targetList.value = targetList.value.map((currentRegistration, index) => (index === registrationIndex ? updatedRegistration : currentRegistration))
 
     try {
@@ -22,7 +34,6 @@ export function useRegistrationAdminActions({ liffStore, activityData, getActivi
         activityId: activityData.value?.id,
         registrationId: registration.id,
         memberType: member._memberType,
-        guestIndex: member._guestIndex,
         field,
       })
     } finally {
@@ -46,14 +57,14 @@ export function useRegistrationAdminActions({ liffStore, activityData, getActivi
     removeDialog.open = false
     removeDialog.member = null
     const registration = registrations.value.find(item => item.id === member?._regId)
-    if (!registration) return
+    if (member?._memberType !== 'guest' && !registration) return
     try {
       await invokeRegistrationAction(liffStore, {
         action: 'admin-remove-member',
         activityId: activityData.value?.id,
-        registrationId: registration.id,
+        registrationId: registration?.id || null,
         memberType: member._memberType,
-        guestIndex: member._guestIndex,
+        guestId: member._guestId,
       })
       await fetchRegistrations()
     } catch {

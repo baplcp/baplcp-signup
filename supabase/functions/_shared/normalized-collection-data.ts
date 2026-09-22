@@ -13,11 +13,12 @@ type SeasonRegistrationDateStatus = {
 
 type RegistrationGuest = {
   id: string
-  registration_id: string
-  guest_position: number
+  activity_date_id: number
+  invited_by: string
   display_name: string | null
   gender: string | null
-  joined_at: string | null
+  created_at: string
+  cancelled_at: string | null
   paid_court: boolean
   paid_ac: boolean
 }
@@ -66,22 +67,14 @@ export async function fetchSeasonRegistrationDateStatuses(supabase: any, registr
   return new Map((data || []).map((status: SeasonRegistrationDateStatus) => [status.registration_id, status]))
 }
 
-export async function fetchRegistrationGuests(supabase: any, registrationIds: Array<string | null | undefined>) {
-  const ids = uniqueIds(registrationIds)
-  if (ids.length === 0) return new Map<string, RegistrationGuest[]>()
-
+export async function fetchRegistrationGuests(supabase: any, activityDateId: number) {
   const { data, error } = await supabase
     .from('registration_guests')
-    .select('id, registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac')
-    .in('registration_id', ids)
+    .select('id, activity_date_id, invited_by, display_name, gender, created_at, cancelled_at, paid_court, paid_ac')
+    .eq('activity_date_id', activityDateId)
     .is('cancelled_at', null)
-    .order('guest_position', { ascending: true })
+    .order('created_at', { ascending: true })
   if (error) throw error
 
-  return (data || []).reduce((guestsByRegistrationId: Map<string, RegistrationGuest[]>, guest: RegistrationGuest) => {
-    const guests = guestsByRegistrationId.get(guest.registration_id) || []
-    guests.push(guest)
-    guestsByRegistrationId.set(guest.registration_id, guests)
-    return guestsByRegistrationId
-  }, new Map<string, RegistrationGuest[]>())
+  return (data || []) as RegistrationGuest[]
 }

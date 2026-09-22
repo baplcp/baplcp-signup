@@ -4,29 +4,29 @@ import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, self_count, cancelled_at, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
-function groupBy(items, key) {
-  return (items || []).reduce((grouped, item) => {
-    const values = grouped.get(item[key]) || []
-    values.push(item)
-    grouped.set(item[key], values)
-    return grouped
-  }, new Map())
+function guestOwnerKey(activityDateId, memberId) {
+  return `${activityDateId}:${memberId}`
 }
 
-async function fetchRegistrationGuests(registrationIds) {
-  if (!registrationIds.length) return new Map()
+async function fetchRegistrationGuests(activityDateIds) {
+  if (!activityDateIds.length) return new Map()
 
   const { data, error } = await supabase
     .from('registration_guests')
-    .select('id, registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac')
-    .in('registration_id', registrationIds)
-    .is('cancelled_at', null)
-    .order('guest_position', { ascending: true })
+    .select('id, activity_date_id, invited_by, display_name, gender, created_at, cancelled_at, paid_court, paid_ac')
+    .in('activity_date_id', activityDateIds)
+    .order('created_at', { ascending: true })
   if (error) throw error
 
-  return groupBy(data, 'registration_id')
+  return (data || []).reduce((grouped, guest) => {
+    const key = guestOwnerKey(guest.activity_date_id, guest.invited_by)
+    const values = grouped.get(key) || []
+    values.push(guest)
+    grouped.set(key, values)
+    return grouped
+  }, new Map())
 }
 
 async function fetchRegistrationDateStates(registrationIds) {
@@ -63,7 +63,8 @@ function toGuest(guest) {
     id: guest.id,
     name: guest.display_name || '',
     gender: guest.gender || '',
-    added_at: guest.joined_at || null,
+    created_at: guest.created_at || null,
+    cancelled_at: guest.cancelled_at || null,
     paid_court: guest.paid_court ?? false,
     paid_ac: guest.paid_ac ?? false,
   }
@@ -84,20 +85,21 @@ async function hydrateRegistrations(registrations, { includeGuests = true } = {}
 
   const registrationIds = registrations.map(registration => registration.id)
   const [guestsByRegistrationId, statesByRegistrationId, registrationActivityDates] = await Promise.all([
-    includeGuests ? fetchRegistrationGuests(registrationIds) : Promise.resolve(new Map()),
+    includeGuests ? fetchRegistrationGuests(registrations.map(registration => registration.activity_date_id).filter(Boolean)) : Promise.resolve(new Map()),
     fetchRegistrationDateStates(registrationIds),
     fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
   ])
   const registrationActivityDatesById = new Map(registrationActivityDates.map(activityDate => [activityDate.id, activityDate.activity_date]))
 
   return registrations.map(registration => {
-    const guests = (guestsByRegistrationId.get(registration.id) || []).map(toGuest)
+    const guests = (guestsByRegistrationId.get(guestOwnerKey(registration.activity_date_id, registration.member_id)) || []).map(toGuest)
     const dateState = statesByRegistrationId.get(registration.id) || { leave_dates: [], leave_times: {}, rejoin_times: {} }
 
     return {
       ...withMemberProfile(registration),
       activity_date: registration.activity_date_id ? registrationActivityDatesById.get(registration.activity_date_id) || null : null,
-      ...(includeGuests ? { guests, guest_count: guests.length } : {}),
+      ...(includeGuests ? { guests } : {}),
+      is_self_registration: true,
       ...dateState,
     }
   })
@@ -161,6 +163,7 @@ export function subscribeToRegistrationChanges(activityId, onChange) {
   return supabase
     .channel(`registrations-live-${activityId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${activityId}` }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `activity_id=eq.${activityId}` }, onChange)
     .subscribe()
 }
 

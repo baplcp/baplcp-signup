@@ -94,7 +94,7 @@ serve(async _req => {
         // ── 季打報名 ──────────────────────────────────────────────
         const { data: seasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('id, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
+          .select('id, member_id, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .is('activity_date_id', null)
           .is('cancelled_at', null)
@@ -108,15 +108,18 @@ serve(async _req => {
         // ── 臨打報名 ──────────────────────────────────────────────
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
-          .select('id, self_added_at, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
+          .select('id, member_id, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .eq('activity_date_id', targetActivityDate.id)
           .is('cancelled_at', null)
         if (pErr) throw pErr
-        const guestsByRegistrationId = await fetchRegistrationGuests(
-          supabase,
-          (pickupRegs || []).map(registration => registration.id)
-        )
+        const guests = await fetchRegistrationGuests(supabase, targetActivityDate.id)
+        const memberIds = [
+          ...new Set([...(seasonRegs || []).map(registration => registration.member_id), ...(pickupRegs || []).map(registration => registration.member_id), ...guests.map(guest => guest.invited_by)]),
+        ]
+        const { data: guestInviters, error: invitersError } = await supabase.from('members').select('id, user_id, display_name').in('id', memberIds)
+        if (invitersError) throw invitersError
+        const memberById = new Map((guestInviters || []).map(member => [member.id, member]))
 
         const totalCapacity = Number(activity.single_capacity) || 0
 
@@ -136,7 +139,6 @@ serve(async _req => {
           const member = registrationMember(reg)
           const dateStatus = seasonDateStatuses.get(reg.id)
           if (dateStatus?.is_on_leave) continue
-          if ((reg.self_count ?? 0) <= 0) continue
           // 同前端：有回歸時間則用回歸時間，否則用 created_at
           const ts = dateStatus?.rejoined_at || reg.created_at
           mainSlots.push({ kind: 'season_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
@@ -144,21 +146,18 @@ serve(async _req => {
 
         for (const reg of pickupRegs ?? []) {
           const member = registrationMember(reg)
-          if ((reg.self_count ?? 0) > 0) {
-            // 同前端：self_added_at 優先，null 時用 created_at（不排到最後）
-            const ts = reg.self_added_at || reg.created_at
-            mainSlots.push({ kind: 'pickup_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
-          }
-          const allGuests = guestsByRegistrationId.get(reg.id) || []
-          allGuests.forEach(guest => {
-            const slot: FlatSlot = {
-              kind: 'guest',
-              userId: member.user_id,
-              displayName: member.display_name ?? member.user_id,
-              ts: guest.joined_at || reg.created_at,
-              guestData: { gender: guest.gender ?? undefined, name: guest.display_name ?? undefined },
-            }
-            mainSlots.push(slot)
+          mainSlots.push({ kind: 'pickup_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts: reg.created_at })
+        }
+
+        for (const guest of guests) {
+          const member = memberById.get(guest.invited_by)
+          if (!member) continue
+          mainSlots.push({
+            kind: 'guest',
+            userId: member.user_id,
+            displayName: member.display_name ?? member.user_id,
+            ts: guest.created_at,
+            guestData: { gender: guest.gender ?? undefined, name: guest.display_name ?? undefined },
           })
         }
 

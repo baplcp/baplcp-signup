@@ -1,11 +1,7 @@
-import { fetchRegistrationGuests } from '../_shared/normalized-collection-data.ts'
-
 export const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, self_count, cancelled_at, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 export type Registration = Record<string, any>
-
-type HydrationOptions = { guests?: boolean }
 
 function hydrateMemberProfile(registration: Registration | null | undefined) {
   if (!registration) return registration
@@ -18,39 +14,14 @@ function hydrateMemberProfile(registration: Registration | null | undefined) {
   }
 }
 
-function toGuestSnapshot(guest: { id: string; display_name: string | null; gender: string | null; joined_at: string | null; paid_court: boolean; paid_ac: boolean }): Record<string, unknown> {
-  return {
-    id: guest.id,
-    name: guest.display_name ?? '',
-    gender: guest.gender ?? null,
-    added_at: guest.joined_at ?? null,
-    paid_court: guest.paid_court ?? false,
-    paid_ac: guest.paid_ac ?? false,
-  }
-}
-
-export async function hydrateRegistrationCollections(supabase: any, registration: Registration | null | undefined, { guests = false }: HydrationOptions = {}) {
+export async function hydrateRegistrationCollections(registration: Registration | null | undefined) {
   if (!registration) return registration
-
-  const guestsByRegistrationId = guests ? await fetchRegistrationGuests(supabase, [registration.id]) : new Map()
-
-  return {
-    ...hydrateMemberProfile(registration),
-    ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toGuestSnapshot) } : {}),
-    // Cancellation history is read from cancelled_at on registrations and
-    // registration_guests. There is no snapshot/event collection to hydrate.
-  }
+  return hydrateMemberProfile(registration)
 }
 
 export async function findRegistration(
   supabase: any,
-  {
-    activityId,
-    memberId,
-    activityDateId,
-    activeOnly = true,
-    hydration,
-  }: { activityId: string | number; memberId: string; activityDateId: number | null; activeOnly?: boolean; hydration?: HydrationOptions }
+  { activityId, memberId, activityDateId, activeOnly = true }: { activityId: string | number; memberId: string; activityDateId: number | null; activeOnly?: boolean }
 ) {
   let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('member_id', memberId)
   if (activeOnly) query = query.is('cancelled_at', null)
@@ -58,7 +29,7 @@ export async function findRegistration(
 
   const { data, error } = await query.maybeSingle()
   if (error) throw error
-  return hydrateRegistrationCollections(supabase, data, hydration)
+  return hydrateRegistrationCollections(data)
 }
 
 export async function syncRegistrationMember(supabase: any, profile: { userId: string; displayName: string; pictureUrl?: string | null }) {
@@ -83,10 +54,10 @@ export async function syncRegistrationMember(supabase: any, profile: { userId: s
   return data.id as string
 }
 
-export async function findRegistrationById(supabase: any, registrationId: string | number, hydration?: HydrationOptions) {
+export async function findRegistrationById(supabase: any, registrationId: string | number) {
   const { data, error } = await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('id', registrationId).maybeSingle()
   if (error) throw error
-  return hydrateRegistrationCollections(supabase, data, hydration)
+  return hydrateRegistrationCollections(data)
 }
 
 export async function writeRegistration(supabase: any, registrationId: string | null, payload: Record<string, unknown>) {
@@ -96,6 +67,19 @@ export async function writeRegistration(supabase: any, registrationId: string | 
   })
   if (error) throw error
   return data as string
+}
+
+export async function writeRegistrationGuests(supabase: any, payload: Record<string, unknown>) {
+  const { error } = await supabase.rpc('write_registration_guests_v1', payload)
+  if (error) throw error
+}
+
+export async function updateRegistrationGuest(supabase: any, guestId: string, payload: Record<string, unknown>) {
+  const { error } = await supabase.rpc('update_registration_guest_v1', {
+    p_guest_id: guestId,
+    p_payload: payload,
+  })
+  if (error) throw error
 }
 
 export async function setSeasonRegistrationDateStatus(supabase: any, registrationId: string, activityDateId: number, isOnLeave: boolean, changedAt: string) {

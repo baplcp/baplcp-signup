@@ -1,6 +1,6 @@
 import { isOrganizer, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
 import { cancelSeasonRegistration, directSeasonRegister, saveRegistration, updateSeasonLeave, type RegistrationCommandContext, type RegistrationCommandResult } from './registrationCommands.ts'
-import { findRegistrationById, syncRegistrationMember, writeRegistration } from './registrationRepository.ts'
+import { findRegistrationById, syncRegistrationMember, updateRegistrationGuest, writeRegistration } from './registrationRepository.ts'
 
 export type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -66,22 +66,21 @@ export async function handleRegistrationAction(context: RegistrationActionContex
     await requireAdmin(supabase, profile)
     const registrationId = normalizeId(body?.registrationId)
     const memberType = body?.memberType
-    const guestIndex = Number(body?.guestIndex)
+    const guestId = normalizeId(body?.guestId)
     const field = body?.field
-    if (!registrationId) return { body: { error: 'invalid_registration_id' }, status: 400 }
     if (field !== 'paid_court' && field !== 'paid_ac') return { body: { error: 'invalid_payment_field' }, status: 400 }
     if (memberType !== 'self' && memberType !== 'season_self' && memberType !== 'guest') return { body: { error: 'invalid_member_type' }, status: 400 }
 
-    const registration = await findRegistrationById(supabase, registrationId, { guests: memberType === 'guest' })
-    if (!registration) return { body: { error: 'registration_not_found' }, status: 404 }
-
     if (memberType === 'guest') {
-      if (!Number.isInteger(guestIndex) || guestIndex < 0) return { body: { error: 'invalid_guest_index' }, status: 400 }
-      const guests = Array.isArray(registration.guests) ? registration.guests : []
-      if (!guests[guestIndex]) return { body: { error: 'guest_not_found' }, status: 404 }
-      const nextGuests = guests.map((guest: Record<string, unknown>, index: number) => (index === guestIndex ? { ...guest, [field]: !(guest[field] ?? false) } : guest))
-      await writeRegistration(supabase, registration.id, { guests: nextGuests })
+      if (!guestId) return { body: { error: 'invalid_guest_id' }, status: 400 }
+      const { data: guest, error } = await supabase.from('registration_guests').select('id, paid_court, paid_ac').eq('id', guestId).maybeSingle()
+      if (error) throw error
+      if (!guest) return { body: { error: 'guest_not_found' }, status: 404 }
+      await updateRegistrationGuest(supabase, guest.id, { [field]: field === 'paid_court' ? !guest.paid_court : !guest.paid_ac })
     } else {
+      if (!registrationId) return { body: { error: 'invalid_registration_id' }, status: 400 }
+      const registration = await findRegistrationById(supabase, registrationId)
+      if (!registration) return { body: { error: 'registration_not_found' }, status: 404 }
       await writeRegistration(supabase, registration.id, { [field]: !(registration[field] ?? false) })
     }
 
@@ -92,21 +91,17 @@ export async function handleRegistrationAction(context: RegistrationActionContex
     await requireAdmin(supabase, profile)
     const registrationId = normalizeId(body?.registrationId)
     const memberType = body?.memberType
-    const guestIndex = Number(body?.guestIndex)
-    if (!registrationId) return { body: { error: 'invalid_registration_id' }, status: 400 }
+    const guestId = normalizeId(body?.guestId)
     if (memberType !== 'self' && memberType !== 'guest') return { body: { error: 'invalid_member_type' }, status: 400 }
 
-    const registration = await findRegistrationById(supabase, registrationId, { guests: memberType === 'guest' })
-    if (!registration) return { body: { error: 'registration_not_found' }, status: 404 }
-
     if (memberType === 'self') {
+      if (!registrationId) return { body: { error: 'invalid_registration_id' }, status: 400 }
+      const registration = await findRegistrationById(supabase, registrationId)
+      if (!registration) return { body: { error: 'registration_not_found' }, status: 404 }
       await writeRegistration(supabase, registration.id, { cancelled_at: context.submitTime })
     } else {
-      if (!Number.isInteger(guestIndex) || guestIndex < 0) return { body: { error: 'invalid_guest_index' }, status: 400 }
-      const guests = Array.isArray(registration.guests) ? registration.guests : []
-      if (!guests[guestIndex]) return { body: { error: 'guest_not_found' }, status: 404 }
-      const nextGuests = guests.filter((_: unknown, index: number) => index !== guestIndex)
-      await writeRegistration(supabase, registration.id, { guests: nextGuests })
+      if (!guestId) return { body: { error: 'invalid_guest_id' }, status: 400 }
+      await updateRegistrationGuest(supabase, guestId, { cancelled_at: context.submitTime })
     }
 
     return { body: { ok: true }, status: 200 }

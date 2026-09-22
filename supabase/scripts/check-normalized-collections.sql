@@ -17,6 +17,20 @@ with issues as (
   union all
 
   select
+    'guest_activity_date_mismatch'::text,
+    guest.id::text,
+    jsonb_build_object(
+      'guest_activity_id', guest.activity_id,
+      'activity_date_id', guest.activity_date_id,
+      'activity_date_activity_id', activity_date.activity_id
+    )
+  from public.registration_guests as guest
+  join public.activity_dates as activity_date on activity_date.id = guest.activity_date_id
+  where activity_date.activity_id is distinct from guest.activity_id
+
+  union all
+
+  select
     'season_status_activity_date_mismatch'::text,
     state.registration_id::text,
     jsonb_build_object(
