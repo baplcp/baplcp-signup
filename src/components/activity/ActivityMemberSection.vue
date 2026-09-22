@@ -275,7 +275,7 @@ function handleRemove(member, index) {
 
 .gender-summary {
   margin: -4px 2px 8px;
-  color: var(--primary-700);
+  color: #8f95b2;
   font-size: 14px;
   line-height: 1.4;
 }
