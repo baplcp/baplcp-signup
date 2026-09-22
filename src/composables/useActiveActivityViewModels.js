@@ -114,6 +114,14 @@ export function useActiveActivityViewModels({
     if (activeSegment.value === '報名成功') return memberList.value.filter(member => !member.status)
     return memberList.value
   })
+  // 男女人數固定算全部報名成功（正取）的人，不隨分頁切換、不含候補
+  const genderCounts = computed(() => {
+    const confirmedMembers = memberList.value.filter(member => !member.status)
+    return {
+      male: confirmedMembers.filter(member => member.gender === 'male').length,
+      female: confirmedMembers.filter(member => member.gender === 'female').length,
+    }
+  })
   const hasVisibleSectionBelow = computed(() => {
     const showCancelled = cancelledMemberList.value.length > 0 && isRegistrationOpen.value && (activityType.value === 'season' || activeSegment.value === '臨打')
     const showLeave = leaveMemberList.value.length > 0 && activeSegment.value === '季打'
@@ -240,6 +248,7 @@ export function useActiveActivityViewModels({
       activeSegment,
       segmentTabs,
       filteredMemberList,
+      genderCounts,
       memberBottomSpacing,
       cancelledMemberList,
       leaveMemberList,

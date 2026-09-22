@@ -62,6 +62,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       :tabs="members.segmentTabs"
       :active-segment="members.activeSegment"
       :members="members.filteredMemberList"
+      :gender-counts="members.genderCounts"
       :bottom-spacing="members.memberBottomSpacing"
       :is-admin="admin.isAdmin"
       :admin-mode="admin.adminMode"
