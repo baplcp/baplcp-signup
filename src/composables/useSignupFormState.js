@@ -4,6 +4,10 @@ function toGuestForm(guests = []) {
   return guests.filter(guest => !guest.cancelled_at).map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '' }))
 }
 
+function hasActiveSelfRegistration(registration) {
+  return Boolean(registration?.is_self_registration && !registration.cancelled_at)
+}
+
 function syncGuestLength(signupState, count) {
   while (signupState.guests.length < count) signupState.guests.push({ name: '', gender: '' })
   signupState.guests.splice(count)
@@ -29,7 +33,7 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     if (currentViewModels.isSeasonLeaveMode.value) {
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       if ((signupState.self === 0) !== isOnLeave) return true
-    } else if (signupState.self !== (myRegistration.value?.is_self_registration ? 1 : 0)) {
+    } else if (signupState.self !== (hasActiveSelfRegistration(myRegistration.value) ? 1 : 0)) {
       return true
     }
 
@@ -51,7 +55,7 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
       signupState.guest = toGuestForm(myRegistration.value?.guests).length
       signupState.guests = toGuestForm(myRegistration.value?.guests)
     } else if (myRegistration.value) {
-      signupState.self = myRegistration.value.is_self_registration ? 1 : 0
+      signupState.self = hasActiveSelfRegistration(myRegistration.value) ? 1 : 0
       signupState.guest = toGuestForm(myRegistration.value.guests).length
       signupState.guests = toGuestForm(myRegistration.value.guests)
     } else {
