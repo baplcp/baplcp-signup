@@ -20,11 +20,9 @@ under `supabase/migrations/`.
 ## Normalized-write Rollout
 
 After v3 `activity-admin` and `registration-action` Edge Functions have passed
-production validation, deploy
-`20260918000000_retire_legacy_collection_columns.sql`. It verifies archive
-coverage before removing the old collection columns, fallback triggers, and v2
-RPCs. Historical raw values remain in
-`normalization_legacy_collection_archives`.
+production validation, `20260918000000_retire_legacy_collection_columns.sql`
+removes the old collection columns, fallback triggers, and v2 RPCs. The later
+participant-cancellation migration removes the temporary archive as well.
 
 ## Local Dev Admin
 
@@ -99,8 +97,8 @@ Fields used by the app:
 - `member_id uuid` — required foreign key to `members.id`
 - `self_count integer`
 - `self_added_at timestamptz`
-- `guest_count integer, derived from registration_guests by trigger`
-- `status text`
+- `cancelled_at timestamptz, nullable` — the member's cancellation time; a
+  null value means this member is currently registered.
 - `paid_court boolean`
 - `paid_ac boolean`
 - `season_plan text` — `'quarter'` (一季) or `'half-year'` (半年), only meaningful for season registrations
@@ -110,27 +108,23 @@ Fields used by the app:
 
 Database invariants:
 
-- One active pickup registration per `(activity_id, activity_date_id, member_id)`.
-- One active season registration per `(activity_id, member_id)` where
+- One uncancelled pickup registration per `(activity_id, activity_date_id, member_id)`.
+- One uncancelled season registration per `(activity_id, member_id)` where
   `activity_date_id is null`.
-- Capacity checks run in a trigger that locks the related activity row.
-- `guest_count` is a cached count of `registration_guests`.
+- `write_registration_v3` locks the activity and calculates capacity from
+  uncancelled participant rows.
 
 Normalized tables:
 
-- `registration_guests` is the canonical per-guest data, including guest
-  payment state. `write_registration_v3` writes this representation.
+- `registration_guests` is the canonical per-guest data, including payment
+  state, `invited_by`, and `cancelled_at`. Rejoining creates a new guest row.
 - `season_registration_date_statuses` is the canonical season-member
   leave/rejoin state per activity date.
-- `registration_cancellation_events` stores cancellation history through a
-  required `member_id` relationship. Only guest cancellation events retain a
-  guest name; member names and photos are read from `members`.
 - These normalized tables have RLS enabled. Browser roles can read them under
   the same public-read model as their parent records; only `service_role` can
   execute the normalized-write RPCs.
 - Browser read services and scheduled notification functions query the
-  normalized tables. `normalization_legacy_collection_archives` has no browser
-  read policy and preserves the pre-retirement raw values for recovery.
+  normalized tables.
 
 ### `members`
 
@@ -231,3 +225,7 @@ Roles:
   obsolete cancellation source discriminator and timestamp, renames the
   cancellation ordering field, and removes the guest JSON compatibility
   snapshot after normalized fields became the sole application contract.
+- `20260937000000_use_participant_cancellation_timestamps.sql`: replaces
+  registration status and cancellation snapshots with participant-level
+  `cancelled_at` timestamps, adds `registration_guests.invited_by`, and removes
+  cached guest counts and legacy collection archives.

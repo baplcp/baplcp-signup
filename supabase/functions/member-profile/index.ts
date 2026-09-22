@@ -86,7 +86,7 @@ serve(async req => {
             .eq('activity_id', latestSeason.id)
             .eq('member_id', data.id)
             .is('activity_date_id', null)
-            .eq('status', 'active')
+            .is('cancelled_at', null)
             .maybeSingle()
           const nextIsSeason = !!seasonReg
           if (nextIsSeason !== data.is_season) {

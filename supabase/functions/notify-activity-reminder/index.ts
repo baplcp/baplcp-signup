@@ -97,7 +97,7 @@ serve(async _req => {
           .select('id, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .is('activity_date_id', null)
-          .eq('status', 'active')
+          .is('cancelled_at', null)
         if (sErr) throw sErr
         const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(
           supabase,
@@ -111,7 +111,7 @@ serve(async _req => {
           .select('id, self_added_at, self_count, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .eq('activity_date_id', targetActivityDate.id)
-          .eq('status', 'active')
+          .is('cancelled_at', null)
         if (pErr) throw pErr
         const guestsByRegistrationId = await fetchRegistrationGuests(
           supabase,

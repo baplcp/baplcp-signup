@@ -1,7 +1,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 
 function toGuestForm(guests = []) {
-  return guests.map(guest => ({ name: guest.name || '', gender: guest.gender || '', added_at: guest.added_at || null }))
+  return guests.map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '', added_at: guest.added_at || null }))
 }
 
 function syncGuestLength(signupState, count) {
@@ -63,7 +63,7 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
   }
 
   function adjustSignupCount(type, direction) {
-    const max = type === 'self' ? 1 : isAdmin.value ? Infinity : 6
+    const max = type === 'self' ? 1 : isAdmin.value ? Infinity : 2
     signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
     if (type === 'guest') syncGuestLength(signupState, signupState.guest)
   }

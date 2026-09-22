@@ -1,14 +1,11 @@
-import { fetchRegistrationCancelledMemberSnapshots, fetchRegistrationGuests } from '../_shared/normalized-collection-data.ts'
+import { fetchRegistrationGuests } from '../_shared/normalized-collection-data.ts'
 
 export const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, activity_id, activity_date_id, member_id, self_count, cancelled_at, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 export type Registration = Record<string, any>
 
-type HydrationOptions = {
-  guests?: boolean
-  cancelledMembers?: boolean
-}
+type HydrationOptions = { guests?: boolean }
 
 function hydrateMemberProfile(registration: Registration | null | undefined) {
   if (!registration) return registration
@@ -21,14 +18,9 @@ function hydrateMemberProfile(registration: Registration | null | undefined) {
   }
 }
 
-function toGuestSnapshot(guest: {
-  display_name: string | null
-  gender: string | null
-  joined_at: string | null
-  paid_court: boolean
-  paid_ac: boolean
-}): Record<string, unknown> {
+function toGuestSnapshot(guest: { id: string; display_name: string | null; gender: string | null; joined_at: string | null; paid_court: boolean; paid_ac: boolean }): Record<string, unknown> {
   return {
+    id: guest.id,
     name: guest.display_name ?? '',
     gender: guest.gender ?? null,
     added_at: guest.joined_at ?? null,
@@ -37,18 +29,16 @@ function toGuestSnapshot(guest: {
   }
 }
 
-export async function hydrateRegistrationCollections(supabase: any, registration: Registration | null | undefined, { guests = false, cancelledMembers = false }: HydrationOptions = {}) {
+export async function hydrateRegistrationCollections(supabase: any, registration: Registration | null | undefined, { guests = false }: HydrationOptions = {}) {
   if (!registration) return registration
 
-  const [guestsByRegistrationId, cancelledMembersByRegistrationId] = await Promise.all([
-    guests ? fetchRegistrationGuests(supabase, [registration.id]) : Promise.resolve(new Map()),
-    cancelledMembers ? fetchRegistrationCancelledMemberSnapshots(supabase, [registration.id]) : Promise.resolve(new Map()),
-  ])
+  const guestsByRegistrationId = guests ? await fetchRegistrationGuests(supabase, [registration.id]) : new Map()
 
   return {
     ...hydrateMemberProfile(registration),
     ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toGuestSnapshot) } : {}),
-    ...(cancelledMembers ? { cancelled_members: cancelledMembersByRegistrationId.get(registration.id) || [] } : {}),
+    // Cancellation history is read from cancelled_at on registrations and
+    // registration_guests. There is no snapshot/event collection to hydrate.
   }
 }
 
@@ -58,11 +48,12 @@ export async function findRegistration(
     activityId,
     memberId,
     activityDateId,
-    status = 'active',
+    activeOnly = true,
     hydration,
-  }: { activityId: string | number; memberId: string; activityDateId: number | null; status?: string; hydration?: HydrationOptions }
+  }: { activityId: string | number; memberId: string; activityDateId: number | null; activeOnly?: boolean; hydration?: HydrationOptions }
 ) {
-  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('member_id', memberId).eq('status', status)
+  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('member_id', memberId)
+  if (activeOnly) query = query.is('cancelled_at', null)
   query = activityDateId === null ? query.is('activity_date_id', null) : query.eq('activity_date_id', activityDateId)
 
   const { data, error } = await query.maybeSingle()

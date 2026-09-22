@@ -1,24 +1,7 @@
--- Read-only integrity checks after legacy collection columns are retired.
--- No returned rows means the canonical tables and cached guest counts agree.
+-- Read-only integrity checks for the participant-level cancellation model.
+-- No returned rows means the canonical tables agree.
 
-with guest_counts as (
-  select registration_id, count(*)::integer as guest_count
-  from public.registration_guests
-  group by registration_id
-), issues as (
-  select
-    'registration_guest_count'::text as issue_type,
-    registration.id::text as source_id,
-    jsonb_build_object(
-      'guest_count', registration.guest_count,
-      'normalized_guest_count', coalesce(guest_counts.guest_count, 0)
-    ) as details
-  from public.registrations as registration
-  left join guest_counts on guest_counts.registration_id = registration.id
-  where registration.guest_count is distinct from coalesce(guest_counts.guest_count, 0)
-
-  union all
-
+with issues as (
   select
     'registration_activity_date_mismatch'::text,
     registration.id::text,
@@ -55,13 +38,13 @@ with guest_counts as (
     jsonb_build_object(
       'activity_id', registration.activity_id,
       'activity_date_id', registration.activity_date_id,
-      'user_id', registration.user_id,
+      'member_id', registration.member_id,
       'count', count(*)
     )
   from public.registrations as registration
-  where registration.status = 'active'
+  where registration.cancelled_at is null
     and registration.activity_date_id is not null
-  group by registration.activity_id, registration.activity_date_id, registration.user_id
+  group by registration.activity_id, registration.activity_date_id, registration.member_id
   having count(*) > 1
 
   union all
@@ -71,13 +54,13 @@ with guest_counts as (
     min(registration.id::text),
     jsonb_build_object(
       'activity_id', registration.activity_id,
-      'user_id', registration.user_id,
+      'member_id', registration.member_id,
       'count', count(*)
     )
   from public.registrations as registration
-  where registration.status = 'active'
+  where registration.cancelled_at is null
     and registration.activity_date_id is null
-  group by registration.activity_id, registration.user_id
+  group by registration.activity_id, registration.member_id
   having count(*) > 1
 )
 select issue_type, source_id, details

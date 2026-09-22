@@ -4,7 +4,7 @@ import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, self_count, guest_count, status, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, activity_id, activity_date_id, member_id, self_count, cancelled_at, created_at, self_added_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 function groupBy(items, key) {
   return (items || []).reduce((grouped, item) => {
@@ -20,8 +20,9 @@ async function fetchRegistrationGuests(registrationIds) {
 
   const { data, error } = await supabase
     .from('registration_guests')
-    .select('registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac')
+    .select('id, registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac')
     .in('registration_id', registrationIds)
+    .is('cancelled_at', null)
     .order('guest_position', { ascending: true })
   if (error) throw error
 
@@ -57,40 +58,14 @@ async function fetchRegistrationDateStates(registrationIds) {
   }, new Map())
 }
 
-async function fetchCancellationSnapshots(registrationIds) {
-  if (!registrationIds.length) return new Map()
-
-  const { data, error } = await supabase
-    .from('registration_cancellation_events')
-    .select(
-      'registration_id, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)'
-    )
-    .in('registration_id', registrationIds)
-    .order('position', { ascending: true })
-  if (error) throw error
-
-  return groupBy(data, 'registration_id')
-}
-
 function toGuest(guest) {
   return {
+    id: guest.id,
     name: guest.display_name || '',
     gender: guest.gender || '',
     added_at: guest.joined_at || null,
     paid_court: guest.paid_court ?? false,
     paid_ac: guest.paid_ac ?? false,
-  }
-}
-
-function toCancellationSnapshot(cancellation) {
-  const member = Array.isArray(cancellation.member) ? cancellation.member[0] : cancellation.member
-  const name = cancellation.participant_type === 'guest' ? cancellation.guest_display_name || '群外' : member?.display_name || '未命名'
-  return {
-    name,
-    badge: name.charAt(0),
-    image: cancellation.participant_type === 'self' ? member?.picture_url || null : null,
-    time: cancellation.participant_added_at || null,
-    addedBy: cancellation.participant_type === 'guest' ? member?.display_name || null : null,
   }
 }
 
@@ -104,14 +79,13 @@ function withMemberProfile(registration) {
   }
 }
 
-async function hydrateRegistrations(registrations, { includeGuests = true, includeCancellations = true } = {}) {
+async function hydrateRegistrations(registrations, { includeGuests = true } = {}) {
   if (!registrations?.length) return registrations || []
 
   const registrationIds = registrations.map(registration => registration.id)
-  const [guestsByRegistrationId, statesByRegistrationId, cancellationsByRegistrationId, registrationActivityDates] = await Promise.all([
+  const [guestsByRegistrationId, statesByRegistrationId, registrationActivityDates] = await Promise.all([
     includeGuests ? fetchRegistrationGuests(registrationIds) : Promise.resolve(new Map()),
     fetchRegistrationDateStates(registrationIds),
-    includeCancellations ? fetchCancellationSnapshots(registrationIds) : Promise.resolve(new Map()),
     fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
   ])
   const registrationActivityDatesById = new Map(registrationActivityDates.map(activityDate => [activityDate.id, activityDate.activity_date]))
@@ -119,14 +93,12 @@ async function hydrateRegistrations(registrations, { includeGuests = true, inclu
   return registrations.map(registration => {
     const guests = (guestsByRegistrationId.get(registration.id) || []).map(toGuest)
     const dateState = statesByRegistrationId.get(registration.id) || { leave_dates: [], leave_times: {}, rejoin_times: {} }
-    const cancelledMembers = (cancellationsByRegistrationId.get(registration.id) || []).map(toCancellationSnapshot)
 
     return {
       ...withMemberProfile(registration),
       activity_date: registration.activity_date_id ? registrationActivityDatesById.get(registration.activity_date_id) || null : null,
       ...(includeGuests ? { guests, guest_count: guests.length } : {}),
       ...dateState,
-      ...(includeCancellations ? { cancelled_members: cancelledMembers } : {}),
     }
   })
 }
@@ -151,9 +123,9 @@ export async function getActivityRegistration(registrationId) {
   return data || null
 }
 
-export async function listSeasonRegistrations(activityId, statuses = ['active']) {
+export async function listSeasonRegistrations(activityId) {
   return listRegistrations(
-    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).in('status', statuses).order('created_at', { ascending: true })
+    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).is('cancelled_at', null).order('created_at', { ascending: true })
   )
 }
 

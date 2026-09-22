@@ -32,47 +32,47 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   }
 
   function getSeasonRegistrationState(data) {
-    const active = data.filter(registration => registration.status === 'active')
-    const cancelled = data.filter(registration => registration.status === 'cancelled')
+    const active = data.filter(registration => !registration.cancelled_at)
+    const cancelled = data.filter(registration => registration.cancelled_at)
     const myRegistration = active.find(registration => registration.user_id === liffStore.userId) || null
 
     return {
-      registrations: active,
+      registrations: data,
       cancelledRegistrations: cancelled,
-      seasonRegistrations: active,
+      seasonRegistrations: data,
       myRegistration,
       mySeasonRegistration: myRegistration,
-      memberGenders: mergeMemberGenders(active, liffStore),
+      memberGenders: mergeMemberGenders(data, liffStore),
     }
   }
 
   function getPickupRegistrationState(pickupData, seasonData) {
     const data = pickupData || []
-    const active = data.filter(registration => registration.status === 'active')
+    const active = data.filter(registration => !registration.cancelled_at)
     const myRegistration = active.find(registration => registration.user_id === liffStore.userId) || null
-    const seasonRegistrations = (seasonData || []).filter(registration => registration.status === 'active')
+    const seasonRegistrations = seasonData || []
     const mySeasonRegistration = seasonRegistrations.find(registration => registration.user_id === liffStore.userId) || null
 
     return {
-      registrations: active,
-      cancelledRegistrations: data.filter(registration => registration.status === 'cancelled'),
+      registrations: data,
+      cancelledRegistrations: data.filter(registration => registration.cancelled_at),
       seasonRegistrations,
       myRegistration,
       mySeasonRegistration,
-      memberGenders: mergeMemberGenders([...active, ...seasonRegistrations], liffStore),
+      memberGenders: mergeMemberGenders([...data, ...seasonRegistrations], liffStore),
     }
   }
 
   function refreshDerivedState() {
     if (activityType.value === 'season') {
-      myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId) || null
+      myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId && !registration.cancelled_at) || null
       mySeasonRegistration.value = myRegistration.value
       memberGenders.value = mergeMemberGenders(registrations.value, liffStore)
       return
     }
 
-    myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId) || null
-    mySeasonRegistration.value = seasonRegistrations.value.find(registration => registration.user_id === liffStore.userId) || null
+    myRegistration.value = registrations.value.find(registration => registration.user_id === liffStore.userId && !registration.cancelled_at) || null
+    mySeasonRegistration.value = seasonRegistrations.value.find(registration => registration.user_id === liffStore.userId && !registration.cancelled_at) || null
     memberGenders.value = mergeMemberGenders([...registrations.value, ...seasonRegistrations.value], liffStore)
   }
 
@@ -94,20 +94,20 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     removeRegistration(registration.id)
     if (activityType.value === 'season') {
       if (!isSeasonRegistration) return
-      if (registration.status === 'active') registrations.value = replaceRegistration(registrations.value, registration)
-      else if (registration.status === 'cancelled') cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
+      registrations.value = replaceRegistration(registrations.value, registration)
+      if (registration.cancelled_at) cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
       seasonRegistrations.value = registrations.value
       return
     }
 
     if (isSeasonRegistration) {
-      if (registration.status === 'active') seasonRegistrations.value = replaceRegistration(seasonRegistrations.value, registration)
+      seasonRegistrations.value = replaceRegistration(seasonRegistrations.value, registration)
       return
     }
 
     if (!isCurrentPickupRegistration) return
-    if (registration.status === 'active') registrations.value = replaceRegistration(registrations.value, registration)
-    else if (registration.status === 'cancelled') cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
+    registrations.value = replaceRegistration(registrations.value, registration)
+    if (registration.cancelled_at) cancelledRegistrations.value = replaceRegistration(cancelledRegistrations.value, registration)
   }
 
   async function applyRegistrationChange(change) {

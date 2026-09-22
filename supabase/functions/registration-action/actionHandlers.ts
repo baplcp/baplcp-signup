@@ -1,15 +1,5 @@
 import { isOrganizer, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
-import {
-  appendCancelledMembers,
-  cancelSeasonRegistration,
-  cancellationEntryFromGuest,
-  cancellationEntryFromSelf,
-  directSeasonRegister,
-  saveRegistration,
-  updateSeasonLeave,
-  type RegistrationCommandContext,
-  type RegistrationCommandResult,
-} from './registrationCommands.ts'
+import { cancelSeasonRegistration, directSeasonRegister, saveRegistration, updateSeasonLeave, type RegistrationCommandContext, type RegistrationCommandResult } from './registrationCommands.ts'
 import { findRegistrationById, syncRegistrationMember, writeRegistration } from './registrationRepository.ts'
 
 export type AdminLineProfile = LineProfile & {
@@ -106,24 +96,17 @@ export async function handleRegistrationAction(context: RegistrationActionContex
     if (!registrationId) return { body: { error: 'invalid_registration_id' }, status: 400 }
     if (memberType !== 'self' && memberType !== 'guest') return { body: { error: 'invalid_member_type' }, status: 400 }
 
-    const registration = await findRegistrationById(supabase, registrationId, { guests: memberType === 'guest', cancelledMembers: true })
+    const registration = await findRegistrationById(supabase, registrationId, { guests: memberType === 'guest' })
     if (!registration) return { body: { error: 'registration_not_found' }, status: 404 }
 
     if (memberType === 'self') {
-      const removedSelf = (registration.self_count || 0) > 0 ? [cancellationEntryFromSelf(registration)] : []
-      const payload = (registration.guest_count || 0) === 0 ? { status: 'cancelled' } : { self_count: 0, self_added_at: null, cancelled_members: appendCancelledMembers(registration, removedSelf) }
-      await writeRegistration(supabase, registration.id, payload)
+      await writeRegistration(supabase, registration.id, { cancelled_at: context.submitTime })
     } else {
       if (!Number.isInteger(guestIndex) || guestIndex < 0) return { body: { error: 'invalid_guest_index' }, status: 400 }
       const guests = Array.isArray(registration.guests) ? registration.guests : []
       if (!guests[guestIndex]) return { body: { error: 'guest_not_found' }, status: 404 }
-      const removedGuest = cancellationEntryFromGuest(guests[guestIndex], registration)
       const nextGuests = guests.filter((_: unknown, index: number) => index !== guestIndex)
-      const payload =
-        (registration.self_count || 0) === 0 && nextGuests.length === 0
-          ? { status: 'cancelled' }
-          : { guests: nextGuests, guest_count: nextGuests.length, cancelled_members: appendCancelledMembers(registration, [removedGuest]) }
-      await writeRegistration(supabase, registration.id, payload)
+      await writeRegistration(supabase, registration.id, { guests: nextGuests })
     }
 
     return { body: { ok: true }, status: 200 }

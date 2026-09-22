@@ -122,6 +122,7 @@ function registrationCountSchema(errorName: string, maxCount: number) {
 function registrationInputSchema<TActivityDate extends z.ZodType>({ activityDate, maxGuests }: { activityDate: TActivityDate; maxGuests: number }) {
   const guestSchema = z.object(
     {
+      id: z.string().uuid('invalid_guest_id').optional(),
       name: z.preprocess(value => (value == null ? '' : value), z.string({ error: 'invalid_guest_name' }).trim().max(MAX_GUEST_NAME_LENGTH, 'invalid_guest_name')),
       gender: z.enum(['male', 'female'], { error: 'invalid_guest_gender' }),
     },
@@ -149,7 +150,7 @@ export type RegistrationInput = {
   activityDate: string | null
   selfCount: number
   guestCount: number
-  guests: Array<{ name: string; gender: 'male' | 'female' }>
+  guests: Array<{ id?: string; name: string; gender: 'male' | 'female' }>
 }
 
 export function parseSaveRegistrationInput(input: unknown, maxGuests: number): RegistrationInput {

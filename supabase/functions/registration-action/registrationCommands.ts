@@ -14,11 +14,10 @@ export type RegistrationCommandContext = {
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
 
-function withPreservedGuestTimes(guests: Array<{ name: string; gender: string }>, previousGuests: Array<{ added_at?: string }> | null | undefined, submitTime: string) {
-  return guests.map((guest, index) => ({
-    ...guest,
-    added_at: previousGuests?.[index]?.added_at || submitTime,
-  }))
+const MEMBER_GUEST_LIMIT = 2
+
+function withGuestIds(guests: Array<{ id?: string; name: string; gender: string; added_at?: string | null }>, submitTime: string) {
+  return guests.map(guest => ({ ...guest, added_at: guest.added_at || submitTime }))
 }
 
 function registrationPayload(
@@ -26,45 +25,20 @@ function registrationPayload(
   activityDateId: number | null,
   memberId: string,
   selfCount: number,
-  guests: Array<{ name: string; gender: string }>,
+  guests: Array<{ id?: string; name: string; gender: string; added_at?: string | null }>,
   existing: Registration | null | undefined,
-  submitTime: string
+  submitTime: string,
+  invitationLimit: number | null = MEMBER_GUEST_LIMIT
 ): Record<string, any> {
   return {
     activity_id: activityId,
     activity_date_id: activityDateId,
     member_id: memberId,
-    self_count: selfCount,
-    self_added_at: selfCount === 1 ? (existing?.self_count ? existing.self_added_at || submitTime : submitTime) : null,
-    guest_count: guests.length,
-    guests: withPreservedGuestTimes(guests, existing?.guests, submitTime),
-    status: 'active',
+    self_count: selfCount === 0 && (existing?.self_count || 0) > 0 ? existing.self_count : selfCount,
+    self_added_at: selfCount === 1 ? existing?.self_added_at || submitTime : existing?.self_added_at || null,
+    guests: withGuestIds(guests, submitTime),
+    ...(invitationLimit === null ? {} : { invitation_limit: invitationLimit }),
   }
-}
-
-export function cancellationEntryFromSelf(registration: Registration) {
-  const name = registration.display_name || '未命名'
-  return {
-    name,
-    badge: name.charAt(0),
-    image: registration.picture_url ?? null,
-    time: registration.self_added_at || registration.created_at || new Date().toISOString(),
-  }
-}
-
-export function cancellationEntryFromGuest(guest: Registration, registration: Registration) {
-  const name = guest.name || '群外'
-  return {
-    name,
-    badge: name.charAt(0),
-    time: guest.added_at || registration.created_at || new Date().toISOString(),
-    addedBy: registration.display_name || null,
-  }
-}
-
-export function appendCancelledMembers(registration: Registration, entries: Array<Record<string, unknown>>) {
-  const existing = Array.isArray(registration.cancelled_members) ? registration.cancelled_members : []
-  return [...existing, ...entries]
 }
 
 function assertSeasonEnabled(activity: Registration) {
@@ -100,7 +74,7 @@ function assertRegistrationWindow(activity: Registration, activityDate: string |
 
 export async function saveRegistration(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
-  const { activityDate, selfCount, guestCount, guests } = parseSaveRegistrationInput(body, isAdmin ? 100 : 6)
+  const { activityDate, selfCount, guestCount, guests } = parseSaveRegistrationInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : MEMBER_GUEST_LIMIT)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   if (activityDate === null) assertSeasonEnabled(activity)
@@ -108,10 +82,10 @@ export async function saveRegistration(context: RegistrationCommandContext, body
   const activityDateId = activityDate === null ? null : await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDate !== null && activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
 
-  const findExisting = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
+  const findExisting = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true } })
   const existing = await findExisting()
   if (selfCount + guestCount <= 0) {
-    if (existing) await writeRegistration(supabase, existing.id, { status: 'cancelled' })
+    if (existing) await writeRegistration(supabase, existing.id, { cancelled_at: submitTime, guests: [] })
     return { ok: true }
   }
 
@@ -120,14 +94,8 @@ export async function saveRegistration(context: RegistrationCommandContext, body
     existing,
     findAfterConflict: findExisting,
     createPayload: registration => {
-      const payload = registrationPayload(activityId, activityDateId, memberId, selfCount, normalizedGuests, registration, submitTime)
-      if (!registration) return payload
-
-      const removedMembers = []
-      if ((registration.self_count || 0) > 0 && selfCount === 0) removedMembers.push(cancellationEntryFromSelf(registration))
-      const previousGuests = Array.isArray(registration.guests) ? registration.guests : []
-      previousGuests.slice(guestCount).forEach((guest: Registration) => removedMembers.push(cancellationEntryFromGuest(guest, registration)))
-      if (removedMembers.length) payload.cancelled_members = appendCancelledMembers(registration, removedMembers)
+      const payload = registrationPayload(activityId, activityDateId, memberId, selfCount, normalizedGuests, registration, submitTime, isAdmin ? null : MEMBER_GUEST_LIMIT)
+      if (registration && selfCount === 0) payload.cancelled_at = submitTime
       return payload
     },
   })
@@ -137,7 +105,7 @@ export async function saveRegistration(context: RegistrationCommandContext, body
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
-  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? 100 : 6)
+  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : MEMBER_GUEST_LIMIT)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
@@ -155,24 +123,18 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
     await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
   }
 
-  const findPickupRegistration = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true, cancelledMembers: true } })
+  const findPickupRegistration = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true } })
   const pickupRegistration = await findPickupRegistration()
   if (guestCount > 0) {
     await writeRegistrationWithRetry(supabase, {
       existing: pickupRegistration,
       findAfterConflict: findPickupRegistration,
-      createPayload: registration => {
-        const payload = registrationPayload(activityId, activityDateId, memberId, 0, normalizedGuests, registration, submitTime)
-        if (!registration) return payload
-
-        const previousGuests = Array.isArray(registration.guests) ? registration.guests : []
-        const removedGuests = previousGuests.slice(guestCount).map((guest: Registration) => cancellationEntryFromGuest(guest, registration))
-        if (removedGuests.length) payload.cancelled_members = appendCancelledMembers(registration, removedGuests)
-        return payload
+      createPayload: _registration => {
+        return registrationPayload(activityId, activityDateId, memberId, 0, normalizedGuests, registration, submitTime, isAdmin ? null : MEMBER_GUEST_LIMIT)
       },
     })
-  } else if (pickupRegistration && (pickupRegistration.guest_count || 0) > 0) {
-    await writeRegistration(supabase, pickupRegistration.id, { status: 'cancelled' })
+  } else if (pickupRegistration) {
+    await writeRegistration(supabase, pickupRegistration.id, { cancelled_at: submitTime, guests: [] })
   }
 
   return { ok: true }
@@ -185,11 +147,8 @@ export async function directSeasonRegister(context: Omit<RegistrationCommandCont
 
   const seasonPlan = body?.seasonPlan === 'half-year' ? 'half-year' : 'quarter'
   const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
-  const cancelledRegistration = activeRegistration ? null : await findRegistration(supabase, { activityId, memberId, activityDateId: null, status: 'cancelled' })
-  const existingRegistration = activeRegistration || cancelledRegistration
-
   await writeRegistrationWithRetry(supabase, {
-    existing: existingRegistration,
+    existing: activeRegistration,
     findAfterConflict: () => findRegistration(supabase, { activityId, memberId, activityDateId: null }),
     createPayload: registration => ({ ...registrationPayload(activityId, null, memberId, 1, [], registration, submitTime), season_plan: seasonPlan }),
   })
@@ -202,6 +161,6 @@ export async function cancelSeasonRegistration(context: Omit<RegistrationCommand
   assertSeasonEnabled(activity)
 
   const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
-  if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { status: 'cancelled' })
+  if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { cancelled_at: new Date().toISOString() })
   return { ok: true }
 }
