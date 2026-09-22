@@ -28,8 +28,8 @@ function registrationSelfEntry(reg, memberType, timestamp, memberGenders, option
   }
 }
 
-function guestEntry(reg, guest, guestIndex) {
-  const ts = guest.added_at || reg.created_at
+function guestEntry(reg, guest) {
+  const ts = guest.created_at || reg.created_at
   return {
     name: guest.name || '群外',
     badge: (guest.name || '群').charAt(0),
@@ -39,7 +39,7 @@ function guestEntry(reg, guest, guestIndex) {
     gender: guest.gender || null,
     _regId: reg.id,
     _memberType: 'guest',
-    _guestIndex: guestIndex,
+    _guestId: guest.id,
     paidCourt: guest.paid_court ?? false,
     paidAc: guest.paid_ac ?? false,
   }
@@ -74,7 +74,7 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       const date = resolvedDate.value
       seasonRegistrations.value.forEach(reg => {
         if ((reg.leave_dates || []).includes(date)) return
-        if (!reg.cancelled_at && reg.self_count > 0) {
+        if (!reg.cancelled_at && reg.is_self_registration) {
           const rejoinedAt = reg.rejoin_times?.[date]
           const ts = rejoinedAt || reg.created_at
           members.push(registrationSelfEntry(reg, 'season_self', ts, memberGenders.value, { isSeason: true, isRejoined: !!rejoinedAt }))
@@ -82,9 +82,8 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       })
     } else {
       registrations.value.forEach(reg => {
-        if (!reg.cancelled_at && reg.self_count > 0) {
-          const ts = reg.self_added_at || reg.created_at
-          members.push(registrationSelfEntry(reg, 'self', ts, memberGenders.value, { seasonPlan: reg.season_plan || 'quarter' }))
+        if (!reg.cancelled_at && reg.is_self_registration) {
+          members.push(registrationSelfEntry(reg, 'self', reg.created_at, memberGenders.value, { seasonPlan: reg.season_plan || 'quarter' }))
         }
       })
       members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
@@ -92,13 +91,12 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
     }
 
     registrations.value.forEach(reg => {
-      if (!reg.cancelled_at && reg.self_count > 0) {
-        const ts = reg.self_added_at || reg.created_at
-        members.push(registrationSelfEntry(reg, 'self', ts, memberGenders.value))
+      if (!reg.cancelled_at && reg.is_self_registration) {
+        members.push(registrationSelfEntry(reg, 'self', reg.created_at, memberGenders.value))
       }
 
-      ;(reg.guests || []).forEach((guest, guestIndex) => {
-        if (!guest.cancelled_at) members.push(guestEntry(reg, guest, guestIndex))
+      ;(reg.guests || []).forEach(guest => {
+        if (!guest.cancelled_at) members.push(guestEntry(reg, guest))
       })
     })
 
@@ -110,7 +108,7 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
     const members = []
 
     cancelledRegistrations.value.forEach(reg => {
-      if (reg.self_count > 0) members.push(cancelledSelfEntry(reg))
+      if (reg.is_self_registration) members.push(cancelledSelfEntry(reg))
     })
     ;[...registrations.value, ...seasonRegistrations.value].forEach(reg => {
       ;(reg.guests || [])

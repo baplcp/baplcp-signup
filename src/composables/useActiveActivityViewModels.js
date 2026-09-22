@@ -127,7 +127,10 @@ export function useActiveActivityViewModels({
   const cancelledMemberListLabel = computed(() => (activityType.value === 'season' ? '已取消季打' : '已取消報名'))
   const showLeaveMemberList = computed(() => leaveMemberList.value.length > 0 && activeSegment.value === '季打')
 
-  const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.value.self_count || 0) + (myRegistration.value.guest_count || 0) : 0))
+  const submittedTotal = computed(() => {
+    if (!myRegistration.value) return 0
+    return (myRegistration.value.is_self_registration && !myRegistration.value.cancelled_at ? 1 : 0) + (myRegistration.value.guests || []).filter(guest => !guest.cancelled_at).length
+  })
   const hasSubmittedSignup = computed(() => {
     if (activityType.value === 'season') return submittedTotal.value > 0
     if (submittedTotal.value > 0) return true
@@ -140,8 +143,8 @@ export function useActiveActivityViewModels({
     if (!hasSubmittedSignup.value || !myRegistration.value) return false
     const registration = myRegistration.value
     const acRequired = acEnabled.value && acFeePerSession.value > 0
-    if ((registration.self_count || 0) > 0 && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
-    return (registration.guests || []).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
+    if (registration.is_self_registration && !registration.cancelled_at && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
+    return (registration.guests || []).filter(guest => !guest.cancelled_at).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
   })
   const myWaitlistedCount = computed(() => {
     const myRegIds = new Set([myRegistration.value?.id, mySeasonRegistration.value?.id].filter(Boolean))

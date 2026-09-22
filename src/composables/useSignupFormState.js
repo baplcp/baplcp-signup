@@ -1,11 +1,11 @@
 import { computed, reactive, ref, watch } from 'vue'
 
 function toGuestForm(guests = []) {
-  return guests.map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '', added_at: guest.added_at || null }))
+  return guests.filter(guest => !guest.cancelled_at).map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '' }))
 }
 
 function syncGuestLength(signupState, count) {
-  while (signupState.guests.length < count) signupState.guests.push({ name: '', gender: '', added_at: new Date().toISOString() })
+  while (signupState.guests.length < count) signupState.guests.push({ name: '', gender: '' })
   signupState.guests.splice(count)
 }
 
@@ -29,12 +29,12 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     if (currentViewModels.isSeasonLeaveMode.value) {
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       if ((signupState.self === 0) !== isOnLeave) return true
-    } else if (signupState.self !== (myRegistration.value?.self_count ?? 0)) {
+    } else if (signupState.self !== (myRegistration.value?.is_self_registration ? 1 : 0)) {
       return true
     }
 
-    const previousGuests = myRegistration.value?.guests ?? []
-    if (signupState.guest !== (myRegistration.value?.guest_count ?? 0)) return true
+    const previousGuests = toGuestForm(myRegistration.value?.guests)
+    if (signupState.guest !== previousGuests.length) return true
     for (let index = 0; index < signupState.guest; index += 1) {
       const current = signupState.guests[index] || { name: '', gender: '' }
       const previous = previousGuests[index] || { name: '', gender: '' }
@@ -48,11 +48,11 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     if (viewModels.value.isSeasonLeaveMode.value) {
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       signupState.self = isOnLeave ? 0 : 1
-      signupState.guest = myRegistration.value?.guest_count || 0
+      signupState.guest = toGuestForm(myRegistration.value?.guests).length
       signupState.guests = toGuestForm(myRegistration.value?.guests)
     } else if (myRegistration.value) {
-      signupState.self = myRegistration.value.self_count || 0
-      signupState.guest = myRegistration.value.guest_count || 0
+      signupState.self = myRegistration.value.is_self_registration ? 1 : 0
+      signupState.guest = toGuestForm(myRegistration.value.guests).length
       signupState.guests = toGuestForm(myRegistration.value.guests)
     } else {
       signupState.self = 0

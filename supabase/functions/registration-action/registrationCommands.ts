@@ -1,7 +1,15 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSaveRegistrationInput, parseSeasonLeaveInput } from '../_shared/input-validation.ts'
-import { findRegistration, getActivityForRegistration, setSeasonRegistrationDateStatus, writeRegistration, writeRegistrationWithRetry, type Registration } from './registrationRepository.ts'
+import {
+  findRegistration,
+  getActivityForRegistration,
+  setSeasonRegistrationDateStatus,
+  writeRegistration,
+  writeRegistrationGuests,
+  writeRegistrationWithRetry,
+  type Registration,
+} from './registrationRepository.ts'
 
 export type RegistrationCommandContext = {
   supabase: any
@@ -16,29 +24,12 @@ export type RegistrationCommandResult = { ok: true } | { error: string; status: 
 
 const MEMBER_GUEST_LIMIT = 2
 
-function withGuestIds(guests: Array<{ id?: string; name: string; gender: string; added_at?: string | null }>, submitTime: string) {
-  return guests.map(guest => ({ ...guest, added_at: guest.added_at || submitTime }))
+function selfRegistrationPayload(activityId: string | number, activityDateId: number | null, memberId: string, seasonPlan?: string) {
+  return { activity_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
 }
 
-function registrationPayload(
-  activityId: string | number,
-  activityDateId: number | null,
-  memberId: string,
-  selfCount: number,
-  guests: Array<{ id?: string; name: string; gender: string; added_at?: string | null }>,
-  existing: Registration | null | undefined,
-  submitTime: string,
-  invitationLimit: number | null = MEMBER_GUEST_LIMIT
-): Record<string, any> {
-  return {
-    activity_id: activityId,
-    activity_date_id: activityDateId,
-    member_id: memberId,
-    self_count: selfCount === 0 && (existing?.self_count || 0) > 0 ? existing.self_count : selfCount,
-    self_added_at: selfCount === 1 ? existing?.self_added_at || submitTime : existing?.self_added_at || null,
-    guests: withGuestIds(guests, submitTime),
-    ...(invitationLimit === null ? {} : { invitation_limit: invitationLimit }),
-  }
+function guestPayload(activityId: string | number, activityDateId: number, memberId: string, guests: Array<{ id?: string; name: string; gender: string }>, isAdmin: boolean) {
+  return { p_activity_id: Number(activityId), p_activity_date_id: activityDateId, p_invited_by: memberId, p_guests: guests, p_invitation_limit: isAdmin ? null : MEMBER_GUEST_LIMIT }
 }
 
 function assertSeasonEnabled(activity: Registration) {
@@ -48,27 +39,18 @@ function assertSeasonEnabled(activity: Registration) {
 function assertRegistrationWindow(activity: Registration, activityDate: string | null, now: Date, isAdmin = false) {
   if (activityDate === null) {
     assertSeasonEnabled(activity)
-    if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) {
-      throw new Error('registration_not_open')
-    }
-    if (!isAdmin && activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)) {
+    if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) throw new Error('registration_not_open')
+    if (!isAdmin && activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time))
       throw new Error('registration_closed')
-    }
     return
   }
-
   if (activity.pickup_open_days_before != null && activity.pickup_open_time) {
     const openDate = addTaiwanDays(activityDate, -Number(activity.pickup_open_days_before))
-    if (now < parseTaiwanDateTime(openDate, activity.pickup_open_time)) {
-      throw new Error('registration_not_open')
-    }
+    if (now < parseTaiwanDateTime(openDate, activity.pickup_open_time)) throw new Error('registration_not_open')
   }
-
   if (!isAdmin && activity.pickup_deadline_type === 'custom' && activity.pickup_close_days_before != null && activity.pickup_close_time) {
     const closeDate = addTaiwanDays(activityDate, -Number(activity.pickup_close_days_before))
-    if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) {
-      throw new Error('registration_closed')
-    }
+    if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) throw new Error('registration_closed')
   }
 }
 
@@ -78,28 +60,18 @@ export async function saveRegistration(context: RegistrationCommandContext, body
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   if (activityDate === null) assertSeasonEnabled(activity)
-
   const activityDateId = activityDate === null ? null : await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDate !== null && activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
+  const findActiveSelf = () => findRegistration(supabase, { activityId, memberId, activityDateId })
+  const activeSelf = await findActiveSelf()
 
-  const findExisting = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true } })
-  const existing = await findExisting()
-  if (selfCount + guestCount <= 0) {
-    if (existing) await writeRegistration(supabase, existing.id, { cancelled_at: submitTime, guests: [] })
-    return { ok: true }
+  if (selfCount + guestCount > 0) assertRegistrationWindow(activity, activityDate, now, isAdmin)
+  if (selfCount === 1) {
+    await writeRegistrationWithRetry(supabase, { existing: activeSelf, findAfterConflict: findActiveSelf, createPayload: () => selfRegistrationPayload(activityId, activityDateId, memberId) })
+  } else if (activeSelf) {
+    await writeRegistration(supabase, activeSelf.id, { cancelled_at: submitTime })
   }
-
-  assertRegistrationWindow(activity, activityDate, now, isAdmin)
-  await writeRegistrationWithRetry(supabase, {
-    existing,
-    findAfterConflict: findExisting,
-    createPayload: registration => {
-      const payload = registrationPayload(activityId, activityDateId, memberId, selfCount, normalizedGuests, registration, submitTime, isAdmin ? null : MEMBER_GUEST_LIMIT)
-      if (registration && selfCount === 0) payload.cancelled_at = submitTime
-      return payload
-    },
-  })
-
+  if (activityDateId !== null) await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin))
   return { ok: true }
 }
 
@@ -110,57 +82,36 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
   if (guestCount > 0) assertRegistrationWindow(activity, activityDate, now, isAdmin)
-
   const activityDateId = await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
-
   const seasonRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
   if (!seasonRegistration) return { error: 'season_registration_not_found', status: 404 }
-
-  const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
-  const isCurrentlyOnLeave = seasonDateStatuses.get(seasonRegistration.id)?.is_on_leave ?? false
-  if ((selfCount === 0) !== isCurrentlyOnLeave) {
-    await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
-  }
-
-  const findPickupRegistration = () => findRegistration(supabase, { activityId, memberId, activityDateId, hydration: { guests: true } })
-  const pickupRegistration = await findPickupRegistration()
-  if (guestCount > 0) {
-    await writeRegistrationWithRetry(supabase, {
-      existing: pickupRegistration,
-      findAfterConflict: findPickupRegistration,
-      createPayload: _registration => {
-        return registrationPayload(activityId, activityDateId, memberId, 0, normalizedGuests, registration, submitTime, isAdmin ? null : MEMBER_GUEST_LIMIT)
-      },
-    })
-  } else if (pickupRegistration) {
-    await writeRegistration(supabase, pickupRegistration.id, { cancelled_at: submitTime, guests: [] })
-  }
-
+  const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
+  const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
+  if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
+  await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin))
   return { ok: true }
 }
 
 export async function directSeasonRegister(context: Omit<RegistrationCommandContext, 'isAdmin'>, body: Record<string, any>): Promise<RegistrationCommandResult> {
-  const { supabase, memberId, activityId, submitTime, now } = context
+  const { supabase, memberId, activityId, now } = context
   const activity = await getActivityForRegistration(supabase, activityId)
   assertRegistrationWindow(activity, null, now)
-
   const seasonPlan = body?.seasonPlan === 'half-year' ? 'half-year' : 'quarter'
-  const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
+  const findActiveSelf = () => findRegistration(supabase, { activityId, memberId, activityDateId: null })
   await writeRegistrationWithRetry(supabase, {
-    existing: activeRegistration,
-    findAfterConflict: () => findRegistration(supabase, { activityId, memberId, activityDateId: null }),
-    createPayload: registration => ({ ...registrationPayload(activityId, null, memberId, 1, [], registration, submitTime), season_plan: seasonPlan }),
+    existing: await findActiveSelf(),
+    findAfterConflict: findActiveSelf,
+    createPayload: () => selfRegistrationPayload(activityId, null, memberId, seasonPlan),
   })
   return { ok: true }
 }
 
 export async function cancelSeasonRegistration(context: Omit<RegistrationCommandContext, 'isAdmin'>): Promise<RegistrationCommandResult> {
-  const { supabase, memberId, activityId } = context
+  const { supabase, memberId, activityId, submitTime } = context
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
-
   const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
-  if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { cancelled_at: new Date().toISOString() })
+  if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { cancelled_at: submitTime })
   return { ok: true }
 }

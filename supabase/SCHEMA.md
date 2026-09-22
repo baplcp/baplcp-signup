@@ -95,8 +95,6 @@ Fields used by the app:
 
 - `activity_id bigint`
 - `member_id uuid` — required foreign key to `members.id`
-- `self_count integer`
-- `self_added_at timestamptz`
 - `cancelled_at timestamptz, nullable` — the member's cancellation time; a
   null value means this member is currently registered.
 - `paid_court boolean`
@@ -111,17 +109,22 @@ Database invariants:
 - One uncancelled pickup registration per `(activity_id, activity_date_id, member_id)`.
 - One uncancelled season registration per `(activity_id, member_id)` where
   `activity_date_id is null`.
+- Each row is exactly one member's self-registration; `created_at` is its
+  registration time. A later registration creates a new row rather than
+  reusing a cancelled row.
 - `write_registration_v3` locks the activity and calculates capacity from
   uncancelled participant rows.
 
 Normalized tables:
 
-- `registration_guests` is the canonical per-guest data, including payment
-  state, `invited_by`, and `cancelled_at`. Rejoining creates a new guest row.
+- `registration_guests` is the canonical per-guest participation table. It
+  belongs directly to an `activity_id`, `activity_date_id`, and `invited_by`
+  member—not a registration row. `created_at` is the invitation time and a
+  rejoin creates a new row.
 - `season_registration_date_statuses` is the canonical season-member
   leave/rejoin state per activity date.
-- These normalized tables have RLS enabled. Browser roles can read them under
-  the same public-read model as their parent records; only `service_role` can
+- These normalized tables have RLS enabled. Browser roles can read guests
+  through their activity relation; only `service_role` can
   execute the normalized-write RPCs.
 - Browser read services and scheduled notification functions query the
   normalized tables.
@@ -229,3 +232,6 @@ Roles:
   registration status and cancellation snapshots with participant-level
   `cancelled_at` timestamps, adds `registration_guests.invited_by`, and removes
   cached guest counts and legacy collection archives.
+- `20260938000000_separate_self_and_guest_participations.sql`: makes every
+  registration row one self participant, moves guests to direct activity-date
+  participation rows, and removes `self_count` and `self_added_at`.
