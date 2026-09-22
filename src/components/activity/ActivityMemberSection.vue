@@ -170,7 +170,7 @@ function handleRemove(member, index) {
         {{ tab }}
       </button>
     </div>
-    <p v-if="genderCounts && genderCounts.male + genderCounts.female > 0" class="gender-summary">目前 {{ genderCounts.male }} 男 {{ genderCounts.female }} 女</p>
+    <p v-if="activeSegment === '報名成功' && genderCounts && genderCounts.male + genderCounts.female > 0" class="gender-summary">目前 {{ genderCounts.male }} 男 {{ genderCounts.female }} 女</p>
     <div class="list activity-member-list">
       <template v-for="(member, index) in members" :key="`${member.name}-${index}`">
         <div v-if="member.status === '候補' && (index === 0 || !members[index - 1].status)" class="waitlist-divider">

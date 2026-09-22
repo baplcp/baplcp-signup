@@ -114,7 +114,7 @@ export function useActiveActivityViewModels({
     if (activeSegment.value === '報名成功') return memberList.value.filter(member => !member.status)
     return memberList.value
   })
-  // 男女人數固定算全部報名成功（正取）的人，不隨分頁切換、不含候補
+  // 男女人數只算報名成功（正取）的人，不含候補；只在「報名成功」分頁顯示
   const genderCounts = computed(() => {
     const confirmedMembers = memberList.value.filter(member => !member.status)
     return {

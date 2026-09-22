@@ -85,6 +85,7 @@ function toggleFaq(index) {
   padding: 0 12px;
   font-size: 15px;
   line-height: 1.7;
+  white-space: pre-line;
   color: var(--muted);
   opacity: 0;
   transition:
@@ -94,7 +95,7 @@ function toggleFaq(index) {
 }
 
 .faq-item.is-open .faq-answer {
-  max-height: 180px;
+  max-height: 400px;
   padding: 0 12px 14px;
   opacity: 1;
 }
