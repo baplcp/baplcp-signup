@@ -12,7 +12,7 @@ const props = defineProps({
     required: true,
   },
   to: {
-    type: String,
+    type: [String, Object],
     default: '',
   },
   href: {

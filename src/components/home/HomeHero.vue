@@ -15,7 +15,7 @@ defineProps({
     required: true,
   },
   ctaTo: {
-    type: String,
+    type: [String, Object],
     required: true,
   },
 })
