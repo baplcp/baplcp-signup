@@ -67,7 +67,7 @@ function restoreFocus(event) {
     <DialogPortal>
       <DialogOverlay as-child>
         <div :class="[overlayClass, { 'is-open': open }]" :style="zIndex == null ? undefined : { zIndex }">
-          <DialogContent as-child @pointer-down-outside="preventOutsideClose" @escape-key-down="preventEscapeClose" @close-auto-focus="restoreFocus">
+          <DialogContent as-child :aria-describedby="undefined" @pointer-down-outside="preventOutsideClose" @escape-key-down="preventEscapeClose" @close-auto-focus="restoreFocus">
             <section :class="contentClass">
               <DialogTitle class="accessible-dialog-title">{{ title }}</DialogTitle>
               <slot />
