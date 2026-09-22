@@ -4,6 +4,8 @@ import GroupEventSection from '~/components/group-list/GroupEventSection.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
 import { useGroupListPage } from '~/composables/useGroupListPage'
 
+defineOptions({ name: 'ActivitiesListPage' })
+
 const groupListPage = useGroupListPage()
 const { activeSegment, segmentTabs, isLoading, latestActivity } = groupListPage
 const { upcomingActivities, endedActivities, visibleUpcomingActivities, visibleEndedActivities } = groupListPage

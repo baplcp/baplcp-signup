@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, useTemplateRef } from 'vue'
+import { ref, computed, nextTick, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
 import { startLineOAuth } from '~/utils/lineOAuth'
@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const liffStore = useLiffStore()
 const scrollBox = useTemplateRef('scrollBox')
+const activityListScrollPositions = new Map()
 
 const isIndexPage = computed(() => route.name === 'home')
 const isMenuOpen = ref(false)
@@ -89,10 +90,26 @@ function goBack() {
 
 watch(
   () => route.fullPath,
-  () => {
+  async (toPath, fromPath) => {
     closeMenu()
     resetNavScrollState()
-    scrollBox.value?.scrollTo(0, 0)
+
+    if (fromPath === '/activities' || fromPath?.startsWith('/activities?')) {
+      activityListScrollPositions.set(fromPath, scrollBox.value?.scrollTop ?? 0)
+    }
+
+    const isReturningToActivityList = route.name === 'activities' && fromPath?.startsWith('/activities/')
+    if (!isReturningToActivityList) {
+      scrollBox.value?.scrollTo(0, 0)
+      return
+    }
+
+    await nextTick()
+    if (route.fullPath !== toPath) return
+
+    const scrollTop = activityListScrollPositions.get(toPath) ?? 0
+    scrollBox.value?.scrollTo(0, scrollTop)
+    setNavScrollProgress(scrollTop / NAV_FADE_DISTANCE)
   }
 )
 </script>
