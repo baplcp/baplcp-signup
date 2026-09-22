@@ -235,3 +235,5 @@ Roles:
 - `20260938000000_separate_self_and_guest_participations.sql`: makes every
   registration row one self participant, moves guests to direct activity-date
   participation rows, and removes `self_count` and `self_added_at`.
+- `20260939000000_add_end_time_to_reminder_candidates.sql`: returns activity
+  `end_time` from the reminder candidate RPC so reminders show the time range.
