@@ -172,11 +172,10 @@ serve(async _req => {
 
     for (const n of notifications) {
       const registrationQuery = new URLSearchParams({
-        id: String(n.id),
         date: n.activityDate,
         type: n.type,
       })
-      const registrationUrl = `https://liff.line.me/${liffId}#/active-activity?${registrationQuery}`
+      const registrationUrl = `https://liff.line.me/${liffId}#/activities/${n.id}?${registrationQuery}`
       const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
       await sendLineMessage(lineToken, lineGroupId, message)
