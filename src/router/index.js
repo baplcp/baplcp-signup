@@ -1,12 +1,5 @@
 import { createRouter, createWebHashHistory, START_LOCATION } from 'vue-router'
-import Activity from '~/views/activities/[id].vue'
-import Activities from '~/views/activities/index.vue'
-import AdminActivities from '~/views/admin/activities/index.vue'
-import AdminActivityForm from '~/views/admin/activities/form.vue'
-import AdminSeasonRefund from '~/views/admin/seasons/refunds/[id].vue'
-import AdminSeasonRefunds from '~/views/admin/seasons/refunds/index.vue'
 import Home from '~/views/home/index.vue'
-import Seasons from '~/views/seasons/index.vue'
 import { useLiffStore } from '~/stores/liff'
 
 const publicRoutes = [
@@ -18,18 +11,18 @@ const publicRoutes = [
   {
     path: '/activities',
     name: 'activities',
-    component: Activities,
+    component: () => import('~/views/activities/index.vue'),
     meta: { header: 'simple' },
   },
   {
     path: '/activities/:id',
     name: 'activity',
-    component: Activity,
+    component: () => import('~/views/activities/[id].vue'),
   },
   {
     path: '/seasons',
     name: 'seasons',
-    component: Seasons,
+    component: () => import('~/views/seasons/index.vue'),
     meta: { header: 'simple' },
   },
 ]
@@ -38,31 +31,31 @@ const adminRoutes = [
   {
     path: '/admin/activities',
     name: 'admin-activities',
-    component: AdminActivities,
+    component: () => import('~/views/admin/activities/index.vue'),
     meta: { requiresOrganizer: true, header: 'simple' },
   },
   {
     path: '/admin/activities/new',
     name: 'admin-activity-create',
-    component: AdminActivityForm,
+    component: () => import('~/views/admin/activities/form.vue'),
     meta: { requiresOrganizer: true, header: 'none' },
   },
   {
     path: '/admin/activities/:id/edit',
     name: 'admin-activity-edit',
-    component: AdminActivityForm,
+    component: () => import('~/views/admin/activities/form.vue'),
     meta: { requiresOrganizer: true, header: 'none' },
   },
   {
     path: '/admin/seasons/refunds',
     name: 'admin-season-refunds',
-    component: AdminSeasonRefunds,
+    component: () => import('~/views/admin/seasons/refunds/index.vue'),
     meta: { requiresOrganizer: true, header: 'simple' },
   },
   {
     path: '/admin/seasons/refunds/:id',
     name: 'admin-season-refund',
-    component: AdminSeasonRefund,
+    component: () => import('~/views/admin/seasons/refunds/[id].vue'),
     meta: { requiresOrganizer: true, header: 'simple' },
   },
 ]
