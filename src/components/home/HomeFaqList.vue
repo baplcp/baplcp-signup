@@ -110,10 +110,20 @@ function toggleFaq(index) {
   padding-left: 1em;
 }
 
+.faq-answer-list li + li {
+  margin-top: 8px;
+}
+
+/* 圓點垂直置中於第一行文字（行高 1.7em） */
 .faq-answer-list li::before {
-  content: '・';
+  content: '';
   position: absolute;
-  left: 0;
+  top: calc(0.85em - 3px);
+  left: 0.2em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .faq-item.is-open .faq-answer {
