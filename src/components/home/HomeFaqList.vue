@@ -26,7 +26,12 @@ function toggleFaq(index) {
         <span>{{ faq.question }}</span>
         <i class="faq-arrow" aria-hidden="true"></i>
       </button>
-      <div class="faq-answer">{{ faq.answer }}</div>
+      <div class="faq-answer">
+        <ul v-if="Array.isArray(faq.answer)" class="faq-answer-list">
+          <li v-for="point in faq.answer" :key="point">{{ point }}</li>
+        </ul>
+        <template v-else>{{ faq.answer }}</template>
+      </div>
     </article>
   </div>
 </template>
@@ -85,13 +90,30 @@ function toggleFaq(index) {
   padding: 0 12px;
   font-size: 15px;
   line-height: 1.7;
-  white-space: pre-line;
   color: var(--muted);
   opacity: 0;
   transition:
     max-height 0.24s ease,
     opacity 0.18s ease,
     padding 0.24s ease;
+}
+
+.faq-answer-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 列點換行時，第二行對齊第一行文字而非圓點 */
+.faq-answer-list li {
+  position: relative;
+  padding-left: 1em;
+}
+
+.faq-answer-list li::before {
+  content: '・';
+  position: absolute;
+  left: 0;
 }
 
 .faq-item.is-open .faq-answer {
