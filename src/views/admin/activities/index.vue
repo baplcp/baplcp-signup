@@ -101,7 +101,7 @@ function handleRowClick(act, index) {
     setOffset(index, 0)
     return
   }
-  router.push(`/create-activity?id=${act.id}`)
+  router.push({ name: 'admin-activity-edit', params: { id: act.id } })
 }
 
 // 刪除確認
@@ -177,7 +177,7 @@ async function confirmDelete() {
     </template>
 
     <div class="fab-container">
-      <button class="fab-create-btn" type="button" @click="router.push('/create-activity')">
+      <button class="fab-create-btn" type="button" @click="router.push({ name: 'admin-activity-create' })">
         <svg class="fab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>

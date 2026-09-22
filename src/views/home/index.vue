@@ -15,7 +15,7 @@ const showComingSoon = ref(false)
 let comingSoonTimer = null
 
 const liffStore = useLiffStore()
-const latestActivityTo = ref('/group-list')
+const latestActivityTo = ref({ name: 'activities' })
 const participationCount = ref(0)
 const participationLoading = ref(true)
 const imagesBaseUrl = import.meta.env.BASE_URL + 'images/'
@@ -57,7 +57,11 @@ async function loadLatestActivity() {
     }
 
     if (nearestDate && nearestActivity) {
-      latestActivityTo.value = `/active-activity?id=${nearestActivity.id}&date=${nearestDate}&type=latest`
+      latestActivityTo.value = {
+        name: 'activity',
+        params: { id: nearestActivity.id },
+        query: { date: nearestDate, type: 'latest' },
+      }
     }
   } catch (error) {
     console.warn('Unable to load the latest activity', error)
@@ -116,7 +120,7 @@ const infoCards = [
     title: '球局列表',
     subtitle: '各週人員名單',
     imageSrc: imagesBaseUrl + 'card-party.png',
-    to: '/group-list',
+    to: { name: 'activities' },
   },
   {
     title: '我的紀錄',
@@ -130,12 +134,12 @@ const utilityItems = [
   {
     label: '球局列表',
     imageSrc: imagesBaseUrl + 'Registration list.png',
-    to: '/group-list',
+    to: { name: 'activities' },
   },
   {
     label: '季打報名',
     imageSrc: imagesBaseUrl + 'ball.png',
-    to: '/season-list',
+    to: { name: 'seasons' },
   },
   {
     label: '打球影片',

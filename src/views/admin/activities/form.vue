@@ -7,12 +7,12 @@ import { useCreateActivityPageForm } from '~/composables/useCreateActivityPageFo
 import { useCreateActivityTimePicker } from '~/composables/useCreateActivityTimePicker'
 import { createActivity, getActivity, updateActivity } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
-import CreateActivityCalendarDialog from '../components/create-activity/CreateActivityCalendarDialog.vue'
-import CreateActivityDetailsSection from '../components/create-activity/CreateActivityDetailsSection.vue'
-import CreateActivityPickupSection from '../components/create-activity/CreateActivityPickupSection.vue'
-import CreateActivityResultDialog from '../components/create-activity/CreateActivityResultDialog.vue'
-import CreateActivitySeasonSection from '../components/create-activity/CreateActivitySeasonSection.vue'
-import CreateActivityTimePickerDialog from '../components/create-activity/CreateActivityTimePickerDialog.vue'
+import CreateActivityCalendarDialog from '~/components/create-activity/CreateActivityCalendarDialog.vue'
+import CreateActivityDetailsSection from '~/components/create-activity/CreateActivityDetailsSection.vue'
+import CreateActivityPickupSection from '~/components/create-activity/CreateActivityPickupSection.vue'
+import CreateActivityResultDialog from '~/components/create-activity/CreateActivityResultDialog.vue'
+import CreateActivitySeasonSection from '~/components/create-activity/CreateActivitySeasonSection.vue'
+import CreateActivityTimePickerDialog from '~/components/create-activity/CreateActivityTimePickerDialog.vue'
 
 const submitButton = ref(null)
 const isSubmitting = ref(false)
@@ -76,7 +76,7 @@ onMounted(async () => {
     return
   }
 
-  const idParam = route.query.id
+  const idParam = route.params.id
   if (idParam) {
     editId.value = idParam
     isPopulatingForm.value = true
@@ -103,7 +103,7 @@ onMounted(async () => {
 
 function returnToPreviousPage() {
   if (window.history.length > 1) window.history.back()
-  else window.location.href = './group-list.html'
+  else router.replace({ name: 'activities' })
 }
 
 const route = useRoute()
@@ -117,7 +117,7 @@ function goToCreatedActivityList() {
   const inAppFrom = window.history.state?.__inAppFrom
   const inAppFallbackFrom = window.history.state?.__inAppFallbackFrom
   router.replace({
-    path: '/group-list',
+    name: 'activities',
     state: {
       __inAppFrom: typeof inAppFrom === 'string' && inAppFrom.startsWith('/') ? inAppFrom : '/',
       __inAppFallbackFrom: typeof inAppFallbackFrom === 'string' && inAppFallbackFrom.startsWith('/') ? inAppFallbackFrom : '/',

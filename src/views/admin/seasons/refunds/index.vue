@@ -19,7 +19,7 @@ function formatDateRange(dates) {
 }
 
 function goToDetail(actId) {
-  router.push({ name: 'season-refund-detail', params: { id: actId } })
+  router.push({ name: 'admin-season-refund', params: { id: actId } })
 }
 
 async function loadActivities() {

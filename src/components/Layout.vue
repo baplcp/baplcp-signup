@@ -9,7 +9,7 @@ const router = useRouter()
 const liffStore = useLiffStore()
 const scrollBox = useTemplateRef('scrollBox')
 
-const isIndexPage = computed(() => route.name === 'index')
+const isIndexPage = computed(() => route.name === 'home')
 const isMenuOpen = ref(false)
 const isAwaitingAuth = computed(() => !liffStore.initialized)
 const isLoginRequired = computed(() => liffStore.initialized && !liffStore.userId)
@@ -83,7 +83,7 @@ function goBack() {
       },
     })
   } else {
-    router.replace({ name: 'index' })
+    router.replace({ name: 'home' })
   }
 }
 
@@ -105,7 +105,7 @@ watch(
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink v-if="isOrganizer && route.name === 'group-list'" class="manage-link" to="/manage-activities">管理</RouterLink>
+      <RouterLink v-if="isOrganizer && route.name === 'activities'" class="manage-link" :to="{ name: 'admin-activities' }">管理</RouterLink>
     </header>
     <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
       <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
@@ -113,7 +113,7 @@ watch(
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink to="/" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
+      <RouterLink :to="{ name: 'home' }" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <span id="nav-extra"></span>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -187,11 +187,11 @@ watch(
             <section class="drawer-section" aria-labelledby="drawer-common-title">
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
-                <RouterLink @click="closeMenu" class="drawer-link" to="/group-list">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'activities' }">
                   <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
                   <span>球局列表</span>
                 </RouterLink>
-                <RouterLink @click="closeMenu" class="drawer-link" to="/season-list">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'seasons' }">
                   <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
                 </RouterLink>
@@ -208,7 +208,7 @@ watch(
             <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
               <h2 class="drawer-section-title drawer-section-title--admin" id="drawer-admin-title">管理員專區</h2>
               <nav class="drawer-list" aria-label="管理員專區">
-                <RouterLink @click="closeMenu" class="drawer-link" to="/season-refund">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'admin-season-refunds' }">
                   <span class="drawer-icon is-refund">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
                       <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -224,7 +224,7 @@ watch(
             </section>
           </div>
           <div class="drawer-footer">
-            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
+            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" :to="{ name: 'admin-activity-create' }">建立新球局</RouterLink>
           </div>
         </aside>
       </div>

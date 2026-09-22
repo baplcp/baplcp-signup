@@ -40,7 +40,7 @@ export function useActiveActivityPage() {
     activityData,
     activityType,
     resolvedDate,
-    getActivityId: () => route.query.id,
+    getActivityId: () => route.params.id,
     liffStore,
   })
 
@@ -92,7 +92,7 @@ export function useActiveActivityPage() {
   const registrationAdminActions = useRegistrationAdminActions({
     liffStore,
     activityData,
-    getActivityId: () => route.query.id,
+    getActivityId: () => route.params.id,
     registrations,
     seasonRegistrations,
     acEnabled,
@@ -143,7 +143,7 @@ export function useActiveActivityPage() {
     activityLoadState.value = 'loading'
     activityData.value = null
 
-    const id = route.query.id
+    const id = route.params.id
     const activityPagePromise = getActivityPage(id)
     try {
       await liffStore.initialize()

@@ -36,7 +36,11 @@ function formatDateRow(dateStr, startTime, endTime) {
 }
 
 function createActivityRoute(activityId, dateStr, type) {
-  return `/active-activity?id=${activityId}&date=${dateStr}&type=${type}`
+  return {
+    name: 'activity',
+    params: { id: activityId },
+    query: { date: dateStr, type },
+  }
 }
 
 function computeVacancy(capacity, occupiedCount) {
