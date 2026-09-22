@@ -10,10 +10,6 @@ type HydrationOptions = {
   cancelledMembers?: boolean
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function hydrateMemberProfile(registration: Registration | null | undefined) {
   if (!registration) return registration
   const member = Array.isArray(registration.member) ? registration.member[0] : registration.member
@@ -25,16 +21,13 @@ function hydrateMemberProfile(registration: Registration | null | undefined) {
   }
 }
 
-function toLegacyGuestSnapshot(guest: {
-  legacy_payload: unknown
+function toGuestSnapshot(guest: {
   display_name: string | null
   gender: string | null
   joined_at: string | null
   paid_court: boolean
   paid_ac: boolean
 }): Record<string, unknown> {
-  if (isRecord(guest.legacy_payload)) return guest.legacy_payload
-
   return {
     name: guest.display_name ?? '',
     gender: guest.gender ?? null,
@@ -54,7 +47,7 @@ export async function hydrateRegistrationCollections(supabase: any, registration
 
   return {
     ...hydrateMemberProfile(registration),
-    ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toLegacyGuestSnapshot) } : {}),
+    ...(guests ? { guests: (guestsByRegistrationId.get(registration.id) || []).map(toGuestSnapshot) } : {}),
     ...(cancelledMembers ? { cancelled_members: cancelledMembersByRegistrationId.get(registration.id) || [] } : {}),
   }
 }

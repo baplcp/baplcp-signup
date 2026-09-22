@@ -19,7 +19,6 @@ type RegistrationGuest = {
   joined_at: string | null
   paid_court: boolean
   paid_ac: boolean
-  legacy_payload: Record<string, unknown>
 }
 
 type RegistrationCancellationEvent = {
@@ -80,7 +79,7 @@ export async function fetchRegistrationGuests(supabase: any, registrationIds: Ar
 
   const { data, error } = await supabase
     .from('registration_guests')
-    .select('registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac, legacy_payload')
+    .select('registration_id, guest_position, display_name, gender, joined_at, paid_court, paid_ac')
     .in('registration_id', ids)
     .order('guest_position', { ascending: true })
   if (error) throw error
@@ -101,8 +100,7 @@ export async function fetchRegistrationCancelledMemberSnapshots(supabase: any, r
     .from('registration_cancellation_events')
     .select('registration_id, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)')
     .in('registration_id', ids)
-    .eq('legacy_source', 'cancelled_members')
-    .order('legacy_position', { ascending: true })
+    .order('position', { ascending: true })
   if (error) throw error
 
   return (data || []).reduce((snapshotsByRegistrationId: Map<string, Record<string, unknown>[]>, event: RegistrationCancellationEvent) => {

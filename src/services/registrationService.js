@@ -63,12 +63,10 @@ async function fetchCancellationSnapshots(registrationIds) {
   const { data, error } = await supabase
     .from('registration_cancellation_events')
     .select(
-      'registration_id, legacy_source, legacy_position, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)'
+      'registration_id, participant_type, guest_display_name, participant_added_at, member:members!registration_cancellation_events_member_id_fkey(display_name, picture_url)'
     )
     .in('registration_id', registrationIds)
-    .eq('legacy_source', 'cancelled_members')
-    .order('legacy_source', { ascending: true })
-    .order('legacy_position', { ascending: true })
+    .order('position', { ascending: true })
   if (error) throw error
 
   return groupBy(data, 'registration_id')

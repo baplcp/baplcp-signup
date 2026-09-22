@@ -227,3 +227,7 @@ Roles:
 - `20260935000000_normalize_registration_members.sql`: replaces registration
   profile snapshots with a required `member_id` relationship and moves profile
   images to `members`.
+- `20260936000000_remove_transitional_registration_columns.sql`: removes the
+  obsolete cancellation source discriminator and timestamp, renames the
+  cancellation ordering field, and removes the guest JSON compatibility
+  snapshot after normalized fields became the sole application contract.
