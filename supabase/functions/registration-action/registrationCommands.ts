@@ -1,6 +1,6 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
-import { parseSaveRegistrationInput, parseSeasonLeaveInput } from '../_shared/input-validation.ts'
+import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
 import {
   findRegistration,
   getActivityForRegistration,
@@ -52,27 +52,6 @@ function assertRegistrationWindow(activity: Registration, activityDate: string |
     const closeDate = addTaiwanDays(activityDate, -Number(activity.pickup_close_days_before))
     if (now >= parseTaiwanDateTime(closeDate, activity.pickup_close_time)) throw new Error('registration_closed')
   }
-}
-
-export async function saveRegistration(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
-  const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
-  const { activityDate, selfCount, guestCount, guests } = parseSaveRegistrationInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : MEMBER_GUEST_LIMIT)
-  const normalizedGuests = guests.slice(0, guestCount)
-  const activity = await getActivityForRegistration(supabase, activityId)
-  if (activityDate === null) assertSeasonEnabled(activity)
-  const activityDateId = activityDate === null ? null : await fetchActivityDateId(supabase, activityId, activityDate)
-  if (activityDate !== null && activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
-  const findActiveSelf = () => findRegistration(supabase, { activityId, memberId, activityDateId })
-  const activeSelf = await findActiveSelf()
-
-  if (selfCount + guestCount > 0) assertRegistrationWindow(activity, activityDate, now, isAdmin)
-  if (selfCount === 1) {
-    await writeRegistrationWithRetry(supabase, { existing: activeSelf, findAfterConflict: findActiveSelf, createPayload: () => selfRegistrationPayload(activityId, activityDateId, memberId) })
-  } else if (activeSelf) {
-    await writeRegistration(supabase, activeSelf.id, { cancelled_at: submitTime })
-  }
-  if (activityDateId !== null) await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin))
-  return { ok: true }
 }
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {

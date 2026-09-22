@@ -1,6 +1,7 @@
 import { isOrganizer, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
-import { cancelSeasonRegistration, directSeasonRegister, saveRegistration, updateSeasonLeave, type RegistrationCommandContext, type RegistrationCommandResult } from './registrationCommands.ts'
-import { findRegistrationById, syncRegistrationMember, updateRegistrationGuest, writeRegistration } from './registrationRepository.ts'
+import { parseSaveRegistrationInput } from '../_shared/input-validation.ts'
+import { cancelSeasonRegistration, directSeasonRegister, updateSeasonLeave, type RegistrationCommandContext, type RegistrationCommandResult } from './registrationCommands.ts'
+import { findRegistrationById, saveRegistrationAction, syncRegistrationMember, updateRegistrationGuest, writeRegistration } from './registrationRepository.ts'
 
 export type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -41,9 +42,19 @@ export async function handleRegistrationAction(context: RegistrationActionContex
   const { supabase, profile, activityId } = context
 
   if (action === 'save-registration') {
-    const isAdmin = await isAdminProfile(supabase, profile)
-    const memberId = await syncRegistrationMember(supabase, profile)
-    return toActionResult(await saveRegistration({ ...context, memberId, isAdmin }, body))
+    // The RPC owns the member/role lookup and all attendance mutations so
+    // regular signup requires one database round trip and one transaction.
+    const input = parseSaveRegistrationInput(body, Number.MAX_SAFE_INTEGER)
+    await saveRegistrationAction(supabase, {
+      profile,
+      activityId,
+      activityDate: input.activityDate,
+      selfCount: input.selfCount,
+      guestCount: input.guestCount,
+      guests: input.guests.slice(0, input.guestCount),
+      submitTime: context.submitTime,
+    })
+    return { body: { ok: true }, status: 200 }
   }
 
   if (action === 'season-leave') {

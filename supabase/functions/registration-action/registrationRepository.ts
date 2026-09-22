@@ -54,6 +54,40 @@ export async function syncRegistrationMember(supabase: any, profile: { userId: s
   return data.id as string
 }
 
+export async function saveRegistrationAction(
+  supabase: any,
+  {
+    profile,
+    activityId,
+    activityDate,
+    selfCount,
+    guestCount,
+    guests,
+    submitTime,
+  }: {
+    profile: { userId: string; displayName: string; pictureUrl?: string | null }
+    activityId: string | number
+    activityDate: string | null
+    selfCount: number
+    guestCount: number
+    guests: Array<{ id?: string; name: string; gender: string }>
+    submitTime: string
+  }
+) {
+  const { error } = await supabase.rpc('save_registration_action_v1', {
+    p_user_id: profile.userId,
+    p_display_name: profile.displayName,
+    p_picture_url: profile.pictureUrl ?? null,
+    p_activity_id: activityId,
+    p_activity_date: activityDate,
+    p_self_count: selfCount,
+    p_guest_count: guestCount,
+    p_guests: guests,
+    p_submit_time: submitTime,
+  })
+  if (error) throw error
+}
+
 export async function findRegistrationById(supabase: any, registrationId: string | number) {
   const { data, error } = await supabase.from('registrations').select(REGISTRATION_FIELDS).eq('id', registrationId).maybeSingle()
   if (error) throw error
