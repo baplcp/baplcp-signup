@@ -15,7 +15,7 @@ const publicRoutes = [
     meta: { header: 'simple' },
   },
   {
-    path: '/activities/:id',
+    path: '/activities/:id/:activityDateId?',
     name: 'activity',
     component: () => import('~/views/activities/[id].vue'),
   },

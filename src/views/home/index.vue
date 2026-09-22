@@ -44,23 +44,22 @@ function handleMyRecordClick() {
 async function loadLatestActivity() {
   try {
     const activities = await listHomeActivityCandidates()
-    let nearestDate = null
+    let nearestActivityDate = null
     let nearestActivity = null
 
     for (const activity of activities) {
-      const sorted = (activity.dates || []).slice().sort()
-      const candidate = sorted.find(d => !isDateExpired(d, activity.end_time))
-      if (candidate && (!nearestDate || candidate < nearestDate)) {
-        nearestDate = candidate
+      const candidate = (activity.activityDates || []).find(activityDate => !isDateExpired(activityDate.activity_date, activity.end_time))
+      if (candidate && (!nearestActivityDate || candidate.activity_date < nearestActivityDate.activity_date)) {
+        nearestActivityDate = candidate
         nearestActivity = activity
       }
     }
 
-    if (nearestDate && nearestActivity) {
+    if (nearestActivityDate && nearestActivity) {
       latestActivityTo.value = {
         name: 'activity',
-        params: { id: nearestActivity.id },
-        query: { date: nearestDate, type: 'latest' },
+        params: { id: nearestActivity.id, activityDateId: nearestActivityDate.id },
+        query: { type: 'latest' },
       }
     }
   } catch (error) {

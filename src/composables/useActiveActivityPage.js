@@ -28,7 +28,7 @@ export function useActiveActivityPage() {
 
   const activityType = computed(() => route.query.type || 'latest')
   const resolvedDate = computed(() => {
-    if (route.query.date) return route.query.date
+    if (activityData.value?.selected_activity_date) return activityData.value.selected_activity_date
     if (!activityData.value?.dates) return null
     const today = getTaiwanDateString()
     const sorted = activityData.value.dates.slice().sort()
@@ -144,23 +144,14 @@ export function useActiveActivityPage() {
     activityData.value = null
 
     const id = route.params.id
-    const activityPagePromise = getActivityPage(id)
+    const requestedActivityDateId = typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null
+    const activityPagePromise = getActivityPage(id, requestedActivityDateId)
     try {
       await liffStore.initialize()
-      let activityPage = await activityPagePromise
+      const activityPage = await activityPagePromise
       if (!activityPage?.activity) {
         activityLoadState.value = 'not-found'
         return
-      }
-
-      const requestedDate = typeof route.query.date === 'string' ? route.query.date : null
-      const requestedActivityDateId = requestedDate ? activityPage.activity.activity_dates?.find(activityDate => activityDate.activity_date === requestedDate)?.id : null
-      if (requestedActivityDateId && requestedActivityDateId !== activityPage.activity.selected_activity_date_id) {
-        activityPage = await getActivityPage(id, requestedActivityDateId)
-        if (!activityPage?.activity) {
-          activityLoadState.value = 'not-found'
-          return
-        }
       }
 
       activityData.value = activityPage.activity

@@ -5,17 +5,31 @@ import { fetchActivityDates, groupActivityDates } from '~/services/activityDateS
 const ACTIVITY_FORM_FIELDS =
   'id, created_at, title, location, start_time, end_time, season_fee_per_session, pickup_fee_per_session, ac_fee, single_capacity, season_enabled, season_include_ac, season_total_fee, season_capacity, season_open_date, season_open_time, season_deadline_type, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time, game_type, ac_enabled, ac_fee_per_session, pickup_label, reminder_enabled, reminder_days_before, reminder_time, season_half_year_total_fee, season_half_year_fee_per_session'
 
-async function hydrateActivityDates(activities) {
+async function hydrateActivityDates(activities, { includeActivityDateRecords = false } = {}) {
   if (!activities?.length) return activities || []
 
-  const datesByActivityId = groupActivityDates(await fetchActivityDates(activities.map(activity => activity.id)))
-  return activities.map(activity => ({ ...activity, dates: datesByActivityId.get(activity.id) || [] }))
+  const activityDates = await fetchActivityDates(activities.map(activity => activity.id))
+  const datesByActivityId = groupActivityDates(activityDates)
+  const activityDateRecordsByActivityId = includeActivityDateRecords
+    ? activityDates.reduce((recordsByActivityId, activityDate) => {
+        const records = recordsByActivityId.get(activityDate.activity_id) || []
+        records.push(activityDate)
+        recordsByActivityId.set(activityDate.activity_id, records)
+        return recordsByActivityId
+      }, new Map())
+    : null
+
+  return activities.map(activity => ({
+    ...activity,
+    dates: datesByActivityId.get(activity.id) || [],
+    ...(includeActivityDateRecords ? { activityDates: activityDateRecordsByActivityId.get(activity.id) || [] } : {}),
+  }))
 }
 
-async function fetchActivities(query) {
+async function fetchActivities(query, options) {
   const { data, error } = await query
   if (error) throw error
-  return hydrateActivityDates(data || [])
+  return hydrateActivityDates(data || [], options)
 }
 
 async function invokeActivityAdmin(liffStore, body) {
@@ -46,7 +60,7 @@ export async function listManagedActivities() {
 }
 
 export async function listHomeActivityCandidates() {
-  return fetchActivities(supabase.from('activities').select('id, end_time').order('created_at', { ascending: false }).limit(20))
+  return fetchActivities(supabase.from('activities').select('id, end_time').order('created_at', { ascending: false }).limit(20), { includeActivityDateRecords: true })
 }
 
 export async function listSeasonActivities() {

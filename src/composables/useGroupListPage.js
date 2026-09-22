@@ -35,11 +35,11 @@ function formatDateRow(dateStr, startTime, endTime) {
   return `${formatGroupDateLabel(dateStr)}｜${formatTimeRange(startTime, endTime)}`
 }
 
-function createActivityRoute(activityId, dateStr, type) {
+function createActivityRoute(activityId, activityDateId, type) {
   return {
     name: 'activity',
-    params: { id: activityId },
-    query: { date: dateStr, type },
+    params: { id: activityId, activityDateId },
+    query: { type },
   }
 }
 
@@ -52,7 +52,7 @@ function toUpcomingActivity(session) {
   return {
     date: formatDateRow(session.activity_date, session.start_time, session.end_time),
     location: `缺 ${vacancy}・${session.location || '—'}`,
-    to: createActivityRoute(session.activity_id, session.activity_date, 'upcoming'),
+    to: createActivityRoute(session.activity_id, session.activity_date_id, 'upcoming'),
     badge: '未開放報名',
     badgeVariant: 'muted',
   }
@@ -62,7 +62,7 @@ function toEndedActivity(session) {
   return {
     date: formatGroupDateLabel(session.activity_date),
     location: session.location || '—',
-    to: createActivityRoute(session.activity_id, session.activity_date, 'ended'),
+    to: createActivityRoute(session.activity_id, session.activity_date_id, 'ended'),
   }
 }
 
@@ -94,7 +94,7 @@ export function useGroupListPage() {
       countAriaLabel: `臨打缺 ${vacancy} 人`,
       date: formatDateRow(session.activity_date, session.start_time, session.end_time),
       location: session.location || '—',
-      to: createActivityRoute(session.activity_id, session.activity_date, 'latest'),
+      to: createActivityRoute(session.activity_id, session.activity_date_id, 'latest'),
     }
   })
 
