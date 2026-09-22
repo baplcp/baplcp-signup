@@ -141,10 +141,15 @@ export function useGroupListPage() {
     const nextSegment = getSegmentFromQuery(segment)
     if (route.query.segment === nextSegment) return
 
-    router.push({
+    router.replace({
       query: {
         ...route.query,
         segment: nextSegment,
+      },
+      state: {
+        __inAppFrom: '/',
+        __inAppFallbackFrom: '/',
+        __skipInAppFromUpdate: true,
       },
     })
   }
