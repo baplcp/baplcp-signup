@@ -364,6 +364,7 @@ defineExpose({
 
 .guest-row {
   display: grid;
+  align-items: flex-start;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 9px;
 }
