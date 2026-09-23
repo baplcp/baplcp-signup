@@ -99,6 +99,63 @@ execute function public.archive_legacy_registration_collections();
 -- activity_date_id is now the sole registration-type discriminator. These
 -- indexes replace the text-date season indexes before v3 starts creating rows
 -- without the compatibility activity_date value.
+--
+-- A legacy pickup date may no longer be present in activities.dates when the
+-- normalization migration runs. Keep it as an inactive historical date so the
+-- pickup row is not mistaken for a season registration after its text date is
+-- retired.
+with missing_pickup_dates as (
+  select
+    registration.activity_id,
+    public.normalization_safe_date(registration.activity_date) as activity_date
+  from public.registrations as registration
+  left join public.activity_dates as activity_date
+    on activity_date.activity_id = registration.activity_id
+   and activity_date.activity_date = public.normalization_safe_date(registration.activity_date)
+  where registration.activity_date is not null
+    and public.normalization_safe_date(registration.activity_date) is not null
+    and activity_date.id is null
+  group by registration.activity_id, public.normalization_safe_date(registration.activity_date)
+), ordered_missing_pickup_dates as (
+  select
+    missing_pickup_dates.activity_id,
+    missing_pickup_dates.activity_date,
+    coalesce((
+      select max(existing_date.sort_order)
+      from public.activity_dates as existing_date
+      where existing_date.activity_id = missing_pickup_dates.activity_id
+    ), 0) + row_number() over (
+      partition by missing_pickup_dates.activity_id
+      order by missing_pickup_dates.activity_date
+    )::integer as sort_order
+  from missing_pickup_dates
+)
+insert into public.activity_dates (activity_id, activity_date, sort_order, is_active)
+select activity_id, activity_date, sort_order, false
+from ordered_missing_pickup_dates
+on conflict (activity_id, activity_date) do nothing;
+
+update public.registrations as registration
+set activity_date_id = activity_date.id
+from public.activity_dates as activity_date
+where registration.activity_id = activity_date.activity_id
+  and registration.activity_date is not null
+  and activity_date.activity_date = public.normalization_safe_date(registration.activity_date)
+  and registration.activity_date_id is distinct from activity_date.id;
+
+do $$
+begin
+  if exists (
+    select 1
+    from public.registrations as registration
+    where registration.activity_date is not null
+      and registration.activity_date_id is null
+  ) then
+    raise exception 'unresolved_pickup_activity_dates: resolve invalid legacy activity_date values before retiring the compatibility column';
+  end if;
+end;
+$$;
+
 create unique index if not exists registrations_season_activity_date_id_unique
 on public.registrations (user_id, activity_id)
 where activity_date_id is null;
