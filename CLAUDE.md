@@ -2,185 +2,143 @@
 
 ## 專案定位
 
-BAPLCP 排球報名系統是提供排球活動建立、活動清單、報名、名單查詢與報名管理的 Web 專案。主要使用情境是 LINE 群組內的活動參與者透過 LIFF 或活動連結進入頁面，在手機上查看球局資訊、完成報名、確認候補或補上狀態。
+這是 BAPLCP 的排球活動與報名 Web 應用。使用者可從 LINE LIFF、外部瀏覽器 OAuth 或直接活動連結進入，瀏覽活動與賽季、完成單次或季報名、查看名單；主揪則可建立與管理活動、名單、繳費、冷氣與賽季退款。
 
-專案已從早期單純報名頁面擴充為 Vue 3 應用，包含前台活動瀏覽、報名流程、會員身份、主揪活動建立與名單管理。後端資料與寫入規則由 Supabase、RLS、migration 與 Edge Functions 共同維護。
+前端為 Vue 單頁應用，靜態站點部署至 GitHub Pages。Supabase 提供公開讀取、資料庫 RPC、RLS 與 Edge Functions；所有具規則或權限的寫入均在 Edge Function／資料庫交易中執行。
 
-開發時請以「可讀性、可維護性、既有架構一致性」為優先。功能能正常運作只是最低要求；程式碼應該讓下一位維護者能快速理解資料來源、狀態流向與修改範圍。
+## 技術與執行環境
 
----
+- Vue `3.5`、Vue Router `5`、Pinia `4`，以 JavaScript 撰寫前端。
+- Vite `8` 與 `@vitejs/plugin-vue`；`vite-plugin-vue-devtools` 僅供開發使用。
+- 樣式是專案自有 CSS 設計系統（`src/assets/styles/`），不是 Tailwind。
+- UI 基元可使用 `reka-ui`；現有對話框優先沿用 `AccessibleDialog.vue`、`ConfirmDialog.vue` 與共用 CSS class。
+- LINE 身份整合使用 LIFF `2.31`；非 LINE WebView 走 LINE OAuth code exchange。
+- Supabase JS `2`：瀏覽器 anon client、PostgreSQL/RLS/RPC，以及 Deno Edge Functions。
+- Edge Functions 以 TypeScript 與 Deno 執行，輸入驗證使用 Zod `4`。
+- Prettier 是唯一已設定的格式化工具；沒有 lint、typecheck 或前端測試 script。
 
-## 技術架構
+Node 版本由 CI 使用 Node 24；依賴鎖定於 `package-lock.json`。
 
-- 前端：Vue 3、Vue Router、Pinia、JavaScript
-- 建置工具：Vite
-- 樣式：Tailwind CSS 4 與專案既有 CSS
-- LINE 整合：LINE LIFF 與 LINE token 驗證
-- 後端：Supabase Database、RLS、Edge Functions
-- 部署：GitHub Pages，透過 GitHub Actions build/deploy
+## 目錄與責任邊界
 
-### 主要目錄
+- `src/views/`：路由頁面，組合頁面流程與頁面級狀態。
+  - `home/`、`activities/`、`seasons/` 是公開頁面。
+  - `admin/activities/` 管理活動／活動表單；`admin/seasons/refunds/` 管理賽季退款。
+- `src/components/`：依功能分資料夾的呈現元件。元件應接收 props、發出事件，避免直接承擔跨頁資料讀寫。
+- `src/composables/`：可重用的資料載入、表單、報名與管理互動邏輯。複雜 view 不要持續膨脹，先檢查是否能延續現有 composable。
+- `src/services/`：Supabase 查詢、RPC、Edge Function 呼叫與資料 hydration。
+  - `activityService.js`：活動、活動日期與活動頁 RPC。
+  - `registrationService.js`：報名、來賓、季報假／回歸、名單訂閱與統計。
+  - `edgeFunctionClient.js`：統一附加 LINE access token 呼叫受保護的 Function。
+  - `memberProfileService.js`：會員同步與性別更新。
+- `src/stores/liff.js`：全站 LIFF／OAuth 初始化、LINE profile、會員角色、性別與季報資格的唯一共享狀態來源。
+- `src/utils/`：Supabase client、LINE OAuth 與台灣日期工具。需要台灣民用日期／時區邏輯時優先使用既有 `taiwanDate.js`，不要直接以 UTC 日期字串替代。
+- `src/assets/styles/`：`tokens.css`、`base.css`、`layout.css`、`components.css` 依序由 `src/assets/style.css` 載入。新增樣式優先沿用既有 token 與元件 class。
+- `supabase/functions/`：Deno Edge Functions；共用驗證、CORS、LINE profile 與日期／費用邏輯放在 `_shared/`。
+- `supabase/migrations/`：schema、RLS、trigger、RPC 的唯一版本化來源。不可直接手改線上 schema 取代 migration。
+- `supabase/SCHEMA.md`：前端和 Edge Function 使用的資料庫契約；修改資料模型前必讀，並與 migration 同步更新。
+- `scripts/`：面向 macOS 使用者的本機啟動、雲端 Function 部署、遠端資料更新與手動上線腳本。
 
-- `src/views/`：頁面層，負責組合流程與頁面級狀態。
-- `src/components/`：可重用 UI 元件，依功能區分資料夾。
-- `src/composables/`：頁面或功能的狀態邏輯、資料轉換與互動流程。
-- `src/services/`：與 Supabase、Edge Functions 或外部服務溝通的服務層。
-- `src/stores/`：Pinia store，目前包含 LIFF 使用者與會員身份狀態。
-- `src/utils/`：通用工具與 Supabase client。
-- `src/config/`：環境設定。
-- `supabase/functions/`：Supabase Edge Functions。
-- `supabase/migrations/`：資料庫結構、RLS、trigger 與權限變更。
-- `supabase/SCHEMA.md`：前端與 Edge Functions 依賴的資料庫契約。
-- `scripts/`：本機開發、雲端功能部署、資料更新與手動上線腳本。
-- `docs/`：設計或 UI 參考文件。
+## 前端慣例
 
----
+- 使用 `~` 作為 `src/` 別名，例如 `import { supabase } from '~/utils/supabase'`。
+- 匯入排序與程式格式遵循現有 Prettier：單引號、無分號、尾隨逗號、箭頭函式單一參數不加括號。
+- 路由 view 採 lazy import；只有首頁為靜態 import。`App.vue` 將 `ActivitiesListPage` 保留在 `KeepAlive`，以維持活動列表的狀態與捲動位置。
+- `views` 負責編排，`composables` 處理狀態／流程，`services` 處理遠端資料。不要在呈現元件堆疊 Supabase 呼叫、資料正規化與跨頁狀態。
+- 服務層已將正規化關聯資料 hydrate 成前端所需形狀。修改活動日期、來賓或季報狀態時，先追蹤 service 與對應 Edge Function／RPC，避免再次採用已移除的 legacy collection 欄位。
+- 介面以手機、LINE 內建瀏覽器與觸控操作為優先；修改 UI 時確認窄螢幕、可讀性、焦點與 dialog 的無障礙行為。
+- 外部資料、route params、RPC／Function 回應與使用者輸入都要先驗證／容錯。不可把權限或名額判斷只留在前端。
 
-## 目前主要功能
+## 路由與導覽
 
-- 首頁與導覽入口
-- 活動列表與賽季列表
-- 目前活動報名頁
-- 報名、取消、部分取消、重新加入等報名操作
-- 候補、正取、繳費與名單狀態顯示
-- 主揪建立活動
-- 主揪管理活動與名單
-- LINE 使用者身份同步
-- 會員角色控管
-- 報名開放與活動提醒相關 Edge Functions
+Router 位於 `src/router/index.js`，採 `createWebHashHistory()`；Vite production base 為 `/baplcp-signup/`。
 
----
+| 路徑 | 名稱 | 用途 |
+| --- | --- | --- |
+| `/` | `home` | 首頁 |
+| `/activities` | `activities` | 活動列表 |
+| `/activities/:id/:activityDateId?` | `activity` | 指定活動／場次的報名與名單頁 |
+| `/seasons` | `seasons` | 賽季列表 |
+| `/admin/activities` | `admin-activities` | 主揪活動管理 |
+| `/admin/activities/new` | `admin-activity-create` | 建立活動 |
+| `/admin/activities/:id/edit` | `admin-activity-edit` | 編輯活動 |
+| `/admin/seasons/refunds` | `admin-season-refunds` | 賽季退款列表 |
+| `/admin/seasons/refunds/:id` | `admin-season-refund` | 單一賽季退款管理 |
 
-## 前端資料流與分工
+管理路由以 `meta.requiresOrganizer` 保護。守衛會先初始化 `liffStore`，只允許 `role === 'organizer'` 進入。新增需受保護頁面時，沿用這個 route meta，不要只在畫面上隱藏入口。
 
-前端應維持清楚的責任分層：
+路由會儲存應用內來源頁，供返回導覽使用；對 router state 的行為有影響的修改，必須檢查從活動詳情返回列表及 OAuth 回跳的情境。
 
-- `views` 負責頁面組裝、路由進入後的流程與高層狀態。
-- `components` 負責畫面呈現與局部互動，不應直接承擔跨頁資料流程。
-- `composables` 負責可重用的頁面邏輯、表單狀態、資料整理與互動狀態。
-- `services` 負責 API/Edge Function/Supabase 呼叫與錯誤包裝。
-- `stores` 負責跨頁共享狀態，例如 LIFF 初始化結果、LINE profile 與會員角色。
+## LINE 身份與會員
 
-新增或修改功能時，請先判斷邏輯應該放在哪一層。不要把 API 呼叫、資料轉換、UI 狀態與 DOM 呈現全部塞進單一元件。
+應用啟動時由 `src/main.js` 初始化 `useLiffStore()`。store 同時處理：
 
----
+- LINE 內 LIFF 登入與 profile 取得。
+- 外部瀏覽器的 OAuth callback、暫存 session 與原路由還原。
+- 以 `member-profile` Edge Function 同步會員資料，取得 `role`、`gender` 與 `isSeason`。
+- 首次未填性別使用者的全域提示；更新仍應透過 store 的 `updateGender()`。
 
-## 路由與權限
+角色為 `member`、`organizer`、`engineer`。前端角色僅用於體驗與路由；生產環境的主揪權限必須由 Edge Function 和資料庫授權再次確認。
 
-路由定義在 `src/router/index.js`，使用 `createWebHashHistory()`，Vite base 為 `/baplcp-signup/`。
+## Supabase、資料模型與寫入規則
 
-目前主要路由：
+以 `supabase/SCHEMA.md` 與最新 migration 為準，不要由 UI 欄位或舊程式碼反推 schema。
 
-- `/`：首頁
-- `/group-list`：活動列表
-- `/season-list`：賽季列表
-- `/active-activity`：活動報名頁
-- `/create-activity`：建立活動，需 `organizer`
-- `/manage-activities`：管理活動，需 `organizer`
+- 瀏覽器使用 anon key，僅做 RLS 允許的讀取、realtime 訂閱與公開 RPC。
+- `activities`、`registrations`、`members` 與正規化參與資料的寫入不可由 browser client 直接執行。
+- `activity_dates` 是活動日期的 canonical 資料；退役日期保留紀錄以維持歷史報名關聯。
+- `registrations` 的每列代表一位會員的自我報名；`registration_guests` 為獨立的來賓參與資料；`season_registration_date_statuses` 記錄季報成員各場的請假／回歸狀態。
+- 報名、候補、名額、取消、來賓與繳費會牽涉交易與併發規則。優先使用既有 Edge Function action／RPC，切勿在前端模擬寫入流程。
+- schema、RLS、trigger 或 RPC 的變更必須新建遞增 migration，並同步更新 `SCHEMA.md`、前端 service、Edge Function 和必要測試。
 
-需要主揪權限的頁面使用 route meta：`requiresOrganizer: true`。進入前會初始化 `liffStore` 並檢查 `liffStore.role`。
+### Edge Functions
 
----
+- `activity-admin`：驗證主揪身份後建立、更新、刪除活動；資料庫 RPC 負責原子寫入與正式環境的授權。
+- `registration-action`：處理一般報名、季報請假／回歸／取消，以及主揪的付款、移除成員與冷氣操作。一般報名透過 `save_registration_action_v1` 在單一交易中完成。
+- `member-profile`：驗證 LINE token、同步會員 profile／角色，並更新性別。
+- `line-token`：交換外部瀏覽器 OAuth code。
+- `notify-registration-open`、`notify-activity-reminder`：依資料庫候選 RPC 發送 LINE 通知。
 
-## LINE LIFF 與會員身份
+Function 以 service role key 執行，但不得因此略過驗證。輸入驗證使用 `_shared/input-validation.ts` 的 schema，受保護 action 必須驗證 LINE token 與主揪資格。`ALLOW_DEV_ADMIN=true` 僅限本機 Function 環境與 localhost，不可放進前端 `.env` 或正式環境。
 
-LIFF 與會員身份狀態集中在 `src/stores/liff.js`，透過 Pinia store 使用。
+## 環境設定與機密
 
-```js
-import { useLiffStore } from '~/stores/liff'
+前端啟動時要求以下 Vite 變數：
 
-const liffStore = useLiffStore()
-const isOrganizer = computed(() => liffStore.role === 'organizer')
-const isEngineer = computed(() => liffStore.role === 'engineer')
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_LIFF_ID=
+VITE_LINE_OAUTH_CLIENT_ID=
+VITE_LINE_OAUTH_REDIRECT_URI=
 ```
 
-角色來源為 Supabase `members` 表，透過 `member-profile` Edge Function 同步 LINE profile。新使用者預設為 `member`，管理者可直接在 Supabase Table Editor 調整 `role`。
+不要提交實際 token、Supabase service role key、LINE channel secret 或環境檔內容。Edge Function 的 `SUPABASE_SERVICE_ROLE_KEY` 只存在於 Supabase Function secrets／本機 Function 環境。
 
-角色：
+## 常用指令與驗證
 
-- `organizer`：主揪，可進入建立與管理活動頁。
-- `engineer`：工程師身份，目前主要供辨識與後續工具權限使用。
-- `member`：一般會員。
-
----
-
-## Supabase 與資料庫契約
-
-Supabase schema、RLS、trigger、migration 與 Edge Function 寫入規則以 `supabase/SCHEMA.md` 和 `supabase/migrations/` 為準。不要只根據前端欄位名稱推測資料表結構。
-
-重要原則：
-
-- Browser client 使用 anon key，原則上只做讀取。
-- `activities`、`registrations`、`members` 的寫入需透過 Edge Functions。
-- 寫入類操作需經 LINE token 或本機開發模式允許的身份驗證。
-- 涉及報名規則、名額、候補、取消或繳費欄位時，需同時確認 migration、Edge Function 與前端顯示邏輯。
-- 資料庫結構或權限變更應新增 migration，不應只改線上資料表。
-
-目前主要 Edge Functions：
-
-- `activity-admin`：主揪活動建立、更新、刪除。
-- `registration-action`：報名、取消與主揪名單操作。
-- `member-profile`：LINE 驗證與會員 profile/role 同步。
-- `line-token`：LINE token 相關處理。
-- `notify-registration-open`：報名開放通知。
-- `notify-activity-reminder`：活動提醒通知。
-
----
-
-## 路徑別名
-
-Vite 設定的別名為 `~`，對應 `src/`。import 時使用 `~/`。
-
-```js
-import { supabase } from '~/utils/supabase'
-import { useLiffStore } from '~/stores/liff'
+```bash
+npm run dev          # Vite development mode
+npm run format       # 依 .prettierrc 格式化整個 repository（會改檔）
+npm run build        # production build
+npm run build:dev    # development-mode build
 ```
 
----
+- 本專案沒有 `test`、`lint` 或 `typecheck` npm script。不要假設它們存在。
+- Edge Function 單元測試使用 Deno，例如 `deno test supabase/functions/_shared/input-validation.test.ts`；對應到變更的單一測試檔優先於整包執行。
+- 一般前端／文件修改不需要執行 build。若需驗證，採最小相關檢查；執行全量格式化或 build 前先說明原因。
+- 使用 `npm run format` 前須明確知道它會重寫整個 repo；只改少量 JS／Vue 時，優先格式化相關檔案。
 
-## 開發與維護原則
+## 部署與 Git
 
-請優先遵守以下原則：
+- GitHub Actions `.github/workflows/deploy.yml` 會在 `main`、`dev` 推送或手動觸發時，分別 checkout 兩個分支、安裝依賴、build production 與 development site，部署到 GitHub Pages 的 production 與 `/dev/` 路徑。
+- 本機 `scripts/手動推上線.command` 會互動式 commit、rebase 與 push；沒有使用者明確要求，不得執行它、`git push` 或部署。
+- `scripts/部署正式環境雲端功能.command` 與 `scripts/部署測試環境雲端功能.command` 會部署所有六個 Edge Functions。資料庫 migration 與 Functions 有相依時，先確認部署順序與目標環境。
+- 保留使用者既有的未提交變更；避免 `git reset --hard`、大量覆寫或無關的格式化。
 
-- 以可讀性與可維護性優先，避免為了少幾行程式犧牲清楚的命名與分層。
-- 優先沿用既有檔案結構、命名習慣與資料流。
-- 每次修改保持範圍集中，避免順手重構無關頁面。
-- 元件只承擔合理大小的 UI 責任；複雜狀態與資料轉換應移到 composable 或 service。
-- 命名要能表達使用情境與資料意義，避免模糊縮寫。
-- 對外部資料、Edge Function 回傳、使用者輸入與可空欄位保持防禦性處理。
-- 涉及報名規則或權限的邏輯，需讓條件判斷可讀，必要時補上簡短註解。
-- 不要複製貼上大段相似邏輯；若重複代表同一個概念，應抽成 helper、composable 或元件。
-- UI 修改需優先確認手機尺寸、LINE 內建瀏覽器情境與文字可讀性。
-- 修改資料欄位時，要同步檢查 schema、service、composable、view 與 Edge Function。
-
----
-
-## 驗證原則
-
-遵守專案工作規則：
-
-- 不要自動執行 `npm run build`。
-- 不要在任務結尾自動跑 build，除非使用者明確要求。
-- 優先執行最小且相關的驗證，例如特定測試、lint、typecheck 或格式檢查。
-- 執行昂貴或耗時指令前，先說明為什麼需要。
-- 文件修改通常不需要跑測試；若改到程式碼，再依影響範圍選擇最小驗證。
-
----
-
-## 部署方式
-
-- GitHub Actions：`.github/workflows/deploy.yml` 會 build 並部署到 GitHub Pages。
-- 手動上線腳本：`scripts/手動推上線.command`。
-- 雲端功能部署腳本：`scripts/部署雲端功能.command`。
-- 遠端資料更新腳本：`scripts/更新遠端資料.command`。
-- 不應由 Claude/Codex 自動執行 `git push`，除非使用者明確要求。
-
----
-
-## 回覆與協作規則
+## 協作回覆
 
 - 一律使用繁體中文回覆。
-- 修改完成後，清楚說明改了哪些地方與是否有執行驗證。
-- 不要自動推送 git。
-- 不要覆蓋使用者未要求修改的變更。
-- 若發現現有文件、schema 或程式碼互相矛盾，先指出矛盾並以目前專案檔案為依據更新。
+- 修改前先閱讀相關 view、composable、service、Function 與 schema；只做完成任務所需的最小變更。
+- 完成時交代修改內容、行為影響、驗證結果與任何安全／資料庫注意事項。
+- 發現文件、schema 與程式不一致時，先以當前程式與最新 migration 為證據，再同步修正文件。
