@@ -4,7 +4,7 @@ defineProps({
     type: [String, Object],
     required: true,
   },
-  date: {
+  title: {
     type: String,
     required: true,
   },
@@ -41,7 +41,7 @@ defineProps({
     :to="to"
   >
     <div class="event-content">
-      <p class="event-date">{{ date }}</p>
+      <p class="event-title" :title="title">{{ title }}</p>
       <p class="event-location">{{ location }}</p>
     </div>
     <span v-if="badge" class="badge" :class="`badge-${badgeVariant}`">{{ badge }}</span>
@@ -79,13 +79,15 @@ defineProps({
   gap: 8px;
 }
 
-.event-date {
+.event-title {
   margin: 0;
   font-size: 16px;
   line-height: 1.25;
   font-weight: 500;
   color: var(--text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-location {

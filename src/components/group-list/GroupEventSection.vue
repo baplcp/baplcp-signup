@@ -67,7 +67,7 @@ defineEmits(['more', 'load-more'])
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        :date="item.date"
+        :title="item.date"
         :location="item.location"
         :badge="item.badge"
         :badge-variant="item.badgeVariant"
