@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { listGroupActivitySessions } from '~/services/registrationService'
 import { formatTaiwanTime, getTaiwanWeekday } from '~/utils/taiwanDate'
@@ -79,7 +79,7 @@ export function useGroupListPage() {
   const hasMoreEnded = ref(true)
   const hasExpandedUpcoming = ref(false)
   const hasExpandedEnded = ref(false)
-  const now = new Date()
+  let now = new Date()
 
   const latestSession = computed(() => upcomingSessions.value[0] || null)
 
@@ -172,6 +172,26 @@ export function useGroupListPage() {
     expandSegment(activeSegment.value)
   }
 
+  async function refreshActivities() {
+    upcomingSessions.value = []
+    endedSessions.value = []
+    hasMoreUpcoming.value = true
+    hasMoreEnded.value = true
+    hasExpandedUpcoming.value = false
+    hasExpandedEnded.value = false
+    now = new Date()
+    isLoading.value = true
+    await fetchActivities()
+  }
+
+  function consumeRefreshRequest() {
+    if (!window.history.state?.__refreshActivities) return false
+
+    const { __refreshActivities, ...state } = window.history.state
+    window.history.replaceState(state, '')
+    return true
+  }
+
   watch(
     () => route.query.segment,
     segment => {
@@ -182,7 +202,14 @@ export function useGroupListPage() {
     { immediate: true }
   )
 
-  onMounted(fetchActivities)
+  onMounted(() => {
+    consumeRefreshRequest()
+    void fetchActivities()
+  })
+
+  onActivated(() => {
+    if (consumeRefreshRequest()) void refreshActivities()
+  })
 
   return {
     activeSegment,

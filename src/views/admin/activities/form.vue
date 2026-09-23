@@ -25,6 +25,7 @@ const dialog = reactive({
   copy: '新球局已建立完成。',
   buttonText: '確認',
   returnAfterClose: false,
+  refreshActivityList: false,
 })
 
 const {
@@ -113,7 +114,7 @@ const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const isEditMode = computed(() => !!editId.value)
 
-function goToCreatedActivityList() {
+function goToCreatedActivityList({ refresh = false } = {}) {
   const inAppFrom = window.history.state?.__inAppFrom
   const inAppFallbackFrom = window.history.state?.__inAppFallbackFrom
   router.replace({
@@ -122,6 +123,7 @@ function goToCreatedActivityList() {
       __inAppFrom: typeof inAppFrom === 'string' && inAppFrom.startsWith('/') ? inAppFrom : '/',
       __inAppFallbackFrom: typeof inAppFallbackFrom === 'string' && inAppFallbackFrom.startsWith('/') ? inAppFallbackFrom : '/',
       __skipInAppFromUpdate: true,
+      ...(refresh ? { __refreshActivities: true } : {}),
     },
   })
 }
@@ -131,15 +133,18 @@ function openCreateDialog(options = {}) {
   dialog.copy = options.copy || dialog.copy
   dialog.buttonText = options.buttonText || dialog.buttonText
   dialog.returnAfterClose = Boolean(options.returnAfterClose)
+  dialog.refreshActivityList = Boolean(options.refreshActivityList)
   dialog.isOpen = true
 }
 
 function closeCreateDialog() {
   const shouldReturn = dialog.returnAfterClose
+  const shouldRefreshActivityList = dialog.refreshActivityList
   dialog.isOpen = false
   dialog.returnAfterClose = false
+  dialog.refreshActivityList = false
   nextTick(() => submitButton.value?.focus({ preventScroll: true }))
-  if (shouldReturn) goToCreatedActivityList()
+  if (shouldReturn) goToCreatedActivityList({ refresh: shouldRefreshActivityList })
 }
 
 function validate() {
@@ -177,6 +182,7 @@ async function handleSubmitActivity() {
         copy: '新球局已建立完成。',
         buttonText: '確認',
         returnAfterClose: true,
+        refreshActivityList: true,
       })
     }
   } catch (err) {
