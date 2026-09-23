@@ -127,6 +127,7 @@ function buildRegistrationOpenFlexMessage(notification: Notification, registrati
 
 type Notification = {
   id: number
+  activityDateId: number | null
   title: string
   pickupLabel: string | null
   location: string
@@ -161,6 +162,7 @@ serve(async _req => {
 
     const notifications: Notification[] = (data || []).map(notification => ({
       id: notification.activity_id,
+      activityDateId: notification.activity_date_id ?? null,
       title: notification.title,
       pickupLabel: notification.pickup_label ?? null,
       location: notification.location ?? '',
@@ -171,11 +173,8 @@ serve(async _req => {
     }))
 
     for (const n of notifications) {
-      const registrationQuery = new URLSearchParams({
-        date: n.activityDate,
-        type: n.type,
-      })
-      const registrationUrl = `https://liff.line.me/${liffId}#/activities/${n.id}?${registrationQuery}`
+      const activityPath = n.activityDateId ? `/activities/${n.id}/${n.activityDateId}` : `/activities/${n.id}`
+      const registrationUrl = `https://liff.line.me/${liffId}#${activityPath}`
       const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
       await sendLineMessage(lineToken, lineGroupId, message)
