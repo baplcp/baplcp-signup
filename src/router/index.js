@@ -60,9 +60,14 @@ const adminRoutes = [
   },
 ]
 
+const fallbackRoute = {
+  path: '/:pathMatch(.*)*',
+  redirect: { name: 'home' },
+}
+
 const router = createRouter({
   history: createWebHashHistory(),
-  routes: [...publicRoutes, ...adminRoutes],
+  routes: [...publicRoutes, ...adminRoutes, fallbackRoute],
 })
 
 let pendingInAppFrom = null
