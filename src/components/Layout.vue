@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, useTemplateRef } from 'vue'
+import { ref, computed, nextTick, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
 import { startLineOAuth } from '~/utils/lineOAuth'
@@ -8,8 +8,9 @@ const route = useRoute()
 const router = useRouter()
 const liffStore = useLiffStore()
 const scrollBox = useTemplateRef('scrollBox')
+const activityListScrollPositions = new Map()
 
-const isIndexPage = computed(() => route.name === 'index')
+const isIndexPage = computed(() => route.name === 'home')
 const isMenuOpen = ref(false)
 const isAwaitingAuth = computed(() => !liffStore.initialized)
 const isLoginRequired = computed(() => liffStore.initialized && !liffStore.userId)
@@ -19,6 +20,7 @@ const ROLE_CONFIG = {
   engineer: { label: '苦命的工程師', modifier: 'is-engineer' },
   member: { label: '一般會員', modifier: 'is-member' },
 }
+const defaultAvatar = import.meta.env.BASE_URL + 'images/cookie.png'
 const roleConfig = computed(() => ROLE_CONFIG[liffStore.role] ?? ROLE_CONFIG.member)
 const isOrganizer = computed(() => liffStore.role === 'organizer')
 const navScrollProgress = ref(0)
@@ -70,8 +72,11 @@ function goBack() {
   const fallbackFrom = state?.__inAppFallbackFrom
 
   if (typeof from === 'string' && from.startsWith('/')) {
+    const destination = router.resolve(from)
     router.replace({
-      path: from,
+      path: destination.path,
+      query: destination.query,
+      hash: destination.hash,
       state: {
         __inAppFrom: typeof fallbackFrom === 'string' && fallbackFrom.startsWith('/') ? fallbackFrom : '/',
         __inAppFallbackFrom: '/',
@@ -79,29 +84,45 @@ function goBack() {
       },
     })
   } else {
-    router.replace({ name: 'index' })
+    router.replace({ name: 'home' })
   }
 }
 
 watch(
   () => route.fullPath,
-  () => {
+  async (toPath, fromPath) => {
     closeMenu()
     resetNavScrollState()
-    scrollBox.value?.scrollTo(0, 0)
+
+    if (fromPath === '/activities' || fromPath?.startsWith('/activities?')) {
+      activityListScrollPositions.set(fromPath, scrollBox.value?.scrollTop ?? 0)
+    }
+
+    const isReturningToActivityList = route.name === 'activities' && fromPath?.startsWith('/activities/')
+    if (!isReturningToActivityList) {
+      scrollBox.value?.scrollTo(0, 0)
+      return
+    }
+
+    await nextTick()
+    if (route.fullPath !== toPath) return
+
+    const scrollTop = activityListScrollPositions.get(toPath) ?? 0
+    scrollBox.value?.scrollTo(0, scrollTop)
+    setNavScrollProgress(scrollTop / NAV_FADE_DISTANCE)
   }
 )
 </script>
 
 <template>
-  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container h-screen md:h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto md:rounded-3xl">
+  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container">
     <header v-if="isShowSimpleHeader" class="simple-header">
       <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink v-if="isOrganizer && route.name === 'group-list'" class="manage-link" to="/manage-activities">管理</RouterLink>
+      <RouterLink v-if="isOrganizer && route.name === 'activities'" class="manage-link" :to="{ name: 'admin-activities' }">管理</RouterLink>
     </header>
     <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
       <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
@@ -109,7 +130,7 @@ watch(
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <RouterLink to="/" class="brand mr-auto" aria-label="回到首頁 BAPLCP"></RouterLink>
+      <RouterLink :to="{ name: 'home' }" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <span id="nav-extra"></span>
       <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -117,12 +138,12 @@ watch(
         </svg>
       </button>
 
-      <div class="menu-overlay h-screen md:h-[calc(100vh-48px)]" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
+      <div class="menu-overlay" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
         <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
         <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
           <div class="drawer-profile">
             <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
-            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || '/images/cookie.png'" alt="" />
+            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
             <!-- 未登入：灰色人頭預設圖 -->
             <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
               <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -183,11 +204,11 @@ watch(
             <section class="drawer-section" aria-labelledby="drawer-common-title">
               <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
               <nav class="drawer-list" aria-label="常用功能">
-                <RouterLink @click="closeMenu" class="drawer-link" to="/group-list">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'activities' }">
                   <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
                   <span>球局列表</span>
                 </RouterLink>
-                <RouterLink @click="closeMenu" class="drawer-link" to="/season-list">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'seasons' }">
                   <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
                   <span>季打報名</span>
                 </RouterLink>
@@ -204,7 +225,7 @@ watch(
             <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
               <h2 class="drawer-section-title drawer-section-title--admin" id="drawer-admin-title">管理員專區</h2>
               <nav class="drawer-list" aria-label="管理員專區">
-                <RouterLink @click="closeMenu" class="drawer-link" to="/season-refund">
+                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'admin-season-refunds' }">
                   <span class="drawer-icon is-refund">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
                       <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -220,7 +241,7 @@ watch(
             </section>
           </div>
           <div class="drawer-footer">
-            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" to="/create-activity">建立新球局</RouterLink>
+            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" :to="{ name: 'admin-activity-create' }">建立新球局</RouterLink>
           </div>
         </aside>
       </div>
@@ -268,9 +289,12 @@ watch(
 
 <style>
 .layout {
+  height: 100vh;
   box-shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
   background: var(--surface);
   -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
   overflow-anchor: none;
   overscroll-behavior-y: none;
@@ -341,6 +365,7 @@ watch(
   height: 22px;
   background: url('/images/logo-white.svg') center/contain no-repeat;
   flex: 0 0 auto;
+  margin-right: auto;
   transition: filter 0.25s ease;
 }
 
@@ -382,6 +407,7 @@ watch(
   position: absolute;
   inset: 0;
   z-index: 40;
+  height: 100vh;
   pointer-events: none;
 }
 
@@ -701,6 +727,17 @@ watch(
 
   .drawer-section {
     padding-right: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .layout {
+    height: calc(100vh - 48px);
+    border-radius: 24px;
+  }
+
+  .menu-overlay {
+    height: calc(100vh - 48px);
   }
 }
 </style>

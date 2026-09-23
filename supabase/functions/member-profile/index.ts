@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
+const CORS_PRELIGHT_MAX_AGE_SECONDS = '86400'
 
 function corsHeaders(origin: string) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
@@ -9,6 +10,7 @@ function corsHeaders(origin: string) {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-line-access-token',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': CORS_PRELIGHT_MAX_AGE_SECONDS,
   }
 }
 
@@ -58,7 +60,7 @@ serve(async req => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     if (action === 'sync') {
-      const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', profile.userId).maybeSingle()
+      const { data, error } = await supabase.from('members').select('id, role, gender, is_season').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
       let role = data?.role ?? 'member'
@@ -69,19 +71,22 @@ serve(async req => {
         const { error: insertError } = await supabase.from('members').insert({
           user_id: profile.userId,
           display_name: profile.displayName,
+          picture_url: profile.pictureUrl,
           role: 'member',
         })
         if (insertError) throw insertError
       } else {
+        const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
+        if (profileError) throw profileError
         const { data: latestSeason } = await supabase.from('activities').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (latestSeason) {
           const { data: seasonReg } = await supabase
             .from('registrations')
             .select('id')
             .eq('activity_id', latestSeason.id)
-            .eq('user_id', profile.userId)
-            .is('activity_date', null)
-            .eq('status', 'active')
+            .eq('member_id', data.id)
+            .is('activity_date_id', null)
+            .is('cancelled_at', null)
             .maybeSingle()
           const nextIsSeason = !!seasonReg
           if (nextIsSeason !== data.is_season) {

@@ -1,14 +1,8 @@
 import { ref, watch } from 'vue'
-import { getMemberGenderMap } from '~/services/memberProfileService'
-import { listPickupRegistrations, listSeasonRegistrations } from '~/services/registrationService'
+import { getActivityPage } from '~/services/activityService'
 
-async function mergeMemberGenders(registrations, liffStore) {
-  if (!registrations.length) {
-    return liffStore.userId && liffStore.gender ? { [liffStore.userId]: liffStore.gender } : {}
-  }
-
-  const userIds = [...new Set(registrations.map(registration => registration.user_id))]
-  const genders = await getMemberGenderMap(userIds)
+function mergeMemberGenders(registrations, liffStore) {
+  const genders = Object.fromEntries(registrations.filter(registration => registration.member_gender).map(registration => [registration.user_id, registration.member_gender]))
   if (liffStore.userId && liffStore.gender) genders[liffStore.userId] = liffStore.gender
   return genders
 }
@@ -20,6 +14,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   const myRegistration = ref(null)
   const mySeasonRegistration = ref(null)
   const memberGenders = ref({})
+  let latestFetchId = 0
 
   watch(
     () => liffStore.gender,
@@ -28,53 +23,63 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     }
   )
 
-  async function fetchSeasonRegistrations(activityId) {
-    const data = await listSeasonRegistrations(activityId, ['active', 'cancelled'])
+  function getSelectedActivityDateId() {
+    if (activityData.value?.selected_activity_date_id) return activityData.value.selected_activity_date_id
 
-    const active = data.filter(registration => registration.status === 'active')
-    const cancelled = data.filter(registration => registration.status === 'cancelled')
-    registrations.value = active
-    cancelledRegistrations.value = cancelled
-    myRegistration.value = active.find(registration => registration.user_id === liffStore.userId) || null
-    seasonRegistrations.value = active
-    mySeasonRegistration.value = myRegistration.value
-    memberGenders.value = await mergeMemberGenders(active, liffStore)
+    const date = resolvedDate.value
+    return activityData.value?.activity_dates?.find(activityDate => activityDate.activity_date === date)?.id || null
   }
 
-  async function fetchPickupRegistrations(activityId) {
-    const date = resolvedDate.value
-    if (!date) return
+  function getSeasonRegistrationState(data) {
+    const active = data.filter(registration => !registration.cancelled_at)
+    const cancelled = data.filter(registration => registration.cancelled_at)
+    const myRegistration = active.find(registration => registration.user_id === liffStore.userId && registration.is_self_registration) || null
 
-    const data = await listPickupRegistrations(activityId, date, ['active', 'cancelled'])
-    const active = data.filter(registration => registration.status === 'active')
-    registrations.value = active
-    cancelledRegistrations.value = data.filter(registration => registration.status === 'cancelled')
-    myRegistration.value = active.find(registration => registration.user_id === liffStore.userId) || null
-    memberGenders.value = await mergeMemberGenders(active, liffStore)
-
-    const seasonData = await listSeasonRegistrations(activityId)
-    seasonRegistrations.value = seasonData || []
-    mySeasonRegistration.value = seasonData?.find(registration => registration.user_id === liffStore.userId) || null
-
-    const seasonUserIds = [...new Set((seasonData || []).map(registration => registration.user_id))].filter(id => !(id in memberGenders.value))
-    if (!seasonUserIds.length) return
-
-    memberGenders.value = {
-      ...memberGenders.value,
-      ...(await getMemberGenderMap(seasonUserIds)),
+    return {
+      registrations: data,
+      cancelledRegistrations: cancelled,
+      seasonRegistrations: data,
+      myRegistration,
+      mySeasonRegistration: myRegistration,
+      memberGenders: mergeMemberGenders(data, liffStore),
     }
   }
 
-  async function fetchRegistrations() {
+  function getPickupRegistrationState(pickupData, seasonData) {
+    const data = pickupData || []
+    const myRegistration = data.find(registration => registration.user_id === liffStore.userId && (!registration.cancelled_at || registration.guests?.some(guest => !guest.cancelled_at))) || null
+    const seasonRegistrations = seasonData || []
+    const mySeasonRegistration = seasonRegistrations.find(registration => registration.user_id === liffStore.userId) || null
+
+    return {
+      registrations: data,
+      cancelledRegistrations: data.filter(registration => registration.cancelled_at),
+      seasonRegistrations,
+      myRegistration,
+      mySeasonRegistration,
+      memberGenders: mergeMemberGenders([...data, ...seasonRegistrations], liffStore),
+    }
+  }
+
+  async function fetchRegistrations(activityPage = null) {
+    const fetchId = ++latestFetchId
     const activityId = getActivityId() || activityData.value?.id
     if (!activityId) return
 
-    if (activityType.value === 'season') {
-      await fetchSeasonRegistrations(activityId)
-      return
-    }
+    const page = activityPage || (await getActivityPage(activityId, getSelectedActivityDateId()))
+    if (!page?.activity) return null
 
-    await fetchPickupRegistrations(activityId)
+    activityData.value = page.activity
+    const nextState = activityType.value === 'season' ? getSeasonRegistrationState(page.season_registrations || []) : getPickupRegistrationState(page.pickup_registrations, page.season_registrations)
+    if (fetchId !== latestFetchId || !nextState) return
+
+    registrations.value = nextState.registrations
+    cancelledRegistrations.value = nextState.cancelledRegistrations
+    seasonRegistrations.value = nextState.seasonRegistrations
+    myRegistration.value = nextState.myRegistration
+    mySeasonRegistration.value = nextState.mySeasonRegistration
+    memberGenders.value = nextState.memberGenders
+    return page.activity
   }
 
   return {

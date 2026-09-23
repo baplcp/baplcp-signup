@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { addTaiwanDays, formatTaiwanTime, getTaiwanWeekday, parseTaiwanDate, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -36,11 +37,10 @@ export function useActiveActivityViewModels({
     const [, month, day] = resolvedDate.value.split('-')
     return `${Number(month)}.${day}`
   })
-  const summaryWeekday = computed(() => (resolvedDate.value ? WEEKDAYS[new Date(resolvedDate.value + 'T00:00:00').getDay()] : '—'))
+  const summaryWeekday = computed(() => (resolvedDate.value ? WEEKDAYS[getTaiwanWeekday(resolvedDate.value)] : '—'))
   const summaryTime = computed(() => {
     if (!activityData.value) return '—'
-    const fmt = time => (time || '').replace(/^0/, '').slice(0, 5)
-    return `${fmt(activityData.value.start_time)}-${fmt(activityData.value.end_time)}`
+    return `${formatTaiwanTime(activityData.value.start_time)}-${formatTaiwanTime(activityData.value.end_time)}`
   })
   const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
@@ -49,9 +49,9 @@ export function useActiveActivityViewModels({
   const seasonQuarterSessionCount = computed(() => {
     const dates = [...(activityData.value?.dates || [])].sort()
     if (!dates.length) return 0
-    const first = new Date(dates[0])
-    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
-    return dates.filter(d => new Date(d) < cutoff).length
+    const cutoff = parseTaiwanDate(dates[0])
+    cutoff.setUTCMonth(cutoff.getUTCMonth() + 3, 1)
+    return dates.filter(date => parseTaiwanDate(date) < cutoff).length
   })
 
   const seasonDisplaySessionCount = computed(() => {
@@ -74,22 +74,16 @@ export function useActiveActivityViewModels({
     if (!activity) return null
     if (activityType.value === 'season') {
       if (!activity.season_open_date || !activity.season_open_time) return null
-      const [year, month, day] = activity.season_open_date.split('-').map(Number)
-      const [hour, minute] = activity.season_open_time.split(':').map(Number)
-      return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, 0))
+      return parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)
     }
     if (!resolvedDate.value || activity.pickup_open_days_before == null || !activity.pickup_open_time) return null
-    const [year, month, day] = resolvedDate.value.split('-').map(Number)
-    const [hour, minute] = activity.pickup_open_time.split(':').map(Number)
-    return new Date(Date.UTC(year, month - 1, day - activity.pickup_open_days_before, hour - 8, minute, 0))
+    return parseTaiwanDateTime(addTaiwanDays(resolvedDate.value, -activity.pickup_open_days_before), activity.pickup_open_time)
   })
 
   const registrationCloseAt = computed(() => {
     const activity = activityData.value
     if (!activity || activityType.value !== 'season' || !activity.season_close_date || !activity.season_close_time) return null
-    const [year, month, day] = activity.season_close_date.split('-').map(Number)
-    const [hour, minute] = activity.season_close_time.split(':').map(Number)
-    return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, 0))
+    return parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)
   })
 
   const isSeasonRegistrationClosed = computed(() => (registrationCloseAt.value ? nowTick.value >= registrationCloseAt.value : false))
@@ -120,6 +114,14 @@ export function useActiveActivityViewModels({
     if (activeSegment.value === '報名成功') return memberList.value.filter(member => !member.status)
     return memberList.value
   })
+  // 男女人數只算報名成功（正取）的人，不含候補；只在「報名成功」分頁顯示
+  const genderCounts = computed(() => {
+    const confirmedMembers = memberList.value.filter(member => !member.status)
+    return {
+      male: confirmedMembers.filter(member => member.gender === 'male').length,
+      female: confirmedMembers.filter(member => member.gender === 'female').length,
+    }
+  })
   const hasVisibleSectionBelow = computed(() => {
     const showCancelled = cancelledMemberList.value.length > 0 && isRegistrationOpen.value && (activityType.value === 'season' || activeSegment.value === '臨打')
     const showLeave = leaveMemberList.value.length > 0 && activeSegment.value === '季打'
@@ -133,7 +135,10 @@ export function useActiveActivityViewModels({
   const cancelledMemberListLabel = computed(() => (activityType.value === 'season' ? '已取消季打' : '已取消報名'))
   const showLeaveMemberList = computed(() => leaveMemberList.value.length > 0 && activeSegment.value === '季打')
 
-  const submittedTotal = computed(() => (myRegistration.value ? (myRegistration.value.self_count || 0) + (myRegistration.value.guest_count || 0) : 0))
+  const submittedTotal = computed(() => {
+    if (!myRegistration.value) return 0
+    return (myRegistration.value.is_self_registration && !myRegistration.value.cancelled_at ? 1 : 0) + (myRegistration.value.guests || []).filter(guest => !guest.cancelled_at).length
+  })
   const hasSubmittedSignup = computed(() => {
     if (activityType.value === 'season') return submittedTotal.value > 0
     if (submittedTotal.value > 0) return true
@@ -146,8 +151,8 @@ export function useActiveActivityViewModels({
     if (!hasSubmittedSignup.value || !myRegistration.value) return false
     const registration = myRegistration.value
     const acRequired = acEnabled.value && acFeePerSession.value > 0
-    if ((registration.self_count || 0) > 0 && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
-    return (registration.guests || []).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
+    if (registration.is_self_registration && !registration.cancelled_at && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
+    return (registration.guests || []).filter(guest => !guest.cancelled_at).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
   })
   const myWaitlistedCount = computed(() => {
     const myRegIds = new Set([myRegistration.value?.id, mySeasonRegistration.value?.id].filter(Boolean))
@@ -243,6 +248,7 @@ export function useActiveActivityViewModels({
       activeSegment,
       segmentTabs,
       filteredMemberList,
+      genderCounts,
       memberBottomSpacing,
       cancelledMemberList,
       leaveMemberList,

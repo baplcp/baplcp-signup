@@ -7,12 +7,12 @@ import { useCreateActivityPageForm } from '~/composables/useCreateActivityPageFo
 import { useCreateActivityTimePicker } from '~/composables/useCreateActivityTimePicker'
 import { createActivity, getActivity, updateActivity } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
-import CreateActivityCalendarDialog from '../components/create-activity/CreateActivityCalendarDialog.vue'
-import CreateActivityDetailsSection from '../components/create-activity/CreateActivityDetailsSection.vue'
-import CreateActivityPickupSection from '../components/create-activity/CreateActivityPickupSection.vue'
-import CreateActivityResultDialog from '../components/create-activity/CreateActivityResultDialog.vue'
-import CreateActivitySeasonSection from '../components/create-activity/CreateActivitySeasonSection.vue'
-import CreateActivityTimePickerDialog from '../components/create-activity/CreateActivityTimePickerDialog.vue'
+import CreateActivityCalendarDialog from '~/components/create-activity/CreateActivityCalendarDialog.vue'
+import CreateActivityDetailsSection from '~/components/create-activity/CreateActivityDetailsSection.vue'
+import CreateActivityPickupSection from '~/components/create-activity/CreateActivityPickupSection.vue'
+import CreateActivityResultDialog from '~/components/create-activity/CreateActivityResultDialog.vue'
+import CreateActivitySeasonSection from '~/components/create-activity/CreateActivitySeasonSection.vue'
+import CreateActivityTimePickerDialog from '~/components/create-activity/CreateActivityTimePickerDialog.vue'
 
 const submitButton = ref(null)
 const isSubmitting = ref(false)
@@ -25,6 +25,7 @@ const dialog = reactive({
   copy: '新球局已建立完成。',
   buttonText: '確認',
   returnAfterClose: false,
+  refreshActivityList: false,
 })
 
 const {
@@ -76,7 +77,7 @@ onMounted(async () => {
     return
   }
 
-  const idParam = route.query.id
+  const idParam = route.params.id
   if (idParam) {
     editId.value = idParam
     isPopulatingForm.value = true
@@ -103,7 +104,7 @@ onMounted(async () => {
 
 function returnToPreviousPage() {
   if (window.history.length > 1) window.history.back()
-  else window.location.href = './group-list.html'
+  else router.replace({ name: 'activities' })
 }
 
 const route = useRoute()
@@ -113,15 +114,16 @@ const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const isEditMode = computed(() => !!editId.value)
 
-function goToCreatedActivityList() {
+function goToCreatedActivityList({ refresh = false } = {}) {
   const inAppFrom = window.history.state?.__inAppFrom
   const inAppFallbackFrom = window.history.state?.__inAppFallbackFrom
   router.replace({
-    path: '/group-list',
+    name: 'activities',
     state: {
       __inAppFrom: typeof inAppFrom === 'string' && inAppFrom.startsWith('/') ? inAppFrom : '/',
       __inAppFallbackFrom: typeof inAppFallbackFrom === 'string' && inAppFallbackFrom.startsWith('/') ? inAppFallbackFrom : '/',
       __skipInAppFromUpdate: true,
+      ...(refresh ? { __refreshActivities: true } : {}),
     },
   })
 }
@@ -131,22 +133,25 @@ function openCreateDialog(options = {}) {
   dialog.copy = options.copy || dialog.copy
   dialog.buttonText = options.buttonText || dialog.buttonText
   dialog.returnAfterClose = Boolean(options.returnAfterClose)
+  dialog.refreshActivityList = Boolean(options.refreshActivityList)
   dialog.isOpen = true
 }
 
 function closeCreateDialog() {
   const shouldReturn = dialog.returnAfterClose
+  const shouldRefreshActivityList = dialog.refreshActivityList
   dialog.isOpen = false
   dialog.returnAfterClose = false
+  dialog.refreshActivityList = false
   nextTick(() => submitButton.value?.focus({ preventScroll: true }))
-  if (shouldReturn) goToCreatedActivityList()
+  if (shouldReturn) goToCreatedActivityList({ refresh: shouldRefreshActivityList })
 }
 
 function validate() {
   if (!validateForm()) {
     openCreateDialog({
       title: '報名尚未完成',
-      copy: '有部分必填欄位尚未填寫，請確認標示的欄位後再送出。',
+      copy: '有部分欄位尚未填寫或超過字數限制，請確認標示的欄位後再送出。',
       buttonText: '確認',
       returnAfterClose: false,
     })
@@ -158,7 +163,7 @@ function validate() {
 
 async function handleSubmitActivity() {
   if (!validate()) return
-  const payload = buildActivityPayload(form, selectedDates, seasonEnabled, seasonFee.value, halfYearFee.value)
+  const payload = buildActivityPayload(form, selectedDates, seasonEnabled)
 
   isSubmitting.value = true
   try {
@@ -177,6 +182,7 @@ async function handleSubmitActivity() {
         copy: '新球局已建立完成。',
         buttonText: '確認',
         returnAfterClose: true,
+        refreshActivityList: true,
       })
     }
   } catch (err) {
@@ -270,7 +276,13 @@ async function handleSubmitActivity() {
       @select-date="selectCalendarDate"
     />
 
-    <CreateActivityTimePickerDialog :open="isTimePickerOpen" :model-value="activeTimePickerValue" :hour-only="activeTimePickerField === 'reminderTime'" @close="closeTimePicker" @commit="commitTimePicker" />
+    <CreateActivityTimePickerDialog
+      :open="isTimePickerOpen"
+      :model-value="activeTimePickerValue"
+      :hour-only="activeTimePickerField === 'reminderTime'"
+      @close="closeTimePicker"
+      @commit="commitTimePicker"
+    />
 
     <CreateActivityResultDialog :open="dialog.isOpen" :title="dialog.title" :copy="dialog.copy" :button-text="dialog.buttonText" @close="closeCreateDialog" />
   </main>

@@ -1,5 +1,7 @@
 <script setup>
 import ActivityAllDatesDialog from '~/components/activity/ActivityAllDatesDialog.vue'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
+import ConfirmDialog from '~/components/activity/ConfirmDialog.vue'
 import ActivityMemberSection from '~/components/activity/ActivityMemberSection.vue'
 import ActivityMemberSubList from '~/components/activity/ActivityMemberSubList.vue'
 import ActivitySeasonPlanSheet from '~/components/activity/ActivitySeasonPlanSheet.vue'
@@ -9,6 +11,7 @@ import { useActiveActivityPage } from '~/composables/useActiveActivityPage'
 
 const { navigation, activity, summary, members, signup, dialogs, admin, elementRefs, actions } = useActiveActivityPage()
 const { router } = navigation
+const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
 </script>
 
 <template>
@@ -21,6 +24,15 @@ const { router } = navigation
     </div>
   </div>
 
+  <div v-else-if="activity.activityLoadState === 'error'" class="not-found-page">
+    <div class="not-found-content">
+      <p class="not-found-icon" aria-hidden="true">⚠️</p>
+      <h1 class="not-found-title">無法載入球局</h1>
+      <p class="not-found-desc">目前無法取得球局資料，請確認網路後再試一次。</p>
+      <button class="not-found-btn" type="button" @click="actions.loadActivityPage">重新載入</button>
+    </div>
+  </div>
+
   <main v-else class="active-activity-page" :class="activity.pageClasses" @keydown.esc="actions.handleEscape">
     <Teleport v-if="admin.isAdmin" to="#nav-extra">
       <button class="admin-mode-toggle" :class="{ 'is-active': admin.adminMode }" type="button" :aria-pressed="String(admin.adminMode)" @click="admin.adminMode = !admin.adminMode">
@@ -29,7 +41,7 @@ const { router } = navigation
       </button>
     </Teleport>
     <section class="hero">
-      <img v-if="activity.showHeroCat" class="hero-cat" src="/images/cat-hide.png" alt="" aria-hidden="true" />
+      <img v-if="activity.showHeroCat" class="hero-cat" :src="heroCatImage" alt="" aria-hidden="true" />
       <div class="hero-layout">
         <div class="hero-copy">
           <h1>{{ activity.heroTitle }}</h1>
@@ -50,6 +62,7 @@ const { router } = navigation
       :tabs="members.segmentTabs"
       :active-segment="members.activeSegment"
       :members="members.filteredMemberList"
+      :gender-counts="members.genderCounts"
       :bottom-spacing="members.memberBottomSpacing"
       :is-admin="admin.isAdmin"
       :admin-mode="admin.adminMode"
@@ -108,49 +121,49 @@ const { router } = navigation
       @submit="actions.submitSignup"
     />
 
-    <div
-      class="success-dialog-overlay shared-dialog-overlay"
-      :class="{ 'is-open': dialogs.successDialog.open }"
-      :aria-hidden="String(!dialogs.successDialog.open)"
-      :inert="!dialogs.successDialog.open"
+    <AccessibleDialog
+      :open="dialogs.successDialog.open"
+      :title="dialogs.successDialog.title"
+      overlay-class="success-dialog-overlay shared-dialog-overlay"
+      content-class="success-dialog shared-dialog"
+      :z-index="10000"
+      :close-on-outside="false"
+      @close="actions.closeSuccessDialog"
     >
-      <section class="success-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="success-dialog-title">
-        <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ dialogs.successDialog.title }}</h2>
-        <p class="success-dialog-copy shared-dialog-copy">{{ dialogs.successDialog.copy }}</p>
-        <button :ref="elementRefs.successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="actions.handleDialogButtonClick">
-          {{ dialogs.successDialog.buttonText }}
-        </button>
-      </section>
-    </div>
+      <h2 class="success-dialog-title shared-dialog-title" id="success-dialog-title">{{ dialogs.successDialog.title }}</h2>
+      <p class="success-dialog-copy shared-dialog-copy">{{ dialogs.successDialog.copy }}</p>
+      <button :ref="elementRefs.successDialogButton" class="success-dialog-button shared-dialog-button" type="button" @click="actions.handleDialogButtonClick">
+        {{ dialogs.successDialog.buttonText }}
+      </button>
+    </AccessibleDialog>
 
-    <div class="remove-dialog-overlay shared-dialog-overlay" :class="{ 'is-open': dialogs.removeDialog.open }" :aria-hidden="String(!dialogs.removeDialog.open)" :inert="!dialogs.removeDialog.open">
-      <button class="remove-dialog-backdrop" type="button" aria-label="取消移除" @click="actions.cancelRemove"></button>
-      <section class="remove-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="remove-dialog-title">
-        <h2 class="remove-dialog-title shared-dialog-title" id="remove-dialog-title">確認移除成員？</h2>
-        <p class="remove-dialog-copy shared-dialog-copy">確定要將「{{ dialogs.removeDialog.member?.name }}」從名單中移除嗎？此操作無法復原。</p>
-        <div class="remove-dialog-actions">
-          <button type="button" class="remove-dialog-cancel" @click="actions.cancelRemove">取消</button>
-          <button :ref="elementRefs.removeConfirmButton" type="button" class="remove-dialog-confirm" @click="actions.confirmRemove">確認移除</button>
-        </div>
-      </section>
-    </div>
+    <ConfirmDialog
+      :open="dialogs.removeDialog.open"
+      dialog-id="remove-dialog-title"
+      title="確認移除成員？"
+      :copy="`確定要將「${dialogs.removeDialog.member?.name ?? ''}」從名單中移除嗎？此操作無法復原。`"
+      cancel-aria-label="取消移除"
+      confirm-text="確認移除"
+      tone="danger"
+      :z-index="10001"
+      :confirm-button-ref="elementRefs.removeConfirmButton"
+      @cancel="actions.cancelRemove"
+      @confirm="actions.confirmRemove"
+    />
 
-    <div
-      class="leave-confirm-dialog-overlay shared-dialog-overlay"
-      :class="{ 'is-open': dialogs.leaveConfirmOpen }"
-      :aria-hidden="String(!dialogs.leaveConfirmOpen)"
-      :inert="!dialogs.leaveConfirmOpen"
-    >
-      <button class="leave-confirm-dialog-backdrop" type="button" aria-label="取消請假" @click="actions.cancelLeaveConfirm"></button>
-      <section class="leave-confirm-dialog shared-dialog" role="dialog" aria-modal="true" aria-labelledby="leave-confirm-dialog-title">
-        <h2 class="leave-confirm-dialog-title shared-dialog-title" id="leave-confirm-dialog-title">確定要請假嗎？</h2>
-        <p class="leave-confirm-dialog-copy shared-dialog-copy">你已將「我」的人數按到 0，送出報名後這場將會記為請假，名額會釋出給臨打。確定要繼續嗎？</p>
-        <div class="leave-confirm-dialog-actions">
-          <button type="button" class="leave-confirm-dialog-cancel" @click="actions.cancelLeaveConfirm">取消</button>
-          <button :ref="elementRefs.leaveConfirmButton" type="button" class="leave-confirm-dialog-confirm" @click="actions.confirmLeaveConfirm">確認請假</button>
-        </div>
-      </section>
-    </div>
+    <ConfirmDialog
+      :open="dialogs.leaveConfirmOpen"
+      dialog-id="leave-confirm-dialog-title"
+      title="確定要請假嗎？"
+      copy="你已將「我」的人數按到 0，送出報名後這場將會記為請假，名額會釋出給臨打。確定要繼續嗎？"
+      cancel-aria-label="取消請假"
+      confirm-text="確認請假"
+      tone="warning"
+      :z-index="10002"
+      :confirm-button-ref="elementRefs.leaveConfirmButton"
+      @cancel="actions.cancelLeaveConfirm"
+      @confirm="actions.confirmLeaveConfirm"
+    />
 
     <ActivitySeasonPlanSheet
       :open="dialogs.seasonPlanOpen"
@@ -167,24 +180,28 @@ const { router } = navigation
     />
 
     <!-- 取消季打報名確認 sheet -->
-    <div
-      class="season-cancel-overlay phone-container modal-frame"
-      :class="{ 'is-open': dialogs.seasonCancelOpen }"
-      :aria-hidden="String(!dialogs.seasonCancelOpen)"
-      :inert="!dialogs.seasonCancelOpen"
-      @click.self="dialogs.seasonCancelOpen = false"
+    <AccessibleDialog
+      :open="dialogs.seasonCancelOpen"
+      title="確認取消季打報名？"
+      overlay-class="season-cancel-overlay phone-container modal-frame"
+      content-class="season-cancel-sheet"
+      @close="dialogs.seasonCancelOpen = false"
     >
-      <section class="season-cancel-sheet" role="dialog" aria-modal="true">
-        <p class="season-cancel-title">確認取消季打報名？</p>
-        <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
-        <div class="season-cancel-actions">
-          <button class="season-cancel-btn is-muted" type="button" @click="dialogs.seasonCancelOpen = false">保留報名</button>
-          <button class="season-cancel-btn is-danger" type="button" @click="actions.confirmSeasonCancel">確認取消</button>
-        </div>
-      </section>
-    </div>
+      <p class="season-cancel-title">確認取消季打報名？</p>
+      <p class="season-cancel-copy">取消後你將從季打名單中移除，名額將釋出給其他人。</p>
+      <div class="season-cancel-actions">
+        <button class="season-cancel-btn is-muted" type="button" @click="dialogs.seasonCancelOpen = false">保留報名</button>
+        <button class="season-cancel-btn is-danger" type="button" @click="actions.confirmSeasonCancel">確認取消</button>
+      </div>
+    </AccessibleDialog>
 
-    <ActivityAllDatesDialog :open="dialogs.showAllDatesDialog" :dates="summary.activityDates" :session-count="summary.activitySessionCount" :quarter-count="summary.seasonQuarterSessionCount" @close="dialogs.showAllDatesDialog = false" />
+    <ActivityAllDatesDialog
+      :open="dialogs.showAllDatesDialog"
+      :dates="summary.activityDates"
+      :session-count="summary.activitySessionCount"
+      :quarter-count="summary.seasonQuarterSessionCount"
+      @close="dialogs.showAllDatesDialog = false"
+    />
   </main>
 </template>
 
@@ -311,140 +328,6 @@ const { router } = navigation
   cursor: default;
 }
 
-.success-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-}
-
-.remove-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10001;
-}
-
-.remove-dialog-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.remove-dialog {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  max-width: 340px;
-  margin: auto;
-  padding: 28px 24px 24px;
-  border-radius: 16px;
-  background: #fff;
-}
-
-.remove-dialog-title {
-  color: #d14343;
-}
-
-.remove-dialog-copy {
-  margin: 10px 0 0;
-  color: #474d66;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.remove-dialog-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 24px;
-}
-
-.remove-dialog-cancel {
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid #d8dae5;
-  background: #fff;
-  color: #474d66;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.remove-dialog-confirm {
-  min-height: 44px;
-  border-radius: 10px;
-  background: #d14343;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.leave-confirm-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10002;
-}
-
-.leave-confirm-dialog-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.leave-confirm-dialog {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  max-width: 340px;
-  margin: auto;
-  padding: 28px 24px 24px;
-  border-radius: 16px;
-  background: #fff;
-}
-
-.leave-confirm-dialog-title {
-  color: #c87416;
-}
-
-.leave-confirm-dialog-copy {
-  margin: 10px 0 0;
-  color: #474d66;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.leave-confirm-dialog-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 24px;
-}
-
-.leave-confirm-dialog-cancel {
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid #d8dae5;
-  background: #fff;
-  color: #474d66;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.leave-confirm-dialog-confirm {
-  min-height: 44px;
-  border-radius: 10px;
-  background: #c87416;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-}
-
 .empty-member-hint {
   padding: 0 16px 80px;
   text-align: center;
@@ -557,65 +440,6 @@ const { router } = navigation
   color: #fff;
   font-size: 16px;
   font-weight: 600;
-}
-
-.season-cancel-overlay {
-  position: fixed;
-  z-index: 10002;
-  overflow: hidden;
-  margin: auto;
-  display: none;
-  align-items: flex-end;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.season-cancel-overlay.is-open {
-  display: flex;
-}
-
-.season-cancel-sheet {
-  width: 100%;
-  padding: 28px 20px 24px;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
-}
-
-.season-cancel-title {
-  margin: 0 0 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #101840;
-  line-height: 1.36;
-}
-
-.season-cancel-copy {
-  margin: 0 0 24px;
-  font-size: 14px;
-  color: #474d66;
-  line-height: 1.6;
-}
-
-.season-cancel-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.season-cancel-btn {
-  min-height: 48px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.season-cancel-btn.is-muted {
-  background: #f4f6fa;
-  color: #474d66;
-}
-
-.season-cancel-btn.is-danger {
-  background: #d14343;
-  color: #fff;
 }
 
 @media (min-width: 768px) {

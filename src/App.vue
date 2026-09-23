@@ -38,7 +38,11 @@ async function confirmGender() {
 
 <template>
   <Layout>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <KeepAlive include="ActivitiesListPage">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </Layout>
 
   <div class="gender-prompt-overlay shared-dialog-overlay" :class="{ 'is-open': showGenderPrompt }" :aria-hidden="String(!showGenderPrompt)" :inert="!showGenderPrompt">

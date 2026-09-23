@@ -1,15 +1,16 @@
 import { computed, ref, watch } from 'vue'
+import { getTaiwanDateString, parseTaiwanDate } from '~/utils/taiwanDate'
 
 export function getFirstDayOfMonth(date) {
-  const month = new Date(date)
-  month.setDate(1)
+  const month = new Date(date.getTime())
+  month.setUTCDate(1)
   return month
 }
 
 export function formatDate(date) {
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  return `${date.getUTCFullYear()}-${month}-${day}`
 }
 
 export function formatDateLabel(value) {
@@ -19,29 +20,29 @@ export function formatDateLabel(value) {
 }
 
 function buildCalendarDays(monthDate) {
-  const year = monthDate.getFullYear()
-  const month = monthDate.getMonth()
-  const startOffset = new Date(year, month, 1).getDay()
-  const gridStart = new Date(year, month, 1 - startOffset)
+  const year = monthDate.getUTCFullYear()
+  const month = monthDate.getUTCMonth()
+  const startOffset = new Date(Date.UTC(year, month, 1)).getUTCDay()
+  const gridStart = new Date(Date.UTC(year, month, 1 - startOffset))
 
   return Array.from({ length: 42 }, (_, index) => {
     const date = new Date(gridStart)
-    date.setDate(gridStart.getDate() + index)
+    date.setUTCDate(gridStart.getUTCDate() + index)
     return {
       value: formatDate(date),
-      label: String(date.getDate()),
-      isMuted: date.getMonth() !== month,
+      label: String(date.getUTCDate()),
+      isMuted: date.getUTCMonth() !== month,
     }
   })
 }
 
 export function useCreateActivityCalendar({ form, selectedDates, clearError }) {
   const calendarDays = ref([])
-  const visibleMonth = ref(getFirstDayOfMonth(new Date()))
+  const visibleMonth = ref(getFirstDayOfMonth(parseTaiwanDate(getTaiwanDateString())))
   const isCalendarOpen = ref(false)
   const activeCalendarTarget = ref('activity')
 
-  const calendarTitle = computed(() => `${visibleMonth.value.getFullYear()} 年 ${visibleMonth.value.getMonth() + 1} 月`)
+  const calendarTitle = computed(() => `${visibleMonth.value.getUTCFullYear()} 年 ${visibleMonth.value.getUTCMonth() + 1} 月`)
   const currentCalendarSelectedValues = computed(() => {
     if (activeCalendarTarget.value === 'season-open') return form.seasonOpenDate ? [form.seasonOpenDate] : []
     if (activeCalendarTarget.value === 'season-close') return form.seasonCloseDate ? [form.seasonCloseDate] : []
@@ -57,7 +58,7 @@ export function useCreateActivityCalendar({ form, selectedDates, clearError }) {
   }
 
   function setVisibleMonthFromDate(value) {
-    visibleMonth.value = getFirstDayOfMonth(new Date(value))
+    visibleMonth.value = getFirstDayOfMonth(parseTaiwanDate(value))
     calendarDays.value = buildCalendarDays(visibleMonth.value)
   }
 
@@ -72,7 +73,7 @@ export function useCreateActivityCalendar({ form, selectedDates, clearError }) {
 
   function changeCalendarMonth(offset) {
     const nextMonth = new Date(visibleMonth.value)
-    nextMonth.setMonth(nextMonth.getMonth() + offset)
+    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + offset)
     visibleMonth.value = nextMonth
   }
 

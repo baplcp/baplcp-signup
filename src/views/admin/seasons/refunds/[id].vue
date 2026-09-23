@@ -10,6 +10,7 @@ const activityId = Number(route.params.id)
 const activity = ref(null)
 const registrations = ref([])
 const isLoading = ref(true)
+const loadError = ref(false)
 const selectedQuarterIndex = ref(0)
 
 const QUARTER_DEFS = [
@@ -25,9 +26,7 @@ const activeQuarters = computed(() => {
   return QUARTER_DEFS.filter(q => q.months.some(m => months.has(m)))
 })
 
-const selectedMonths = computed(
-  () => activeQuarters.value[selectedQuarterIndex.value]?.months ?? []
-)
+const selectedMonths = computed(() => activeQuarters.value[selectedQuarterIndex.value]?.months ?? [])
 
 const membersWithLeave = computed(() => {
   if (!activity.value) return []
@@ -44,10 +43,13 @@ const membersWithLeave = computed(() => {
       const leaveCount = leaveDates.length
       const refundAmount = leaveCount * feePerSession
 
-      const formattedDates = leaveDates.slice().sort().map(d => {
-        const [, m, day] = d.split('-')
-        return `${Number(m)}/${Number(day)}`
-      })
+      const formattedDates = leaveDates
+        .slice()
+        .sort()
+        .map(d => {
+          const [, m, day] = d.split('-')
+          return `${Number(m)}/${Number(day)}`
+        })
 
       return {
         userId: reg.user_id,
@@ -61,23 +63,27 @@ const membersWithLeave = computed(() => {
     .sort((a, b) => b.refundAmount - a.refundAmount)
 })
 
-const totalRefund = computed(() =>
-  membersWithLeave.value.reduce((sum, m) => sum + m.refundAmount, 0)
-)
+const totalRefund = computed(() => membersWithLeave.value.reduce((sum, m) => sum + m.refundAmount, 0))
 
 function avatarChar(name) {
   return name ? name.charAt(0) : '?'
 }
 
-onMounted(async () => {
-  const [act, regs] = await Promise.all([
-    getActivity(activityId),
-    listSeasonRegistrations(activityId),
-  ])
-  activity.value = act
-  registrations.value = regs
-  isLoading.value = false
-})
+async function loadRefundDetail() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    const [act, regs] = await Promise.all([getActivity(activityId), listSeasonRegistrations(activityId)])
+    activity.value = act
+    registrations.value = regs
+  } catch {
+    loadError.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadRefundDetail)
 </script>
 
 <template>
@@ -86,16 +92,9 @@ onMounted(async () => {
       <h1 class="page-title">{{ activity?.title || '季打退費' }}</h1>
     </div>
 
-    <template v-if="!isLoading">
+    <template v-if="!isLoading && !loadError">
       <div v-if="activeQuarters.length > 1" class="segment-tabs">
-        <button
-          v-for="(q, i) in activeQuarters"
-          :key="q.label"
-          class="segment-tab"
-          :class="{ 'is-active': selectedQuarterIndex === i }"
-          type="button"
-          @click="selectedQuarterIndex = i"
-        >
+        <button v-for="(q, i) in activeQuarters" :key="q.label" class="segment-tab" :class="{ 'is-active': selectedQuarterIndex === i }" type="button" @click="selectedQuarterIndex = i">
           {{ q.label }}
         </button>
       </div>
@@ -124,6 +123,10 @@ onMounted(async () => {
     </template>
 
     <p v-if="isLoading" class="loading-hint">載入中…</p>
+    <div v-else-if="loadError" class="load-error" role="alert">
+      <p class="loading-hint">無法載入退費資料，請確認網路後再試一次。</p>
+      <button class="retry-button" type="button" @click="loadRefundDetail">重新載入</button>
+    </div>
   </main>
 </template>
 
@@ -166,7 +169,9 @@ onMounted(async () => {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
   white-space: nowrap;
 }
 
@@ -270,5 +275,21 @@ onMounted(async () => {
   font-size: 14px;
   line-height: 1.5;
   color: var(--muted-soft);
+}
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.retry-button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

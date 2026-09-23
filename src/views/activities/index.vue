@@ -4,10 +4,13 @@ import GroupEventSection from '~/components/group-list/GroupEventSection.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
 import { useGroupListPage } from '~/composables/useGroupListPage'
 
+defineOptions({ name: 'ActivitiesListPage' })
+
 const groupListPage = useGroupListPage()
 const { activeSegment, segmentTabs, isLoading, latestActivity } = groupListPage
 const { upcomingActivities, endedActivities, visibleUpcomingActivities, visibleEndedActivities } = groupListPage
-const { setSegment, isSegmentActive, isSegmentVisible } = groupListPage
+const { hasMoreUpcoming, hasMoreEnded, isLoadingUpcomingMore, isLoadingEndedMore } = groupListPage
+const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMoreEnded } = groupListPage
 </script>
 
 <template>
@@ -37,12 +40,15 @@ const { setSegment, isSegmentActive, isSegmentVisible } = groupListPage
         title="即將到來"
         section-id="upcoming-section"
         :items="visibleUpcomingActivities"
-        :total-count="upcomingActivities.length"
+        :total-count="visibleUpcomingActivities.length"
         empty-text="沒有其他即將到來的球局"
         aria-label="即將到來"
         :show-more="isSegmentActive('all')"
+        :has-more="isSegmentActive('upcoming') && hasMoreUpcoming"
+        :is-loading-more="isLoadingUpcomingMore"
         row-framed
         @more="setSegment('upcoming')"
+        @load-more="loadMoreUpcoming"
       />
 
       <GroupEventSection
@@ -50,13 +56,16 @@ const { setSegment, isSegmentActive, isSegmentVisible } = groupListPage
         title="已結束"
         section-id="ended-section"
         :items="visibleEndedActivities"
-        :total-count="endedActivities.length"
+        :total-count="visibleEndedActivities.length"
         empty-text="沒有已結束的球局"
         aria-label="已結束"
         :show-more="isSegmentActive('all')"
+        :has-more="isSegmentActive('ended') && hasMoreEnded"
+        :is-loading-more="isLoadingEndedMore"
         row-inset
         history
         @more="setSegment('ended')"
+        @load-more="loadMoreEnded"
       />
     </template>
 
@@ -67,8 +76,8 @@ const { setSegment, isSegmentActive, isSegmentVisible } = groupListPage
 <style scoped>
 .group-list-page {
   background: var(--surface);
-  height: 100%;
-  padding: 31px 16px 0;
+  min-height: 100%;
+  padding: 31px 16px calc(20px + env(safe-area-inset-bottom));
 }
 
 .page-header {

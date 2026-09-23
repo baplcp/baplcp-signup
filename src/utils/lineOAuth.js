@@ -68,8 +68,14 @@ function clearOAuthTransaction() {
   safeRemoveStorageValue(localStorage, TRANSACTION_KEY)
 }
 
+function createOAuthState() {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
 export function startLineOAuth() {
-  const state = Math.random().toString(36).slice(2) + Date.now()
+  const state = createOAuthState()
   saveOAuthTransaction(state, window.location.hash || '#/')
 
   const params = new URLSearchParams({

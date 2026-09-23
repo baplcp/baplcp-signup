@@ -1,24 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Taiwan is UTC+8, no DST — all time arithmetic uses fixed +8 offset
-function getSeasonOpenAt(openDateStr: string, openTimeStr: string): Date {
-  const [y, mo, d] = openDateStr.split('-').map(Number)
-  const [h, m] = openTimeStr.split(':').map(Number)
-  return new Date(Date.UTC(y, mo - 1, d, h - 8, m, 0))
-}
-
-function getPickupOpenAt(activityDateStr: string, openDaysBefore: number, openTimeStr: string): Date {
-  const [y, mo, d] = activityDateStr.split('-').map(Number)
-  const [h, m] = openTimeStr.split(':').map(Number)
-  return new Date(Date.UTC(y, mo - 1, d - openDaysBefore, h - 8, m, 0))
-}
-
-// 檢查時間是否落在「now+4min ~ now+5min」窗口內（避免每分鐘重複通知）
-function isInNotifyWindow(dt: Date, now: Date): boolean {
-  const windowStart = new Date(now.getTime() + 4 * 60 * 1000)
-  const windowEnd = new Date(now.getTime() + 5 * 60 * 1000)
-  return dt >= windowStart && dt < windowEnd
+function formatTime(time: string | null): string {
+  return time?.slice(0, 5) ?? ''
 }
 
 async function sendLineMessage(token: string, groupId: string, message: Record<string, unknown>): Promise<void> {
@@ -167,62 +151,31 @@ serve(async _req => {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
     const now = new Date()
-
-    const { data: activities, error } = await supabase
-      .from('activities')
-      .select('id, title, pickup_label, location, start_time, end_time, dates, season_enabled, season_open_date, season_open_time, pickup_open_days_before, pickup_open_time')
-
+    const windowStart = new Date(now.getTime() + 4 * 60 * 1000)
+    const windowEnd = new Date(now.getTime() + 5 * 60 * 1000)
+    const { data, error } = await supabase.rpc('list_registration_open_notification_candidates', {
+      p_window_start: windowStart.toISOString(),
+      p_window_end: windowEnd.toISOString(),
+    })
     if (error) throw error
 
-    const notifications: Notification[] = []
-
-    for (const activity of activities ?? []) {
-      const dates: string[] = Array.isArray(activity.dates) ? activity.dates : typeof activity.dates === 'string' ? JSON.parse(activity.dates) : []
-
-      // 季打報名通知
-      if (activity.season_enabled && activity.season_open_date && activity.season_open_time) {
-        const openAt = getSeasonOpenAt(activity.season_open_date, activity.season_open_time)
-        if (isInNotifyWindow(openAt, now)) {
-          notifications.push({
-            id: activity.id,
-            title: activity.title,
-            pickupLabel: activity.pickup_label ?? null,
-            location: activity.location ?? '',
-            startTime: activity.start_time ?? '',
-            endTime: activity.end_time ?? '',
-            activityDate: dates[0] ?? '',
-            type: 'season',
-          })
-        }
-      }
-
-      // 臨打報名通知（每個場次日期獨立判斷）
-      if (activity.pickup_open_days_before != null && activity.pickup_open_time) {
-        for (const dateStr of dates) {
-          const openAt = getPickupOpenAt(dateStr, activity.pickup_open_days_before, activity.pickup_open_time)
-          if (isInNotifyWindow(openAt, now)) {
-            notifications.push({
-              id: activity.id,
-              title: activity.title,
-              pickupLabel: activity.pickup_label ?? null,
-              location: activity.location ?? '',
-              startTime: activity.start_time ?? '',
-              endTime: activity.end_time ?? '',
-              activityDate: dateStr,
-              type: 'pickup',
-            })
-          }
-        }
-      }
-    }
+    const notifications: Notification[] = (data || []).map(notification => ({
+      id: notification.activity_id,
+      title: notification.title,
+      pickupLabel: notification.pickup_label ?? null,
+      location: notification.location ?? '',
+      startTime: formatTime(notification.start_time),
+      endTime: formatTime(notification.end_time),
+      activityDate: notification.activity_date ?? '',
+      type: notification.notification_type === 'season' ? 'season' : 'pickup',
+    }))
 
     for (const n of notifications) {
       const registrationQuery = new URLSearchParams({
-        id: String(n.id),
         date: n.activityDate,
         type: n.type,
       })
-      const registrationUrl = `https://liff.line.me/${liffId}#/active-activity?${registrationQuery}`
+      const registrationUrl = `https://liff.line.me/${liffId}#/activities/${n.id}?${registrationQuery}`
       const message = buildRegistrationOpenFlexMessage(n, registrationUrl)
 
       await sendLineMessage(lineToken, lineGroupId, message)

@@ -30,6 +30,14 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  hasMore: {
+    type: Boolean,
+    default: false,
+  },
+  isLoadingMore: {
+    type: Boolean,
+    default: false,
+  },
   rowFramed: {
     type: Boolean,
     default: false,
@@ -44,7 +52,7 @@ defineProps({
   },
 })
 
-defineEmits(['more'])
+defineEmits(['more', 'load-more'])
 </script>
 
 <template>
@@ -59,7 +67,7 @@ defineEmits(['more'])
         v-for="item in items"
         :key="item.to"
         :to="item.to"
-        :date="item.date"
+        :title="item.date"
         :location="item.location"
         :badge="item.badge"
         :badge-variant="item.badgeVariant"
@@ -68,6 +76,9 @@ defineEmits(['more'])
       />
       <p v-if="totalCount === 0" class="empty-hint">{{ emptyText }}</p>
     </div>
+    <button v-if="hasMore" class="load-more-button" type="button" :disabled="isLoadingMore" @click="$emit('load-more')">
+      {{ isLoadingMore ? '載入中…' : '載入更多' }}
+    </button>
   </section>
 </template>
 
@@ -99,6 +110,23 @@ defineEmits(['more'])
   line-height: 1.4;
   font-weight: 400;
   white-space: nowrap;
+}
+
+.load-more-button {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  margin: 16px 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--primary-700);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.load-more-button:disabled {
+  color: var(--muted-soft);
 }
 
 .history-title {

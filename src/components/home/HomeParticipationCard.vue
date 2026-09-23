@@ -122,8 +122,12 @@ const iconBurn = import.meta.env.BASE_URL + 'images/icon-burn.png'
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 .count-skeleton,

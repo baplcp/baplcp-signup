@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 import { deleteActivity, listManagedActivities } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
 
@@ -10,17 +11,27 @@ const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const activities = ref([])
 const isLoading = ref(true)
+const loadError = ref(false)
 
-onMounted(async () => {
-  await liffStore.initialize()
-  if (!isOrganizer.value) {
-    router.replace('/')
-    return
+async function loadActivities() {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    await liffStore.initialize()
+    if (!isOrganizer.value) {
+      router.replace('/')
+      return
+    }
+
+    activities.value = await listManagedActivities()
+  } catch {
+    loadError.value = true
+  } finally {
+    isLoading.value = false
   }
+}
 
-  activities.value = await listManagedActivities()
-  isLoading.value = false
-})
+onMounted(loadActivities)
 
 // 左滑刪除
 const SWIPE_OPEN_WIDTH = 72
@@ -90,32 +101,40 @@ function handleRowClick(act, index) {
     setOffset(index, 0)
     return
   }
-  router.push(`/create-activity?id=${act.id}`)
+  router.push({ name: 'admin-activity-edit', params: { id: act.id } })
 }
 
 // 刪除確認
 const deleteTarget = ref(null)
 const isDeleting = ref(false)
+const deleteError = ref(false)
 
 function openDeleteConfirm(act, index) {
   setOffset(index, 0)
+  deleteError.value = false
   deleteTarget.value = { act, index }
 }
 
 function cancelDelete() {
+  deleteError.value = false
   deleteTarget.value = null
 }
 
 async function confirmDelete() {
-  if (!deleteTarget.value) return
+  const target = deleteTarget.value
+  if (!target) return
+
   isDeleting.value = true
+  deleteError.value = false
   try {
-    await deleteActivity(liffStore, deleteTarget.value.act.id)
-    activities.value = activities.value.filter(a => a.id !== deleteTarget.value.act.id)
+    await deleteActivity(liffStore, target.act.id)
+    activities.value = activities.value.filter(a => a.id !== target.act.id)
     rowOffsets.value = {}
+    deleteTarget.value = null
+  } catch {
+    deleteError.value = true
   } finally {
     isDeleting.value = false
-    deleteTarget.value = null
   }
 }
 </script>
@@ -127,6 +146,11 @@ async function confirmDelete() {
     </div>
 
     <p v-if="isLoading" class="hint">載入中…</p>
+
+    <div v-else-if="loadError" class="load-error" role="alert">
+      <p class="hint">無法載入球局資料，請確認網路後再試一次。</p>
+      <button class="retry-button" type="button" @click="loadActivities">重新載入</button>
+    </div>
 
     <template v-else>
       <p v-if="activities.length === 0" class="hint">尚無球局資料</p>
@@ -153,7 +177,7 @@ async function confirmDelete() {
     </template>
 
     <div class="fab-container">
-      <button class="fab-create-btn" type="button" @click="router.push('/create-activity')">
+      <button class="fab-create-btn" type="button" @click="router.push({ name: 'admin-activity-create' })">
         <svg class="fab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
@@ -161,21 +185,23 @@ async function confirmDelete() {
       </button>
     </div>
 
-    <div
-      class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
-      :class="{ 'is-open': deleteTarget !== null }"
-      :aria-hidden="String(deleteTarget === null)"
-      :inert="deleteTarget === null"
+    <AccessibleDialog
+      :open="deleteTarget !== null"
+      title="確定刪除此球局？"
+      overlay-class="confirm-overlay shared-dialog-overlay phone-container modal-frame"
+      content-class="confirm-dialog shared-dialog"
+      :close-on-outside="!isDeleting"
+      :close-on-escape="!isDeleting"
+      @close="cancelDelete"
     >
-      <section class="confirm-dialog shared-dialog" role="dialog" aria-modal="true">
-        <h2 class="shared-dialog-title">確定刪除此球局？</h2>
-        <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
-        <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="confirmDelete">
-          {{ isDeleting ? '刪除中...' : '確認刪除' }}
-        </button>
-        <button class="confirm-cancel-btn shared-dialog-button" type="button" @click="cancelDelete">取消</button>
-      </section>
-    </div>
+      <h2 class="shared-dialog-title">確定刪除此球局？</h2>
+      <p class="shared-dialog-copy">「{{ deleteTarget?.act.title || '（未命名球局）' }}」將被永久刪除，無法復原。</p>
+      <p v-if="deleteError" class="delete-error" role="alert">刪除失敗，請確認網路後再試一次。</p>
+      <button class="confirm-delete-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="confirmDelete">
+        {{ isDeleting ? '刪除中...' : '確認刪除' }}
+      </button>
+      <button class="confirm-cancel-btn shared-dialog-button" type="button" :disabled="isDeleting" @click="cancelDelete">取消</button>
+    </AccessibleDialog>
   </main>
 </template>
 
@@ -208,6 +234,22 @@ async function confirmDelete() {
   font-size: 14px;
   line-height: 1.5;
   color: var(--muted-soft);
+}
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.retry-button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary, #3366ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .activity-list {
@@ -268,11 +310,23 @@ async function confirmDelete() {
   cursor: default;
 }
 
+.delete-error {
+  margin: 0 0 12px;
+  color: #d14343;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .confirm-cancel-btn {
   width: 100%;
   margin-top: 4px;
   background: #f5f6fa;
   color: #474d66;
+}
+
+.confirm-cancel-btn:disabled {
+  cursor: default;
+  opacity: 0.65;
 }
 
 .activity-title {

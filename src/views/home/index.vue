@@ -1,14 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-
-const showComingSoon = ref(false)
-let comingSoonTimer = null
-
-function handleMyRecordClick() {
-  if (comingSoonTimer) clearTimeout(comingSoonTimer)
-  showComingSoon.value = true
-  comingSoonTimer = setTimeout(() => { showComingSoon.value = false }, 2500)
-}
+import { onMounted, onUnmounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
@@ -18,57 +9,92 @@ import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
 import { listHomeActivityCandidates } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
+import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
+
+const showComingSoon = ref(false)
+let comingSoonTimer = null
 
 const liffStore = useLiffStore()
-const latestActivityTo = ref('/group-list')
+const latestActivityTo = ref({ name: 'activities' })
 const participationCount = ref(0)
 const participationLoading = ref(true)
+const imagesBaseUrl = import.meta.env.BASE_URL + 'images/'
 
 const now = new Date()
 
 function isDateExpired(dateStr, endTime) {
   if (!endTime) {
-    const todayStr = now.toISOString().split('T')[0]
+    const todayStr = getTaiwanDateString(now)
     return dateStr < todayStr
   }
-  const [hours, minutes] = endTime.split(':').map(Number)
-  const end = new Date(dateStr + 'T00:00:00')
-  end.setHours(hours + 1, minutes, 0, 0)
+  const end = parseTaiwanDateTime(dateStr, endTime)
+  end.setUTCHours(end.getUTCHours() + 1)
   return now > end
 }
 
-onMounted(async () => {
-  const [data] = await Promise.all([
-    listHomeActivityCandidates(),
-    liffStore.initialize().then(() => countPastParticipations(liffStore.userId)).then(n => {
-      participationCount.value = n
-      participationLoading.value = false
-    }),
-  ])
+function handleMyRecordClick() {
+  if (comingSoonTimer) clearTimeout(comingSoonTimer)
+  showComingSoon.value = true
+  comingSoonTimer = setTimeout(() => {
+    showComingSoon.value = false
+    comingSoonTimer = null
+  }, 2500)
+}
 
-  if (data && data.length > 0) {
-    let nearestDate = null
+async function loadLatestActivity() {
+  try {
+    const activities = await listHomeActivityCandidates()
+    let nearestActivityDate = null
     let nearestActivity = null
 
-    for (const activity of data) {
-      const sorted = (activity.dates || []).slice().sort()
-      const candidate = sorted.find(d => !isDateExpired(d, activity.end_time))
-      if (candidate && (!nearestDate || candidate < nearestDate)) {
-        nearestDate = candidate
+    for (const activity of activities) {
+      const candidate = (activity.activityDates || []).find(activityDate => !isDateExpired(activityDate.activity_date, activity.end_time))
+      if (candidate && (!nearestActivityDate || candidate.activity_date < nearestActivityDate.activity_date)) {
+        nearestActivityDate = candidate
         nearestActivity = activity
       }
     }
 
-    if (nearestDate && nearestActivity) {
-      latestActivityTo.value = `/active-activity?id=${nearestActivity.id}&date=${nearestDate}&type=latest`
+    if (nearestActivityDate && nearestActivity) {
+      latestActivityTo.value = {
+        name: 'activity',
+        params: { id: nearestActivity.id, activityDateId: nearestActivityDate.id },
+        query: { type: 'latest' },
+      }
     }
+  } catch (error) {
+    console.warn('Unable to load the latest activity', error)
   }
+}
+
+async function loadParticipationCount() {
+  try {
+    await liffStore.initialize()
+    participationCount.value = await countPastParticipations(liffStore.userId)
+  } catch (error) {
+    console.warn('Unable to load participation count', error)
+  } finally {
+    participationLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadLatestActivity()
+  void loadParticipationCount()
+})
+
+onUnmounted(() => {
+  if (comingSoonTimer) clearTimeout(comingSoonTimer)
 })
 
 const faqs = [
   {
     question: '每週臨打報名時間是什麼時候？',
-    answer: '每週日晚上 20:00。',
+    answer: [
+      '每週日晚上 20:00 開搶。',
+      '排球胖貓貓會在開始報名前 5 分鐘，於群組發送報名連結',
+      '可預填報名資料，群外朋友的性別為必填。',
+    ],
   },
   {
     question: '群組分級強度及期許為何？',
@@ -88,7 +114,10 @@ const faqs = [
   },
   {
     question: '季打請假及取消報名的期限是什麼時候？',
-    answer: '季打請假及取消報名請於週五晚上 23:59 前完成。若超過截止時間，請私訊主揪說明，由主揪協助手動取消；但若屆時已無法替補到人，報名費用須由本人自行吸收。',
+    answer: [
+      '季打請假及取消報名請於週五晚上 23:59 前完成。若超過截止時間，請私訊主揪說明，由主揪協助手動取消；但若屆時已無法替補到人，報名費用須由本人自行吸收。',
+      '季打若已知未來有旅遊、返鄉等安排，可以儘早請假不需等到當週，可於首頁>球局列表>該日期>管理報名 進行請假-1，讓主揪及其他臨打能儘早掌握缺額狀況。',
+    ],
   },
 ]
 
@@ -96,13 +125,13 @@ const infoCards = [
   {
     title: '球局列表',
     subtitle: '各週人員名單',
-    imageSrc: import.meta.env.BASE_URL + '/images/card-party.png',
-    to: '/group-list',
+    imageSrc: imagesBaseUrl + 'card-party.png',
+    to: { name: 'activities' },
   },
   {
     title: '我的紀錄',
     subtitle: '報名與請假',
-    imageSrc: import.meta.env.BASE_URL + '/images/card-calendar.png',
+    imageSrc: imagesBaseUrl + 'card-calendar.png',
     pending: true,
   },
 ]
@@ -110,23 +139,23 @@ const infoCards = [
 const utilityItems = [
   {
     label: '球局列表',
-    imageSrc: import.meta.env.BASE_URL + 'images/Registration list.png',
-    to: '/group-list',
+    imageSrc: imagesBaseUrl + 'Registration list.png',
+    to: { name: 'activities' },
   },
   {
     label: '季打報名',
-    imageSrc: import.meta.env.BASE_URL + '/images/ball.png',
-    to: '/season-list',
+    imageSrc: imagesBaseUrl + 'ball.png',
+    to: { name: 'seasons' },
   },
   {
     label: '打球影片',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-video.png',
+    imageSrc: imagesBaseUrl + 'icon-video.png',
     href: 'https://www.youtube.com/@okayder',
     external: true,
   },
   {
     label: '贊助胖貓貓',
-    imageSrc: import.meta.env.BASE_URL + 'images/icon-donate.png',
+    imageSrc: imagesBaseUrl + 'icon-donate.png',
     href: 'https://store.line.me/stickershop/product/30532466/',
     external: true,
     warm: true,
@@ -140,12 +169,7 @@ const utilityItems = [
 
     <section class="content">
       <div class="top-cards">
-        <HomeInfoCard
-          title="我的紀錄"
-          subtitle="報名與請假"
-          :image-src="infoCards[1].imageSrc"
-          @click="handleMyRecordClick"
-        />
+        <HomeInfoCard title="我的紀錄" subtitle="報名與請假" :image-src="infoCards[1].imageSrc" @click="handleMyRecordClick" />
         <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
       </div>
 
@@ -175,9 +199,7 @@ const utilityItems = [
   </div>
 
   <Transition name="snackbar">
-    <div v-if="showComingSoon" class="snackbar">
-      即將開放，敬請期待
-    </div>
+    <div v-if="showComingSoon" class="snackbar">即將開放，敬請期待</div>
   </Transition>
 </template>
 
@@ -252,7 +274,9 @@ const utilityItems = [
 
 .snackbar-enter-active,
 .snackbar-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .snackbar-enter-from,

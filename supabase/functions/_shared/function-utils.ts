@@ -1,4 +1,5 @@
 const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
+const CORS_PRELIGHT_MAX_AGE_SECONDS = '86400'
 
 export type LineProfile = {
   userId: string
@@ -12,6 +13,7 @@ export function corsHeaders(origin: string) {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-line-access-token',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': CORS_PRELIGHT_MAX_AGE_SECONDS,
   }
 }
 

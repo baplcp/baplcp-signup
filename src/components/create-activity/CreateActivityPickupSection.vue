@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue'
+import { INPUT_LIMITS } from '~/config/inputLimits'
+import { addTaiwanDays, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDate } from '~/utils/taiwanDate'
 import CreateActivityChoiceCard from './CreateActivityChoiceCard.vue'
 import CreateActivityTimeSelect from './CreateActivityTimeSelect.vue'
 
@@ -56,16 +58,15 @@ const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 function calcNextDateHint(daysBefore, timeStr) {
   if (daysBefore === null || !timeStr || !props.selectedDates.length) return null
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = parseTaiwanDate(getTaiwanDateString())
 
   const sorted = [...props.selectedDates].sort()
 
   for (const dateStr of sorted) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    const target = new Date(y, m - 1, d - daysBefore)
+    const targetDate = addTaiwanDays(dateStr, -daysBefore)
+    const target = parseTaiwanDate(targetDate)
     if (target >= today) {
-      return `${target.getMonth() + 1}月${target.getDate()}日（週${WEEKDAY_LABELS[target.getDay()]}）${timeStr}`
+      return `${target.getUTCMonth() + 1}月${target.getUTCDate()}日（週${WEEKDAY_LABELS[getTaiwanWeekday(targetDate)]}）${timeStr}`
     }
   }
   return null
@@ -85,7 +86,20 @@ const nextReminderHint = computed(() => {
 
     <label class="field">
       <span class="field-label">通知標題</span>
-      <input v-model="form.pickupLabel" name="pickupLabel" type="text" autocomplete="off" placeholder="例：週日臨打報名" />
+      <input
+        v-model="form.pickupLabel"
+        name="pickupLabel"
+        type="text"
+        autocomplete="off"
+        placeholder="例：週日臨打報名"
+        :maxlength="INPUT_LIMITS.pickupLabel"
+        :class="{ 'is-error': isError('pickupLabel') }"
+        :aria-invalid="isError('pickupLabel')"
+        aria-describedby="pickup-label-limit"
+        @input="emit('clear-error', 'pickupLabel')"
+      />
+      <p v-if="isError('pickupLabel')" id="pickup-label-limit" class="field-error" role="alert">通知標題最多 {{ INPUT_LIMITS.pickupLabel }} 字</p>
+      <p v-else id="pickup-label-limit" class="field-limit">最多 {{ INPUT_LIMITS.pickupLabel }} 字</p>
     </label>
 
     <div class="field">
@@ -285,6 +299,26 @@ const nextReminderHint = computed(() => {
 select.is-error {
   border-color: var(--danger-500);
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}
+
+input.is-error {
+  border-color: var(--danger-500);
+  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}
+
+.field-limit,
+.field-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.field-limit {
+  color: var(--muted);
+}
+
+.field-error {
+  color: var(--danger-500);
 }
 
 .next-hint {

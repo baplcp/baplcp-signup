@@ -1,4 +1,6 @@
 <script setup>
+const heroCatImage = import.meta.env.BASE_URL + 'images/hero-cat.png'
+
 defineProps({
   title: {
     type: String,
@@ -13,7 +15,7 @@ defineProps({
     required: true,
   },
   ctaTo: {
-    type: String,
+    type: [String, Object],
     required: true,
   },
 })
@@ -23,7 +25,7 @@ defineProps({
   <section class="hero">
     <div class="hero-content">
       <div class="hero-cat" aria-hidden="true">
-        <img class="cat-main" src="/images/hero-cat.png" alt="" />
+        <img class="cat-main" :src="heroCatImage" alt="" />
       </div>
 
       <div class="hero-copy">

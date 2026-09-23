@@ -1,6 +1,17 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { createActivityFormDefaults, getActivityFormErrors } from './useCreateActivityForm'
-import { formatDate, formatDateLabel } from './useCreateActivityCalendar'
+import { formatDateLabel } from './useCreateActivityCalendar'
+import { addTaiwanDays, formatTaiwanDate, parseTaiwanDate } from '~/utils/taiwanDate'
+
+function getQuarterSessionCount(dates) {
+  const sortedDates = [...new Set(dates)].sort()
+  if (!sortedDates.length) return 0
+
+  const cutoffDate = parseTaiwanDate(sortedDates[0])
+  cutoffDate.setUTCMonth(cutoffDate.getUTCMonth() + 3, 1)
+  const cutoff = formatTaiwanDate(cutoffDate)
+  return sortedDates.filter(date => date < cutoff).length
+}
 
 export function useCreateActivityPageForm({ isPopulatingForm }) {
   const form = reactive(createActivityFormDefaults())
@@ -20,11 +31,7 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
   const seasonFee = computed(() => {
     const base = Number(form.seasonSingleFee || 0)
     const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
-    const dates = [...selectedDates.value].sort()
-    if (dates.length === 0) return ''
-    const first = new Date(dates[0])
-    const cutoff = new Date(first.getFullYear(), first.getMonth() + 3, 1)
-    const count = dates.filter(d => new Date(d) < cutoff).length
+    const count = getQuarterSessionCount(selectedDates.value)
     return count > 0 ? String((base + ac) * count) : ''
   })
   const seasonFeeDigits = computed(() => Math.max(seasonFee.value.length, 1))
@@ -56,9 +63,7 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
       isSeasonDisabledNoteAlert.value = false
 
       if (dates.length > 0) {
-        const earliest = new Date(dates[0])
-        earliest.setDate(earliest.getDate() - 30)
-        form.seasonOpenDate = formatDate(earliest)
+        form.seasonOpenDate = addTaiwanDays(dates[0], -30)
         clearError('seasonOpenDate')
       }
 

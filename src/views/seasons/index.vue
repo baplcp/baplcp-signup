@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import { listSeasonActivities } from '~/services/activityService'
+import { parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const activities = ref([])
 const isLoading = ref(true)
@@ -21,13 +22,13 @@ function getRegistrationBadge(act) {
 
   if (act.season_open_date) {
     const openTime = act.season_open_time || '00:00'
-    const openDt = new Date(`${act.season_open_date}T${openTime}:00`)
+    const openDt = parseTaiwanDateTime(act.season_open_date, openTime)
     if (now < openDt) return { label: '未開放', variant: 'muted' }
   }
 
   if (act.season_deadline_type === 'custom' && act.season_close_date) {
     const closeTime = act.season_close_time || '23:59'
-    const closeDt = new Date(`${act.season_close_date}T${closeTime}:00`)
+    const closeDt = parseTaiwanDateTime(act.season_close_date, closeTime)
     if (now > closeDt) return { label: '已截止', variant: 'ended' }
   }
 
@@ -51,8 +52,8 @@ onMounted(async () => {
         <GroupEventRow
           v-for="act in activities"
           :key="act.id"
-          :to="`/active-activity?type=season&id=${act.id}`"
-          :date="act.title || '季打報名'"
+          :to="{ name: 'activity', params: { id: act.id }, query: { type: 'season' } }"
+          :title="act.title || '季打報名'"
           :location="formatDateRange(act.dates)"
           :badge="getRegistrationBadge(act).label"
           :badge-variant="getRegistrationBadge(act).variant"

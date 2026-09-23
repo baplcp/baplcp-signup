@@ -1,0 +1,153 @@
+/* 基礎元素規則：保留原先全域 reset 的版面規則。 */
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+  touch-action: manipulation;
+}
+
+html {
+  line-height: 1.5;
+  tab-size: 4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  background: var(--bg);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  overscroll-behavior: none;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  vertical-align: middle;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+button,
+input,
+select,
+optgroup,
+textarea,
+::file-selector-button {
+  color: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  letter-spacing: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 41px;
+  padding: 10px;
+  border: 1px solid var(--neutral-300);
+  border-radius: 8px;
+  outline: none;
+  appearance: none;
+  background: #fff;
+  color: var(--text);
+  font-size: max(16px, 1em) !important;
+  line-height: 1.5;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+input::placeholder {
+  color: var(--muted-soft);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.control-button:focus {
+  border-color: rgba(87, 104, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(87, 104, 255, 0.12);
+}
+
+select {
+  padding-right: 36px;
+  background-image: linear-gradient(45deg, transparent 50%, #646a80 50%), linear-gradient(135deg, #646a80 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-repeat: no-repeat;
+  background-size:
+    6px 6px,
+    6px 6px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+[hidden]:where(:not([hidden='until-found'])) {
+  display: none !important;
+}
+
+#app {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  #app {
+    width: auto;
+  }
+}

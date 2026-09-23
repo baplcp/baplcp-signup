@@ -1,0 +1,50 @@
+/* Design tokens：色彩、尺寸與語意化狀態的唯一來源。 */
+:root {
+  --primary-100: #eef1ff;
+  --primary-200: #eff1fe;
+  --primary-300: #8894ff;
+  --primary-400: #8591f7;
+  --primary-500: #7685ff;
+  --primary-600: #6574ff;
+  --primary-700: #5768ff;
+  --secondary-100: #eefafa;
+  --secondary-500: #1bc4bf;
+  --secondary-600: #1bc4be;
+  --accent-100: #ffe3c3;
+  --accent-200: #ffd49d;
+  --accent-300: #ffd2a0;
+  --accent-400: #f2b57c;
+  --accent-500: #f2b47a;
+  --accent-600: #7f5a3e;
+  --accent-700: #774d38;
+  --neutral-0: #ffffff;
+  --neutral-50: #f6f6f6;
+  --neutral-100: #f4f6fa;
+  --neutral-150: #f2f4fa;
+  --neutral-200: #edf0fb;
+  --neutral-250: #e6e8f0;
+  --neutral-300: #d8dae5;
+  --neutral-500: #8f95b2;
+  --neutral-550: #8a91b0;
+  --neutral-600: #696f8c;
+  --neutral-650: #65708b;
+  --neutral-700: #474d66;
+  --neutral-850: #18204f;
+  --neutral-900: #101840;
+
+  --shadow-primary-card: 2px 2px 28px rgba(90, 90, 226, 0.3);
+  --bg: var(--primary-100);
+  --surface: var(--neutral-0);
+  --text: var(--neutral-900);
+  --muted: var(--neutral-600);
+  --muted-soft: var(--neutral-500);
+  --line: var(--neutral-100);
+  --line-soft: var(--neutral-250);
+  --section: var(--neutral-50);
+  --selected: var(--primary-100);
+  --success-500: #17acba;
+  --danger-500: #d14343;
+  --overlay-40: rgba(0, 0, 0, 0.4);
+  --nav-height: 60px;
+  --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
+}

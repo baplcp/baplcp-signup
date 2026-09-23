@@ -1,0 +1,119 @@
+/* 共用 UI 元件：跨頁對話框與其狀態。 */
+.shared-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--overlay-40);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+
+.shared-dialog-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.shared-dialog {
+  width: min(100%, 318px);
+  padding: 28px 22px 22px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
+  text-align: center;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.24s ease;
+}
+
+.shared-dialog-overlay.is-open .shared-dialog {
+  transform: translateY(0) scale(1);
+}
+
+.shared-dialog-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.shared-dialog-copy {
+  margin: 12px 0 24px;
+  color: var(--neutral-700);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.shared-dialog-button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 10px;
+  background: var(--primary-600);
+  color: var(--neutral-0);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.season-cancel-overlay {
+  position: fixed;
+  z-index: 10002;
+  overflow: hidden;
+  margin: auto;
+  display: none;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.season-cancel-overlay.is-open {
+  display: flex;
+}
+
+.season-cancel-sheet {
+  width: 100%;
+  padding: 28px 20px 24px;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+}
+
+.season-cancel-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #101840;
+  line-height: 1.36;
+}
+
+.season-cancel-copy {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #474d66;
+  line-height: 1.6;
+}
+
+.season-cancel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.season-cancel-btn {
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.season-cancel-btn.is-muted {
+  background: #f4f6fa;
+  color: #474d66;
+}
+
+.season-cancel-btn.is-danger {
+  background: #d14343;
+  color: #fff;
+}
