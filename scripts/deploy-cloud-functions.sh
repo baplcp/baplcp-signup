@@ -4,6 +4,8 @@ set -u
 
 TARGET_LABEL="${1:-}"
 ENV_FILE_NAME="${2:-}"
+# 傳入 --with-migrations 時，會先把 supabase/migrations 套用到目標資料庫，再部署雲端功能。
+DEPLOY_OPTION="${3:-}"
 
 cd "$(dirname "$0")/.." || exit 1
 
@@ -106,6 +108,40 @@ if ! supabase projects list >/dev/null 2>&1; then
     echo ""
     echo "登入失敗。請確認網路連線後再試。"
     pause_and_exit 1
+  fi
+fi
+
+if [ "$DEPLOY_OPTION" = "--with-migrations" ]; then
+  echo ""
+  echo "切換 Supabase CLI 連線目標到 $TARGET_LABEL（$PROJECT_REF）..."
+  echo "若要求輸入資料庫密碼，請到 Supabase 後台 Project Settings → Database 查看。"
+  echo ""
+  # 一定要先 link 到目標專案，否則 db push 會推到上次 link 的專案（可能是正式環境）。
+  if ! supabase link --project-ref "$PROJECT_REF"; then
+    echo ""
+    fail "切換連線目標失敗，已停止，沒有套用任何資料庫變更。"
+  fi
+
+  echo ""
+  echo "以下是這次會套用到 $TARGET_LABEL 資料庫的 migration："
+  echo ""
+  if ! supabase db push --dry-run; then
+    echo ""
+    fail "檢查 migration 失敗，已停止，沒有套用任何資料庫變更。"
+  fi
+
+  echo ""
+  read "confirm_push?確定要套用到 $TARGET_LABEL 資料庫嗎？輸入 y 繼續，其他鍵跳過："
+  if [ "$confirm_push" = "y" ]; then
+    echo ""
+    if ! supabase db push; then
+      echo ""
+      fail "套用 migration 失敗，已停止，不會繼續部署雲端功能。"
+    fi
+    echo ""
+    echo "✓ 資料庫 migration 已套用到 $TARGET_LABEL"
+  else
+    echo "已跳過資料庫 migration。"
   fi
 fi
 
