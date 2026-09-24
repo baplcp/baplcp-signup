@@ -31,10 +31,13 @@ const selectedMonths = computed(() => activeQuarters.value[selectedQuarterIndex.
 const membersWithLeave = computed(() => {
   if (!activity.value) return []
 
-  const feePerSession = activity.value.season_fee_per_session ?? 0
+  const quarterFeePerSession = activity.value.season_fee_per_session ?? 0
+  const halfYearFeePerSession = activity.value.season_half_year_fee_per_session ?? 0
 
   return registrations.value
     .map(reg => {
+      // 半年打與一季打的單次費用不同，退費需依成員報名的方案計算
+      const feePerSession = reg.season_plan === 'half-year' ? halfYearFeePerSession : quarterFeePerSession
       const allLeaveDates = Array.isArray(reg.leave_dates) ? reg.leave_dates : []
       const leaveDates = allLeaveDates.filter(d => {
         const month = Number(d.split('-')[1])
