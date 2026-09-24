@@ -49,7 +49,8 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     const data = pickupData || []
     const myRegistration = data.find(registration => registration.user_id === liffStore.userId && (!registration.cancelled_at || registration.guests?.some(guest => !guest.cancelled_at))) || null
     const seasonRegistrations = seasonData || []
-    const mySeasonRegistration = seasonRegistrations.find(registration => registration.user_id === liffStore.userId) || null
+    // 取消後重新報名季打會產生新的一筆報名，請假狀態要以目前有效的那筆為準
+    const mySeasonRegistration = seasonRegistrations.find(registration => registration.user_id === liffStore.userId && !registration.cancelled_at) || null
 
     return {
       registrations: data,
