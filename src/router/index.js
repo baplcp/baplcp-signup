@@ -25,6 +25,12 @@ const publicRoutes = [
     component: () => import('~/views/seasons/index.vue'),
     meta: { header: 'simple' },
   },
+  {
+    path: '/records',
+    name: 'my-records',
+    component: () => import('~/views/records/index.vue'),
+    meta: { header: 'simple' },
+  },
 ]
 
 const adminRoutes = [

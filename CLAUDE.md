@@ -22,7 +22,7 @@ Node 版本由 CI 使用 Node 24；依賴鎖定於 `package-lock.json`。
 ## 目錄與責任邊界
 
 - `src/views/`：路由頁面，組合頁面流程與頁面級狀態。
-  - `home/`、`activities/`、`seasons/` 是公開頁面。
+  - `home/`、`activities/`、`seasons/`、`records/` 是公開頁面。
   - `admin/activities/` 管理活動／活動表單；`admin/seasons/refunds/` 管理賽季退款。
 - `src/components/`：依功能分資料夾的呈現元件。元件應接收 props、發出事件，避免直接承擔跨頁資料讀寫。
 - `src/composables/`：可重用的資料載入、表單、報名與管理互動邏輯。複雜 view 不要持續膨脹，先檢查是否能延續現有 composable。
@@ -59,6 +59,7 @@ Router 位於 `src/router/index.js`，採 `createWebHashHistory()`；Vite produc
 | `/activities` | `activities` | 活動列表 |
 | `/activities/:id/:activityDateId?` | `activity` | 指定活動／場次的報名與名單頁 |
 | `/seasons` | `seasons` | 賽季列表 |
+| `/records` | `my-records` | 我的紀錄：出席紀錄與季打請假退費 |
 | `/admin/activities` | `admin-activities` | 主揪活動管理 |
 | `/admin/activities/new` | `admin-activity-create` | 建立活動 |
 | `/admin/activities/:id/edit` | `admin-activity-edit` | 編輯活動 |

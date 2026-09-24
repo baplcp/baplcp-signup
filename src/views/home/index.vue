@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { APP_VERSION } from '~/assets/appVersion'
 import HomeFaqList from '~/components/home/HomeFaqList.vue'
 import HomeHero from '~/components/home/HomeHero.vue'
@@ -10,9 +10,6 @@ import { listHomeActivityCandidates } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
-
-const showComingSoon = ref(false)
-let comingSoonTimer = null
 
 const liffStore = useLiffStore()
 const latestActivityTo = ref({ name: 'activities' })
@@ -30,15 +27,6 @@ function isDateExpired(dateStr, endTime) {
   const end = parseTaiwanDateTime(dateStr, endTime)
   end.setUTCHours(end.getUTCHours() + 1)
   return now > end
-}
-
-function handleMyRecordClick() {
-  if (comingSoonTimer) clearTimeout(comingSoonTimer)
-  showComingSoon.value = true
-  comingSoonTimer = setTimeout(() => {
-    showComingSoon.value = false
-    comingSoonTimer = null
-  }, 2500)
 }
 
 async function loadLatestActivity() {
@@ -83,18 +71,10 @@ onMounted(() => {
   void loadParticipationCount()
 })
 
-onUnmounted(() => {
-  if (comingSoonTimer) clearTimeout(comingSoonTimer)
-})
-
 const faqs = [
   {
     question: '每週臨打報名時間是什麼時候？',
-    answer: [
-      '每週日晚上 20:00 開搶。',
-      '排球胖貓貓會在開始報名前 5 分鐘，於群組發送報名連結',
-      '可預填報名資料，群外朋友的性別為必填。',
-    ],
+    answer: ['每週日晚上 20:00 開搶。', '排球胖貓貓會在開始報名前 5 分鐘，於群組發送報名連結', '可預填報名資料，群外朋友的性別為必填。'],
   },
   {
     question: '群組分級強度及期許為何？',
@@ -132,7 +112,7 @@ const infoCards = [
     title: '我的紀錄',
     subtitle: '報名與請假',
     imageSrc: imagesBaseUrl + 'card-calendar.png',
-    pending: true,
+    to: { name: 'my-records' },
   },
 ]
 
@@ -169,7 +149,7 @@ const utilityItems = [
 
     <section class="content">
       <div class="top-cards">
-        <HomeInfoCard title="我的紀錄" subtitle="報名與請假" :image-src="infoCards[1].imageSrc" @click="handleMyRecordClick" />
+        <HomeInfoCard :title="infoCards[1].title" :subtitle="infoCards[1].subtitle" :image-src="infoCards[1].imageSrc" :to="infoCards[1].to" />
         <HomeParticipationCard :count="participationCount" :loading="participationLoading" />
       </div>
 
@@ -197,10 +177,6 @@ const utilityItems = [
       <div class="app-version app-version-note">{{ APP_VERSION }}</div>
     </section>
   </div>
-
-  <Transition name="snackbar">
-    <div v-if="showComingSoon" class="snackbar">即將開放，敬請期待</div>
-  </Transition>
 </template>
 
 <style scoped>
@@ -244,44 +220,5 @@ const utilityItems = [
 
 .app-version {
   margin-top: 28px;
-}
-
-.snackbar {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(16, 24, 64, 0.85);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 10px 20px;
-  border-radius: 20px;
-  white-space: nowrap;
-  z-index: 100;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.snackbar-sub {
-  font-size: 12px;
-  font-weight: 400;
-  opacity: 0.7;
-}
-
-.snackbar-enter-active,
-.snackbar-leave-active {
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-}
-
-.snackbar-enter-from,
-.snackbar-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(8px);
 }
 </style>

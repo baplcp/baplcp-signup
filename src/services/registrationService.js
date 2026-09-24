@@ -1,5 +1,5 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
-import { fetchActivityDatesByIds } from '~/services/activityDateService'
+import { fetchActivityDates, fetchActivityDatesByIds } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
@@ -144,7 +144,54 @@ export async function listGroupActivitySessions(segment, { limit, cursor, now })
   return data || []
 }
 
-const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
+export const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
+
+const MY_RECORD_ACTIVITY_FIELDS = 'id, title, end_time, ac_enabled, ac_fee, season_fee_per_session, season_half_year_fee_per_session'
+
+// 我的紀錄：一次取回會員自己的報名、所屬活動、活動日期與季打請假狀態，出席與退費由 composable 計算。
+export async function listMyRecordSources(userId) {
+  const empty = { registrations: [], activities: [], seasonActivityDates: [], pickupActivityDates: [], leaveDates: [] }
+  if (!userId) return empty
+
+  const { data: member, error: memberError } = await supabase.from('members').select('id').eq('user_id', userId).maybeSingle()
+  if (memberError) throw memberError
+  if (!member) return empty
+
+  const { data: registrations, error: registrationError } = await supabase
+    .from('registrations')
+    .select('id, activity_id, activity_date_id, paid_court, paid_ac, season_plan, created_at')
+    .eq('member_id', member.id)
+    .is('cancelled_at', null)
+  if (registrationError) throw registrationError
+  if (!registrations?.length) return empty
+
+  const activityIds = [...new Set(registrations.map(registration => registration.activity_id))]
+  const seasonRegistrationIds = registrations.filter(registration => !registration.activity_date_id).map(registration => registration.id)
+
+  const [activitiesResult, seasonActivityDates, pickupActivityDates, leaveStatesResult] = await Promise.all([
+    supabase.from('activities').select(MY_RECORD_ACTIVITY_FIELDS).in('id', activityIds),
+    fetchActivityDates(registrations.filter(registration => !registration.activity_date_id).map(registration => registration.activity_id)),
+    fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
+    seasonRegistrationIds.length
+      ? supabase.from('season_registration_date_statuses').select('registration_id, activity_date_id').in('registration_id', seasonRegistrationIds).eq('is_on_leave', true)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (activitiesResult.error) throw activitiesResult.error
+  if (leaveStatesResult.error) throw leaveStatesResult.error
+
+  // 退役日期仍保留請假紀錄，與主揪退費頁一致，因此另外依 id 取回日期。
+  const leaveStates = leaveStatesResult.data || []
+  const leaveActivityDates = await fetchActivityDatesByIds(leaveStates.map(state => state.activity_date_id))
+  const leaveDatesById = new Map(leaveActivityDates.map(activityDate => [activityDate.id, activityDate.activity_date]))
+
+  return {
+    registrations,
+    activities: activitiesResult.data || [],
+    seasonActivityDates,
+    pickupActivityDates,
+    leaveDates: leaveStates.map(state => ({ registrationId: state.registration_id, activityDate: leaveDatesById.get(state.activity_date_id) })).filter(leave => leave.activityDate),
+  }
+}
 
 export async function countPastParticipations(userId) {
   if (!userId) return 0
