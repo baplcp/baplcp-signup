@@ -1,9 +1,20 @@
 import { supabase } from '~/utils/supabase'
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
 import { fetchActivityDates, groupActivityDates } from '~/services/activityDateService'
+import { listSeasonPageRegistrations } from '~/services/registrationService'
 
 const ACTIVITY_FORM_FIELDS =
   'id, created_at, title, location, start_time, end_time, season_fee_per_session, pickup_fee_per_session, ac_fee, single_capacity, season_enabled, season_include_ac, season_total_fee, season_capacity, season_open_date, season_open_time, season_deadline_type, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_deadline_type, season_late_close_date, season_late_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time, game_type, ac_enabled, ac_fee_per_session, pickup_label, reminder_enabled, reminder_days_before, reminder_time, season_half_year_total_fee, season_half_year_fee_per_session'
+
+// 季打頁不會顯示單場臨打資訊，避免沿用 get_activity_page 而取回當日臨打與群外名單。
+const SEASON_SIGNUP_FIELDS =
+  'id, title, location, start_time, end_time, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
+
+async function fetchSeasonSignupDates(activityId) {
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true).order('sort_order', { ascending: true })
+  if (error) throw error
+  return data || []
+}
 
 async function hydrateActivityDates(activities, { includeActivityDateRecords = false } = {}) {
   if (!activities?.length) return activities || []
@@ -91,4 +102,23 @@ export async function getActivityPage(activityId, activityDateId = null) {
   if (error) throw error
 
   return data || null
+}
+
+export async function getSeasonSignupPage(activityId) {
+  const parsedActivityId = Number(activityId)
+  if (!Number.isSafeInteger(parsedActivityId)) return null
+
+  const { data: activity, error } = await supabase.from('activities').select(SEASON_SIGNUP_FIELDS).eq('id', parsedActivityId).maybeSingle()
+  if (error) throw error
+  if (!activity) return null
+
+  const [dates, seasonRegistrations] = await Promise.all([fetchSeasonSignupDates(activity.id), listSeasonPageRegistrations(activity.id)])
+
+  return {
+    activity: {
+      ...activity,
+      dates: dates.map(date => date.activity_date),
+    },
+    season_registrations: seasonRegistrations,
+  }
 }

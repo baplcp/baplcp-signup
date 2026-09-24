@@ -5,7 +5,7 @@ import { useActiveActivityRegistrations } from '~/composables/useActiveActivityR
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { useRegistrationAdminActions } from '~/composables/useRegistrationAdminActions'
 import { useSignupFlow } from '~/composables/useSignupFlow'
-import { getActivityPage } from '~/services/activityService'
+import { getActivityPage, getSeasonSignupPage } from '~/services/activityService'
 import { removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
@@ -26,7 +26,8 @@ export function useActiveActivityPage() {
   const adminMode = ref(false)
   const nowTick = ref(new Date())
 
-  const activityType = computed(() => route.query.type || 'latest')
+  const isSeasonSignupPage = computed(() => route.meta.activityPageMode === 'season')
+  const activityType = computed(() => (isSeasonSignupPage.value ? 'season' : route.query.type || 'latest'))
   const resolvedDate = computed(() => {
     if (activityData.value?.selected_activity_date) return activityData.value.selected_activity_date
     if (!activityData.value?.dates) return null
@@ -42,6 +43,7 @@ export function useActiveActivityPage() {
     resolvedDate,
     getActivityId: () => route.params.id,
     liffStore,
+    loadActivityPage: (activityId, activityDateId) => (isSeasonSignupPage.value ? getSeasonSignupPage(activityId) : getActivityPage(activityId, activityDateId)),
   })
 
   const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
@@ -145,7 +147,7 @@ export function useActiveActivityPage() {
 
     const id = route.params.id
     const requestedActivityDateId = typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null
-    const activityPagePromise = getActivityPage(id, requestedActivityDateId)
+    const activityPagePromise = isSeasonSignupPage.value ? getSeasonSignupPage(id) : getActivityPage(id, requestedActivityDateId)
     try {
       await liffStore.initialize()
       const activityPage = await activityPagePromise
@@ -167,7 +169,10 @@ export function useActiveActivityPage() {
       nowTickInterval = setInterval(() => {
         nowTick.value = new Date()
       }, 1000)
-      realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh)
+      realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh, {
+        includeGuests: !isSeasonSignupPage.value,
+        seasonOnly: isSeasonSignupPage.value,
+      })
     } catch {
       activityLoadState.value = 'error'
     }

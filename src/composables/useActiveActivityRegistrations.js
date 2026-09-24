@@ -8,7 +8,7 @@ function mergeMemberGenders(registrations, liffStore) {
   return genders
 }
 
-export function useActiveActivityRegistrations({ activityData, activityType, resolvedDate, getActivityId, liffStore }) {
+export function useActiveActivityRegistrations({ activityData, activityType, resolvedDate, getActivityId, liffStore, loadActivityPage = getActivityPage }) {
   const registrations = ref([])
   const cancelledRegistrations = ref([])
   const seasonRegistrations = ref([])
@@ -72,7 +72,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     const activityId = getActivityId() || activityData.value?.id
     if (!activityId) return
 
-    const page = activityPage || (await getActivityPage(activityId, getSelectedActivityDateId()))
+    const page = activityPage || (await loadActivityPage(activityId, getSelectedActivityDateId()))
     if (!page?.activity) return null
 
     activityData.value = page.activity

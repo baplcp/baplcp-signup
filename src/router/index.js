@@ -18,12 +18,25 @@ const publicRoutes = [
     path: '/activities/:id/:activityDateId?',
     name: 'activity',
     component: () => import('~/views/activities/[id].vue'),
+    // 相容舊的季打連結；季打頁必須走專用路由與資料查詢。
+    beforeEnter: to => {
+      if (to.query.type !== 'season') return true
+
+      const { type, ...query } = to.query
+      return { name: 'season', params: { id: to.params.id }, query }
+    },
   },
   {
     path: '/seasons',
     name: 'seasons',
     component: () => import('~/views/seasons/index.vue'),
     meta: { header: 'simple' },
+  },
+  {
+    path: '/seasons/:id',
+    name: 'season',
+    component: () => import('~/views/activities/[id].vue'),
+    meta: { activityPageMode: 'season' },
   },
   {
     path: '/records',

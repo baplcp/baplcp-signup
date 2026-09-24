@@ -52,7 +52,7 @@ onMounted(async () => {
         <GroupEventRow
           v-for="act in activities"
           :key="act.id"
-          :to="{ name: 'activity', params: { id: act.id }, query: { type: 'season' } }"
+          :to="{ name: 'season', params: { id: act.id } }"
           :title="act.title || '季打報名'"
           :location="formatDateRange(act.dates)"
           :badge="getRegistrationBadge(act).label"

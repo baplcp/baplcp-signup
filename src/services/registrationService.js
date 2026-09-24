@@ -4,7 +4,7 @@ import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url, gender)'
 
 function guestOwnerKey(activityDateId, memberId) {
   return `${activityDateId}:${memberId}`
@@ -77,17 +77,18 @@ function withMemberProfile(registration) {
     user_id: member?.user_id || null,
     display_name: member?.display_name || null,
     picture_url: member?.picture_url || null,
+    member_gender: member?.gender || null,
   }
 }
 
-async function hydrateRegistrations(registrations, { includeGuests = true } = {}) {
+async function hydrateRegistrations(registrations, { includeGuests = true, includeDateStates = true, includeActivityDates = true } = {}) {
   if (!registrations?.length) return registrations || []
 
   const registrationIds = registrations.map(registration => registration.id)
   const [guestsByRegistrationId, statesByRegistrationId, registrationActivityDates] = await Promise.all([
     includeGuests ? fetchRegistrationGuests(registrations.map(registration => registration.activity_date_id).filter(Boolean)) : Promise.resolve(new Map()),
-    fetchRegistrationDateStates(registrationIds),
-    fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
+    includeDateStates ? fetchRegistrationDateStates(registrationIds) : Promise.resolve(new Map()),
+    includeActivityDates ? fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)) : Promise.resolve([]),
   ])
   const registrationActivityDatesById = new Map(registrationActivityDates.map(activityDate => [activityDate.id, activityDate.activity_date]))
 
@@ -129,6 +130,15 @@ export async function listSeasonRegistrations(activityId) {
   return listRegistrations(
     supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).is('cancelled_at', null).order('created_at', { ascending: true })
   )
+}
+
+// 季打頁需同時顯示已取消名單，因此保留取消紀錄；不會讀取任何單場臨打或群外資料。
+export async function listSeasonPageRegistrations(activityId) {
+  return listRegistrations(supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).order('created_at', { ascending: true }), {
+    includeGuests: false,
+    includeDateStates: false,
+    includeActivityDates: false,
+  })
 }
 
 export async function listGroupActivitySessions(segment, { limit, cursor, now }) {
@@ -204,14 +214,16 @@ export async function countPastParticipations(userId) {
   return Number(data || 0)
 }
 
-export function subscribeToRegistrationChanges(activityId, onChange) {
+export function subscribeToRegistrationChanges(activityId, onChange, { includeGuests = true, seasonOnly = false } = {}) {
   if (!activityId) return null
 
-  return supabase
-    .channel(`registrations-live-${activityId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${activityId}` }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `activity_id=eq.${activityId}` }, onChange)
-    .subscribe()
+  const channel = supabase.channel(`registrations-live-${activityId}`)
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${activityId}` }, change => {
+    const registration = change.new?.activity_date_id !== undefined ? change.new : change.old
+    if (!seasonOnly || registration?.activity_date_id == null) onChange(change)
+  })
+  if (includeGuests) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `activity_id=eq.${activityId}` }, onChange)
+  return channel.subscribe()
 }
 
 export function removeRegistrationSubscription(channel) {
