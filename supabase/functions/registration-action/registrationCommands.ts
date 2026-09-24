@@ -1,7 +1,7 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, getTaiwanDateAndHour, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
-import { normalizeSeasonPlan, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanDates, type SeasonPlan } from '../_shared/season-plan.ts'
+import { normalizeSeasonPlan, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanCoversDate, seasonPlanDates, type SeasonPlan } from '../_shared/season-plan.ts'
 import {
   findRegistration,
   getActivityForRegistration,
@@ -53,14 +53,17 @@ function assertSeasonRegistrationWindow(activity: Registration, seasonPlan: Seas
   if (closeDate && closeTime && now >= parseTaiwanDateTime(closeDate, closeTime)) throw new Error('registration_closed')
 }
 
+async function fetchActiveActivityDates(supabase: any, activityId: string | number): Promise<string[]> {
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true)
+  if (error) throw error
+  return (data || []).map((row: { activity_date: string }) => row.activity_date)
+}
+
 // 前端會把不能選的方案標示成不可選，這裡是同一組規則的伺服器端把關：
 // 方案第一場已開打就不能再報（會付全額卻只剩幾場），而後季要等前半季開打後
 // 才開放，避免有人在新一季開放報名時就只卡後半季。
 async function assertSeasonPlanSelectable(supabase: any, activityId: string | number, seasonPlan: SeasonPlan, now: Date) {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true)
-  if (error) throw error
-
-  const activityDates = (data || []).map((row: { activity_date: string }) => row.activity_date)
+  const activityDates = await fetchActiveActivityDates(supabase, activityId)
   const today = getTaiwanDateAndHour(now).date
   const planDates = seasonPlanDates(seasonPlan, activityDates)
   if (!planDates.length) throw new Error('season_plan_unavailable')
@@ -94,6 +97,10 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   if (activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
   const seasonRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
   if (!seasonRegistration) return { error: 'season_registration_not_found', status: 404 }
+  // 方案沒涵蓋的場次不算季打出席，請假／回歸對它沒有意義，應改走一般臨打報名。
+  if (!seasonPlanCoversDate(seasonRegistration.season_plan, activityDate, await fetchActiveActivityDates(supabase, activityId))) {
+    return { error: 'season_plan_not_covering_date', status: 400 }
+  }
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
   const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
   if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
