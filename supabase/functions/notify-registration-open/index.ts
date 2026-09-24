@@ -23,8 +23,10 @@ async function sendLineMessage(token: string, groupId: string, message: Record<s
   }
 }
 
+const NOTIFICATION_TYPE_LABELS = { season: '季打', 'late-season': '後季', pickup: '臨打' } as const
+
 function buildRegistrationOpenFlexMessage(notification: Notification, registrationUrl: string): Record<string, unknown> {
-  const typeLabel = notification.type === 'season' ? '季打' : '臨打'
+  const typeLabel = NOTIFICATION_TYPE_LABELS[notification.type]
   const notifyTitle = notification.type === 'pickup' && notification.pickupLabel ? notification.pickupLabel : notification.title
   const date = notification.activityDate || '未提供日期'
   const time = notification.startTime && notification.endTime ? `${notification.startTime}~${notification.endTime}` : '未提供時間'
@@ -134,7 +136,7 @@ type Notification = {
   startTime: string
   endTime: string
   activityDate: string
-  type: 'season' | 'pickup'
+  type: keyof typeof NOTIFICATION_TYPE_LABELS
 }
 
 serve(async _req => {
@@ -169,7 +171,7 @@ serve(async _req => {
       startTime: formatTime(notification.start_time),
       endTime: formatTime(notification.end_time),
       activityDate: notification.activity_date ?? '',
-      type: notification.notification_type === 'season' ? 'season' : 'pickup',
+      type: notification.notification_type in NOTIFICATION_TYPE_LABELS ? (notification.notification_type as keyof typeof NOTIFICATION_TYPE_LABELS) : 'pickup',
     }))
 
     for (const n of notifications) {

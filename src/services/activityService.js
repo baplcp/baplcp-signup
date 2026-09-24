@@ -3,7 +3,7 @@ import { invokeLineFunction } from '~/services/edgeFunctionClient'
 import { fetchActivityDates, groupActivityDates } from '~/services/activityDateService'
 
 const ACTIVITY_FORM_FIELDS =
-  'id, created_at, title, location, start_time, end_time, season_fee_per_session, pickup_fee_per_session, ac_fee, single_capacity, season_enabled, season_include_ac, season_total_fee, season_capacity, season_open_date, season_open_time, season_deadline_type, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time, game_type, ac_enabled, ac_fee_per_session, pickup_label, reminder_enabled, reminder_days_before, reminder_time, season_half_year_total_fee, season_half_year_fee_per_session'
+  'id, created_at, title, location, start_time, end_time, season_fee_per_session, pickup_fee_per_session, ac_fee, single_capacity, season_enabled, season_include_ac, season_total_fee, season_capacity, season_open_date, season_open_time, season_deadline_type, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_deadline_type, season_late_close_date, season_late_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time, game_type, ac_enabled, ac_fee_per_session, pickup_label, reminder_enabled, reminder_days_before, reminder_time, season_half_year_total_fee, season_half_year_fee_per_session'
 
 async function hydrateActivityDates(activities, { includeActivityDateRecords = false } = {}) {
   if (!activities?.length) return activities || []

@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { seasonPlanCoversDate } from '~/utils/seasonPlan'
 
 function formatRegistrationTime(isoString) {
   if (!isoString) return ''
@@ -66,13 +67,16 @@ function cancelledGuestEntry(reg, guest) {
 }
 
 export function useActivityMemberLists({ activityData, activityType, resolvedDate, registrations, cancelledRegistrations, seasonRegistrations, memberGenders }) {
+  // 季打成員只出現在自己方案涵蓋的場次，例如一季的人不會出現在後三個月。
+  const seasonRegistrationsForDate = computed(() => seasonRegistrations.value.filter(reg => seasonPlanCoversDate(reg.season_plan, resolvedDate.value, activityData.value?.dates)))
+
   const memberList = computed(() => {
     const capacity = activityData.value?.single_capacity ?? Infinity
     const members = []
 
     if (activityType.value !== 'season') {
       const date = resolvedDate.value
-      seasonRegistrations.value.forEach(reg => {
+      seasonRegistrationsForDate.value.forEach(reg => {
         if ((reg.leave_dates || []).includes(date)) return
         if (!reg.cancelled_at && reg.is_self_registration) {
           const rejoinedAt = reg.rejoin_times?.[date]
@@ -83,7 +87,7 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
     } else {
       registrations.value.forEach(reg => {
         if (!reg.cancelled_at && reg.is_self_registration) {
-          members.push(registrationSelfEntry(reg, 'self', reg.created_at, memberGenders.value, { seasonPlan: reg.season_plan || 'quarter' }))
+          members.push(registrationSelfEntry(reg, 'self', reg.created_at, memberGenders.value, { seasonPlan: reg.season_plan }))
         }
       })
       members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
@@ -125,13 +129,16 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
     if (activityType.value === 'season') return []
     const date = resolvedDate.value
     if (!date) return []
-    return seasonRegistrations.value
-      .filter(reg => (reg.leave_dates || []).includes(date))
-      .map(reg => ({
-        name: reg.display_name,
-        badge: reg.display_name.charAt(0),
-        image: reg.picture_url || null,
-      }))
+    return (
+      seasonRegistrationsForDate.value
+        // 已取消的季打報名仍保留當時的請假紀錄，不應再列入請假名單
+        .filter(reg => !reg.cancelled_at && (reg.leave_dates || []).includes(date))
+        .map(reg => ({
+          name: reg.display_name,
+          badge: reg.display_name.charAt(0),
+          image: reg.picture_url || null,
+        }))
+    )
   })
 
   return {

@@ -1,18 +1,13 @@
-function formatDate(date: Date): string {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+import { SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanDates } from './season-plan.ts'
 
+// 後季沿用一季的單場費用，只有涵蓋的場次數不同。
 export function calculateSeasonTotals(dates: string[], seasonFee: number, halfYearFee: number, acFee: number, includesAc: boolean) {
   const sortedDates = [...new Set(dates)].sort()
-  const [year, month] = sortedDates[0].split('-').map(Number)
-  const quarterCutoff = formatDate(new Date(Date.UTC(year, month + 2, 1)))
   const acIncludedFee = includesAc ? acFee : 0
 
   return {
-    quarter: (seasonFee + acIncludedFee) * sortedDates.filter(date => date < quarterCutoff).length,
+    quarter: (seasonFee + acIncludedFee) * seasonPlanDates(SEASON_PLAN_QUARTER, sortedDates).length,
+    lateQuarter: (seasonFee + acIncludedFee) * seasonPlanDates(SEASON_PLAN_LATE_QUARTER, sortedDates).length,
     halfYear: (halfYearFee + acIncludedFee) * sortedDates.length,
   }
 }

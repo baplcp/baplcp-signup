@@ -86,6 +86,12 @@ const activityPayloadSchema = z.object(
     season_deadline_type: enumWithFallback(['unlimited', 'custom'], 'unlimited', 'invalid_deadline_type'),
     season_close_date: nullableDateSchema,
     season_close_time: nullableTimeSchema,
+    season_late_enabled: booleanWithFallback(),
+    season_late_open_date: nullableDateSchema,
+    season_late_open_time: nullableTimeSchema,
+    season_late_deadline_type: enumWithFallback(['unlimited', 'custom'], 'unlimited', 'invalid_deadline_type'),
+    season_late_close_date: nullableDateSchema,
+    season_late_close_time: nullableTimeSchema,
     pickup_label: z.preprocess(
       value => {
         if (value == null || value === '') return null

@@ -2,6 +2,14 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
+import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
+
+// 季打方案的分界點只看第一場日期，取最早一場即可判斷涵蓋範圍。
+async function fetchFirstActivityDate(supabase: any, activityId: number): Promise<string[]> {
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true).order('activity_date', { ascending: true }).limit(1)
+  if (error) throw error
+  return (data || []).map((row: { activity_date: string }) => row.activity_date)
+}
 
 async function pushMessage(token: string, groupId: string, message: Record<string, unknown>): Promise<void> {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -92,16 +100,19 @@ serve(async _req => {
       for (const targetActivityDate of targetActivityDates) {
         const targetDate = targetActivityDate.activity_date
         // ── 季打報名 ──────────────────────────────────────────────
-        const { data: seasonRegs, error: sErr } = await supabase
+        const { data: allSeasonRegs, error: sErr } = await supabase
           .from('registrations')
-          .select('id, member_id, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
+          .select('id, member_id, created_at, season_plan, member:members!registrations_member_id_fkey(user_id, display_name)')
           .eq('activity_id', activity.id)
           .is('activity_date_id', null)
           .is('cancelled_at', null)
         if (sErr) throw sErr
+        // 只算方案涵蓋這一天的季打成員，例如一季的人不該出現在後三個月。
+        const activityFirstDate = await fetchFirstActivityDate(supabase, activity.id)
+        const seasonRegs = (allSeasonRegs || []).filter(registration => seasonPlanCoversDate(registration.season_plan, targetDate, activityFirstDate))
         const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(
           supabase,
-          (seasonRegs || []).map(registration => registration.id),
+          seasonRegs.map(registration => registration.id),
           targetActivityDate.id
         )
 
@@ -115,7 +126,7 @@ serve(async _req => {
         if (pErr) throw pErr
         const guests = await fetchRegistrationGuests(supabase, targetActivityDate.id)
         const memberIds = [
-          ...new Set([...(seasonRegs || []).map(registration => registration.member_id), ...(pickupRegs || []).map(registration => registration.member_id), ...guests.map(guest => guest.invited_by)]),
+          ...new Set([...seasonRegs.map(registration => registration.member_id), ...(pickupRegs || []).map(registration => registration.member_id), ...guests.map(guest => guest.invited_by)]),
         ]
         const { data: guestInviters, error: invitersError } = await supabase.from('members').select('id, user_id, display_name').in('id', memberIds)
         if (invitersError) throw invitersError
@@ -135,7 +146,7 @@ serve(async _req => {
 
         const mainSlots: FlatSlot[] = []
 
-        for (const reg of seasonRegs ?? []) {
+        for (const reg of seasonRegs) {
           const member = registrationMember(reg)
           const dateStatus = seasonDateStatuses.get(reg.id)
           if (dateStatus?.is_on_leave) continue

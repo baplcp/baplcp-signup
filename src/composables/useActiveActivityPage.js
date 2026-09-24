@@ -216,7 +216,7 @@ export function useActiveActivityPage() {
     leaveConfirmOpen: signupFlow.leaveConfirmOpen,
     seasonCancelOpen: signupFlow.seasonCancelOpen,
     seasonPlanOpen: signupFlow.seasonPlanOpen,
-    seasonPlanData: signupFlow.seasonPlanData,
+    seasonPlanOptions: viewModels.seasonPlanOptions,
   })
 
   const admin = reactive({

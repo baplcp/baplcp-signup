@@ -67,6 +67,13 @@ Fields used by the app:
 - `season_deadline_type text`
 - `season_close_date date`
 - `season_close_time time without time zone`
+- `season_late_enabled boolean` — whether the late-quarter plan is open for signup
+- `season_late_total_fee numeric` — late-quarter total, priced with `season_fee_per_session`
+- `season_late_open_date date`
+- `season_late_open_time time without time zone`
+- `season_late_deadline_type text`
+- `season_late_close_date date`
+- `season_late_close_time time without time zone`
 - `pickup_label text`
 - `pickup_open_days_before integer`
 - `pickup_open_time time without time zone`
@@ -99,7 +106,8 @@ Fields used by the app:
   null value means this member is currently registered.
 - `paid_court boolean`
 - `paid_ac boolean`
-- `season_plan text` — `'quarter'` (一季) or `'half-year'` (半年), only meaningful for season registrations
+- `season_plan text` — `'quarter'` (一季), `'late-quarter'` (後季) or `'half-year'` (半年),
+  only meaningful for season registrations. A constraint rejects any other value.
 - `activity_date_id bigint, nullable` — canonical pickup reference. A null
   value identifies a season registration.
 - `created_at timestamptz`
@@ -114,6 +122,16 @@ Database invariants:
   reusing a cancelled row.
 - `write_registration_v3` locks the activity and calculates capacity from
   uncancelled participant rows.
+- A season plan only covers the activity dates inside its own range, decided by
+  `season_plan_covers_date(season_plan, activity_date, quarter_cutoff)` with the
+  cutoff from `activity_season_quarter_cutoff(activity_id)`: the quarter plan
+  covers the three calendar months from the first date, the late-quarter plan
+  covers the rest, and the half-year plan covers every date. Member lists,
+  per-date capacity, session occupancy, attendance totals and reminders all use
+  that rule, so a quarter member does not occupy a later date.
+- Season capacity is only shared between plans whose ranges overlap
+  (`season_plans_overlap`): quarter and late-quarter do not compete for the same
+  seats, half-year competes with both.
 
 Normalized tables:
 
@@ -239,3 +257,12 @@ Roles:
   `end_time` from the reminder candidate RPC so reminders show the time range.
 - `20260940000000_add_atomic_save_registration_action.sql`: combines the
   regular member signup read/write path into one service-role transaction.
+- `20260941000000_add_activity_date_id_to_notification_candidates.sql`: returns
+  the matching `activity_dates.id` so notification links use the canonical
+  activity-date route.
+- `20260942000000_schedule_job_run_details_cleanup.sql`: prunes cron job run
+  details and HTTP response logs on a schedule.
+- `20260943000000_add_late_quarter_season_plan.sql`: adds the late-quarter
+  season plan with its own signup window and total fee, constrains
+  `registrations.season_plan`, and makes member lists, per-date capacity,
+  session occupancy and attendance totals respect each plan's date range.

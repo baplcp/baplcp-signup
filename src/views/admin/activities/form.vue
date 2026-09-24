@@ -42,9 +42,13 @@ const {
   isSeasonAvailabilityDisabled,
   seasonFee,
   seasonFeeDigits,
+  lateSeasonFee,
+  isLateQuarterAvailable,
+  lateQuarterRangeLabel,
   halfYearFee,
   halfYearFeeDigits,
   toggleSeason,
+  toggleLateSeason,
   setChoice,
   isError,
   clearError,
@@ -233,6 +237,9 @@ async function handleSubmitActivity() {
             :season-fee-digits="seasonFeeDigits"
             :half-year-fee="halfYearFee"
             :half-year-fee-digits="halfYearFeeDigits"
+            :late-season-fee="lateSeasonFee"
+            :is-late-quarter-available="isLateQuarterAvailable"
+            :late-quarter-range-label="lateQuarterRangeLabel"
             :capacity-options="capacityOptions"
             :time-options="timeOptions"
             :is-error="isError"
@@ -242,6 +249,7 @@ async function handleSubmitActivity() {
             @open-time-picker="openTimePicker"
             @set-choice="setChoice"
             @toggle-season="toggleSeason"
+            @toggle-late-season="toggleLateSeason"
           />
 
           <div class="section-divider" aria-hidden="true"></div>

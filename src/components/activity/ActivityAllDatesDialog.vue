@@ -48,7 +48,7 @@ function formatDate(dateStr) {
       <template v-for="(date, index) in dates" :key="date">
         <div v-if="quarterCount > 0 && index === quarterCount" class="all-dates-separator">
           <span class="all-dates-separator-line"></span>
-          <span class="all-dates-separator-text">以下為半年打場次</span>
+          <span class="all-dates-separator-text">以下為後季場次</span>
           <span class="all-dates-separator-line"></span>
         </div>
         <div class="all-dates-row" :class="{ 'is-half-year': quarterCount > 0 && index >= quarterCount }">

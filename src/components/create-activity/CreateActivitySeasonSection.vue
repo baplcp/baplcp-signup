@@ -35,6 +35,18 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  lateSeasonFee: {
+    type: String,
+    required: true,
+  },
+  isLateQuarterAvailable: {
+    type: Boolean,
+    required: true,
+  },
+  lateQuarterRangeLabel: {
+    type: String,
+    required: true,
+  },
   capacityOptions: {
     type: Array,
     required: true,
@@ -53,7 +65,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker', 'set-choice', 'toggle-season'])
+const emit = defineEmits(['clear-error', 'open-calendar', 'open-time-picker', 'set-choice', 'toggle-season', 'toggle-late-season'])
 
 function isChoiceActive(field, value) {
   return props.form[field] === value
@@ -71,6 +83,16 @@ function openSeasonCloseCalendar() {
 function openSeasonCloseTimePicker() {
   emit('set-choice', 'seasonDeadlineType', 'custom')
   emit('open-time-picker', 'seasonCloseTime')
+}
+
+function openLateSeasonCloseCalendar() {
+  emit('set-choice', 'seasonLateDeadlineType', 'custom')
+  emit('open-calendar', 'season-late-close')
+}
+
+function openLateSeasonCloseTimePicker() {
+  emit('set-choice', 'seasonLateDeadlineType', 'custom')
+  emit('open-time-picker', 'seasonLateCloseTime')
 }
 </script>
 
@@ -235,6 +257,98 @@ function openSeasonCloseTimePicker() {
         </div>
         <input v-model="form.seasonDeadlineType" name="seasonDeadlineType" type="hidden" />
       </div>
+
+      <!-- 活動日期跨過一季分界點時，才有後季可以單獨開放報名 -->
+      <div v-if="isLateQuarterAvailable" class="field late-season-block">
+        <div class="late-season-header">
+          <p class="field-label"><strong>後季報名開放</strong></p>
+          <button
+            class="switch"
+            :class="{ 'is-on': form.seasonLateEnabled }"
+            type="button"
+            role="switch"
+            :aria-checked="String(form.seasonLateEnabled)"
+            aria-label="後季報名開放"
+            @click="emit('toggle-late-season')"
+          ></button>
+        </div>
+        <p class="section-note">
+          {{ lateQuarterRangeLabel }}可單獨報名，單價與一季相同<template v-if="Number(lateSeasonFee) > 0">，共 {{ lateSeasonFee }} 元</template>。
+        </p>
+
+        <div v-if="form.seasonLateEnabled" class="field-list late-season-fields">
+          <div class="field">
+            <p class="field-label">後季開放報名時間</p>
+            <div class="time-row">
+              <button
+                id="season-late-open-date-button"
+                class="control-button"
+                :class="{ 'has-value': form.seasonLateOpenDate, 'is-error': isError('seasonLateOpenDate') }"
+                type="button"
+                @click="emit('open-calendar', 'season-late-open')"
+              >
+                {{ form.seasonLateOpenDate ? formatDateLabel(form.seasonLateOpenDate) : '請選擇日期' }}
+              </button>
+              <input v-model="form.seasonLateOpenDate" name="seasonLateOpenDate" type="hidden" />
+              <span class="inline-text">的</span>
+              <CreateActivityTimeSelect
+                id="season-late-open-time"
+                v-model="form.seasonLateOpenTime"
+                name="seasonLateOpenTime"
+                placeholder="幾點"
+                :options="timeOptions"
+                :has-error="isError('seasonLateOpenTime')"
+                @open="emit('open-time-picker', 'seasonLateOpenTime')"
+                @clear-error="emit('clear-error', 'seasonLateOpenTime')"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <p class="field-label"><strong>後季截止時間</strong></p>
+            <div class="choice-stack">
+              <CreateActivityChoiceCard
+                :active="isChoiceActive('seasonLateDeadlineType', 'unlimited')"
+                :condensed="isChoiceCondensed('seasonLateDeadlineType')"
+                title="不限時間"
+                copy="管理員可手動關閉"
+                @select="emit('set-choice', 'seasonLateDeadlineType', 'unlimited')"
+              />
+              <CreateActivityChoiceCard
+                :active="isChoiceActive('seasonLateDeadlineType', 'custom')"
+                :condensed="isChoiceCondensed('seasonLateDeadlineType')"
+                title="設定截止時間"
+                @select="emit('set-choice', 'seasonLateDeadlineType', 'custom')"
+              >
+                <span class="choice-rule is-date-time">
+                  <button
+                    id="season-late-close-date-button"
+                    class="control-button"
+                    :class="{ 'has-value': form.seasonLateCloseDate, 'is-error': isError('seasonLateCloseDate') }"
+                    type="button"
+                    @click.stop="openLateSeasonCloseCalendar"
+                  >
+                    {{ form.seasonLateCloseDate ? formatDateLabel(form.seasonLateCloseDate) : '請選擇日期' }}
+                  </button>
+                  <input v-model="form.seasonLateCloseDate" name="seasonLateCloseDate" type="hidden" />
+                  <span>的</span>
+                  <CreateActivityTimeSelect
+                    id="season-late-close-time"
+                    v-model="form.seasonLateCloseTime"
+                    name="seasonLateCloseTime"
+                    placeholder="幾點"
+                    :options="timeOptions"
+                    :has-error="isError('seasonLateCloseTime')"
+                    @open="openLateSeasonCloseTimePicker"
+                    @clear-error="emit('clear-error', 'seasonLateCloseTime')"
+                  />
+                </span>
+              </CreateActivityChoiceCard>
+            </div>
+            <input v-model="form.seasonLateDeadlineType" name="seasonLateDeadlineType" type="hidden" />
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -248,6 +362,19 @@ function openSeasonCloseTimePicker() {
 
 .section {
   gap: 18px;
+}
+
+.late-season-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.late-season-fields {
+  display: grid;
+  gap: 18px;
+  margin-top: 4px;
 }
 
 .section-title {
@@ -487,13 +614,16 @@ function openSeasonCloseTimePicker() {
   opacity: 0.5;
 }
 
+/* 收合動畫需要具體的 max-height，這個值必須容得下展開時最高的狀態：
+   季打與後季的截止時間都選「設定截止時間」時約 1015px（手機寬度 390px），
+   在這個區塊新增欄位時要記得一併確認，否則內容會被 overflow 裁掉。 */
 .season-fields {
   overflow: hidden;
   transition:
     max-height 0.24s ease,
     opacity 0.2s ease,
     margin-top 0.2s ease;
-  max-height: 900px;
+  max-height: 1400px;
   opacity: 1;
 }
 

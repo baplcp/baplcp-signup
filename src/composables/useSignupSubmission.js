@@ -134,6 +134,13 @@ export function useSignupSubmission({
       seasonCancelOpen.value = true
       return
     }
+    // 還沒開放時先說明開放時間，不要開啟一張都不能選的方案選單；
+    // 若是全部方案都已開打或已截止，就讓方案選單自己說明原因。
+    if (!currentViewModels.selectableSeasonPlans.value.length && currentViewModels.registrationOpenAt.value) {
+      const openTime = formatRegistrationOpenTime(currentViewModels)
+      setSuccessDialogOpen(true, { title: '報名尚未開放', copy: `季打報名將於 ${openTime} 開放。`, buttonText: '知道了' })
+      return
+    }
     seasonPlanOpen.value = true
   }
 

@@ -1,17 +1,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { createActivityFormDefaults, getActivityFormErrors } from './useCreateActivityForm'
 import { formatDateLabel } from './useCreateActivityCalendar'
-import { addTaiwanDays, formatTaiwanDate, parseTaiwanDate } from '~/utils/taiwanDate'
-
-function getQuarterSessionCount(dates) {
-  const sortedDates = [...new Set(dates)].sort()
-  if (!sortedDates.length) return 0
-
-  const cutoffDate = parseTaiwanDate(sortedDates[0])
-  cutoffDate.setUTCMonth(cutoffDate.getUTCMonth() + 3, 1)
-  const cutoff = formatTaiwanDate(cutoffDate)
-  return sortedDates.filter(date => date < cutoff).length
-}
+import { addTaiwanDays } from '~/utils/taiwanDate'
+import { SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanDates, seasonPlanMonthRange } from '~/utils/seasonPlan'
 
 export function useCreateActivityPageForm({ isPopulatingForm }) {
   const form = reactive(createActivityFormDefaults())
@@ -28,13 +19,21 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
   const selectedDateText = computed(() => (selectedDates.value.length ? selectedDates.value.map(formatDateLabel).join('、') : '請選擇日期'))
   const selectedDateCountText = computed(() => `共 ${selectedDates.value.length} 次`)
   const isSeasonAvailabilityDisabled = computed(() => selectedDates.value.length > 0 && selectedDates.value.length < 4)
-  const seasonFee = computed(() => {
+  const quarterDates = computed(() => seasonPlanDates(SEASON_PLAN_QUARTER, selectedDates.value))
+  const lateQuarterDates = computed(() => seasonPlanDates(SEASON_PLAN_LATE_QUARTER, selectedDates.value))
+  const isLateQuarterAvailable = computed(() => lateQuarterDates.value.length > 0)
+  const lateQuarterRangeLabel = computed(() => seasonPlanMonthRange(lateQuarterDates.value))
+
+  // 後季沿用一季單價，只是場次不同。
+  function seasonFeeTotal(sessionCount) {
     const base = Number(form.seasonSingleFee || 0)
     const ac = form.seasonIncludeAc ? Number(form.acFee || 0) : 0
-    const count = getQuarterSessionCount(selectedDates.value)
-    return count > 0 ? String((base + ac) * count) : ''
-  })
+    return sessionCount > 0 ? String((base + ac) * sessionCount) : ''
+  }
+
+  const seasonFee = computed(() => seasonFeeTotal(quarterDates.value.length))
   const seasonFeeDigits = computed(() => Math.max(seasonFee.value.length, 1))
+  const lateSeasonFee = computed(() => seasonFeeTotal(lateQuarterDates.value.length))
 
   const halfYearFee = computed(() => {
     const base = Number(form.halfYearSingleFee || 0)
@@ -67,6 +66,13 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
         clearError('seasonOpenDate')
       }
 
+      if (lateQuarterDates.value.length > 0) {
+        form.seasonLateOpenDate = addTaiwanDays(lateQuarterDates.value[0], -30)
+        clearError('seasonLateOpenDate')
+      } else {
+        form.seasonLateEnabled = false
+      }
+
       if (isSeasonAvailabilityDisabled.value) {
         seasonEnabled.value = false
       }
@@ -80,6 +86,11 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
       return
     }
     seasonEnabled.value = !seasonEnabled.value
+  }
+
+  function toggleLateSeason() {
+    if (!isLateQuarterAvailable.value) return
+    form.seasonLateEnabled = !form.seasonLateEnabled
   }
 
   function setChoice(field, value) {
@@ -118,9 +129,13 @@ export function useCreateActivityPageForm({ isPopulatingForm }) {
     isSeasonAvailabilityDisabled,
     seasonFee,
     seasonFeeDigits,
+    lateSeasonFee,
+    isLateQuarterAvailable,
+    lateQuarterRangeLabel,
     halfYearFee,
     halfYearFeeDigits,
     toggleSeason,
+    toggleLateSeason,
     setChoice,
     isError,
     clearError,

@@ -1,6 +1,7 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
-import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
+import { addTaiwanDays, getTaiwanDateAndHour, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
+import { normalizeSeasonPlan, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanDates, type SeasonPlan } from '../_shared/season-plan.ts'
 import {
   findRegistration,
   getActivityForRegistration,
@@ -36,14 +37,42 @@ function assertSeasonEnabled(activity: Registration) {
   if (!activity.season_enabled) throw new Error('season_disabled')
 }
 
-function assertRegistrationWindow(activity: Registration, activityDate: string | null, now: Date, isAdmin = false) {
-  if (activityDate === null) {
-    assertSeasonEnabled(activity)
-    if (activity.season_open_date && activity.season_open_time && now < parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)) throw new Error('registration_not_open')
-    if (!isAdmin && activity.season_close_date && activity.season_close_time && now >= parseTaiwanDateTime(activity.season_close_date, activity.season_close_time))
-      throw new Error('registration_closed')
-    return
+// 後季有自己的一組報名開放與截止時間，其餘方案沿用季打的時間。
+function assertSeasonRegistrationWindow(activity: Registration, seasonPlan: SeasonPlan, now: Date) {
+  assertSeasonEnabled(activity)
+
+  const isLateQuarter = seasonPlan === SEASON_PLAN_LATE_QUARTER
+  if (isLateQuarter && !activity.season_late_enabled) throw new Error('late_quarter_disabled')
+
+  const openDate = isLateQuarter ? activity.season_late_open_date : activity.season_open_date
+  const openTime = isLateQuarter ? activity.season_late_open_time : activity.season_open_time
+  const closeDate = isLateQuarter ? activity.season_late_close_date : activity.season_close_date
+  const closeTime = isLateQuarter ? activity.season_late_close_time : activity.season_close_time
+
+  if (openDate && openTime && now < parseTaiwanDateTime(openDate, openTime)) throw new Error('registration_not_open')
+  if (closeDate && closeTime && now >= parseTaiwanDateTime(closeDate, closeTime)) throw new Error('registration_closed')
+}
+
+// 前端會把不能選的方案標示成不可選，這裡是同一組規則的伺服器端把關：
+// 方案第一場已開打就不能再報（會付全額卻只剩幾場），而後季要等前半季開打後
+// 才開放，避免有人在新一季開放報名時就只卡後半季。
+async function assertSeasonPlanSelectable(supabase: any, activityId: string | number, seasonPlan: SeasonPlan, now: Date) {
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true)
+  if (error) throw error
+
+  const activityDates = (data || []).map((row: { activity_date: string }) => row.activity_date)
+  const today = getTaiwanDateAndHour(now).date
+  const planDates = seasonPlanDates(seasonPlan, activityDates)
+  if (!planDates.length) throw new Error('season_plan_unavailable')
+  if (planDates[0] < today) throw new Error('season_plan_started')
+
+  if (seasonPlan === SEASON_PLAN_LATE_QUARTER) {
+    const quarterDates = seasonPlanDates(SEASON_PLAN_QUARTER, activityDates)
+    if (!quarterDates.length || quarterDates[0] >= today) throw new Error('registration_not_open')
   }
+}
+
+function assertRegistrationWindow(activity: Registration, activityDate: string, now: Date, isAdmin = false) {
   if (activity.pickup_open_days_before != null && activity.pickup_open_time) {
     const openDate = addTaiwanDays(activityDate, -Number(activity.pickup_open_days_before))
     if (now < parseTaiwanDateTime(openDate, activity.pickup_open_time)) throw new Error('registration_not_open')
@@ -75,8 +104,9 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
 export async function directSeasonRegister(context: Omit<RegistrationCommandContext, 'isAdmin'>, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, now } = context
   const activity = await getActivityForRegistration(supabase, activityId)
-  assertRegistrationWindow(activity, null, now)
-  const seasonPlan = body?.seasonPlan === 'half-year' ? 'half-year' : 'quarter'
+  const seasonPlan = normalizeSeasonPlan(body?.seasonPlan)
+  assertSeasonRegistrationWindow(activity, seasonPlan, now)
+  await assertSeasonPlanSelectable(supabase, activityId, seasonPlan, now)
   const findActiveSelf = () => findRegistration(supabase, { activityId, memberId, activityDateId: null })
   await writeRegistrationWithRetry(supabase, {
     existing: await findActiveSelf(),

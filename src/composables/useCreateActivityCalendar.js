@@ -42,11 +42,19 @@ export function useCreateActivityCalendar({ form, selectedDates, clearError }) {
   const isCalendarOpen = ref(false)
   const activeCalendarTarget = ref('activity')
 
+  // 日曆除了選球局日期，也用來選各種報名開放與截止日期。
+  const CALENDAR_DATE_FIELDS = {
+    'season-open': 'seasonOpenDate',
+    'season-close': 'seasonCloseDate',
+    'season-late-open': 'seasonLateOpenDate',
+    'season-late-close': 'seasonLateCloseDate',
+  }
+
   const calendarTitle = computed(() => `${visibleMonth.value.getUTCFullYear()} 年 ${visibleMonth.value.getUTCMonth() + 1} 月`)
   const currentCalendarSelectedValues = computed(() => {
-    if (activeCalendarTarget.value === 'season-open') return form.seasonOpenDate ? [form.seasonOpenDate] : []
-    if (activeCalendarTarget.value === 'season-close') return form.seasonCloseDate ? [form.seasonCloseDate] : []
-    return selectedDates.value
+    const dateField = CALENDAR_DATE_FIELDS[activeCalendarTarget.value]
+    if (!dateField) return selectedDates.value
+    return form[dateField] ? [form[dateField]] : []
   })
 
   watch(visibleMonth, () => {
@@ -78,15 +86,10 @@ export function useCreateActivityCalendar({ form, selectedDates, clearError }) {
   }
 
   function selectCalendarDate(value) {
-    if (activeCalendarTarget.value === 'season-open') {
-      form.seasonOpenDate = value
-      clearError('seasonOpenDate')
-      return
-    }
-
-    if (activeCalendarTarget.value === 'season-close') {
-      form.seasonCloseDate = value
-      clearError('seasonCloseDate')
+    const dateField = CALENDAR_DATE_FIELDS[activeCalendarTarget.value]
+    if (dateField) {
+      form[dateField] = value
+      clearError(dateField)
       return
     }
 

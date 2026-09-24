@@ -2,64 +2,47 @@
 import { ref, watch } from 'vue'
 import AccessibleDialog from '~/components/AccessibleDialog.vue'
 
-defineProps({
+// plans 來自 useActiveActivityViewModels，含已截止或已開打的方案：
+// 這些方案要看得到但不能選，使用者才知道它存在、為什麼不能報。
+const props = defineProps({
   open: {
     type: Boolean,
     required: true,
   },
-  quarterCount: {
-    type: Number,
-    required: true,
-  },
-  quarterDateRange: {
-    type: String,
-    required: true,
-  },
-  quarterTotal: {
-    type: Number,
-    required: true,
-  },
-  quarterFeePerSession: {
-    type: Number,
-    required: true,
-  },
-  halfYearCount: {
-    type: Number,
-    required: true,
-  },
-  halfYearDateRange: {
-    type: String,
-    required: true,
-  },
-  halfYearTotal: {
-    type: Number,
-    required: true,
-  },
-  halfYearFeePerSession: {
-    type: Number,
+  plans: {
+    type: Array,
     required: true,
   },
 })
 
 const emit = defineEmits(['close', 'confirm'])
 
-const selectedPlan = ref('quarter')
+function firstSelectablePlan() {
+  return props.plans.find(plan => plan.selectable)?.plan || ''
+}
 
+const selectedPlan = ref(firstSelectablePlan())
+
+// 每次開啟都重新選第一個可報的方案。
 watch(
-  () => false,
-  () => {},
-  { immediate: false }
+  () => props.open,
+  isOpen => {
+    if (isOpen) selectedPlan.value = firstSelectablePlan()
+  }
 )
 
-function reset() {
-  selectedPlan.value = 'quarter'
-}
+// 方案會隨活動資料載入與報名時間改變，選到的方案不再可報時要重新選。
+watch(
+  () => props.plans,
+  () => {
+    if (!props.plans.some(plan => plan.plan === selectedPlan.value && plan.selectable)) selectedPlan.value = firstSelectablePlan()
+  }
+)
 
 function confirm() {
+  if (!selectedPlan.value) return
   emit('confirm', selectedPlan.value)
 }
-
-defineExpose({ reset })
 </script>
 
 <template>
@@ -68,34 +51,32 @@ defineExpose({ reset })
     <h2 id="plan-sheet-title" class="plan-title">選擇報名方案</h2>
 
     <div class="plan-options">
-      <button class="plan-card" :class="{ 'is-selected': selectedPlan === 'quarter' }" type="button" @click="selectedPlan = 'quarter'">
-        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'quarter' }" aria-hidden="true"></div>
+      <button
+        v-for="planOption in plans"
+        :key="planOption.plan"
+        class="plan-card"
+        :class="{ 'is-selected': selectedPlan === planOption.plan, 'is-unselectable': !planOption.selectable }"
+        type="button"
+        :disabled="!planOption.selectable"
+        @click="selectedPlan = planOption.plan"
+      >
+        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === planOption.plan }" aria-hidden="true"></div>
         <div class="plan-card-body">
-          <p class="plan-card-name">一季</p>
-          <p class="plan-card-meta">{{ quarterDateRange }}・{{ quarterCount }} 次</p>
-          <p class="plan-card-fee">${{ quarterFeePerSession.toLocaleString() }} / 次</p>
+          <p class="plan-card-name">
+            {{ planOption.name }}
+            <span v-if="planOption.unselectableReason" class="plan-card-tag">{{ planOption.unselectableReason }}</span>
+          </p>
+          <p class="plan-card-meta">{{ planOption.dateRange }}・{{ planOption.count }} 次</p>
+          <p class="plan-card-fee">${{ planOption.feePerSession.toLocaleString() }} / 次</p>
         </div>
         <div class="plan-card-total">
-          <p class="plan-card-price">${{ quarterTotal.toLocaleString() }}</p>
-          <p class="plan-card-unit">/人</p>
-        </div>
-      </button>
-
-      <button class="plan-card" :class="{ 'is-selected': selectedPlan === 'half-year' }" type="button" @click="selectedPlan = 'half-year'">
-        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === 'half-year' }" aria-hidden="true"></div>
-        <div class="plan-card-body">
-          <p class="plan-card-name">半年</p>
-          <p class="plan-card-meta">{{ halfYearDateRange }}・{{ halfYearCount }} 次</p>
-          <p class="plan-card-fee">${{ halfYearFeePerSession.toLocaleString() }} / 次</p>
-        </div>
-        <div class="plan-card-total">
-          <p class="plan-card-price">${{ halfYearTotal.toLocaleString() }}</p>
+          <p class="plan-card-price">${{ planOption.total.toLocaleString() }}</p>
           <p class="plan-card-unit">/人</p>
         </div>
       </button>
     </div>
 
-    <button class="plan-confirm" type="button" @click="confirm">確認報名</button>
+    <button class="plan-confirm" type="button" :disabled="!selectedPlan" @click="confirm">確認報名</button>
   </AccessibleDialog>
 </template>
 
@@ -173,6 +154,30 @@ defineExpose({ reset })
     border-color 0.15s ease,
     background-color 0.15s ease;
   cursor: pointer;
+}
+
+.plan-card.is-unselectable {
+  background: #f7f8fa;
+  border-color: #eceef4;
+  cursor: default;
+}
+
+.plan-card.is-unselectable .plan-card-name,
+.plan-card.is-unselectable .plan-card-meta,
+.plan-card.is-unselectable .plan-card-fee,
+.plan-card.is-unselectable .plan-card-total {
+  color: #9aa1b1;
+}
+
+.plan-card-tag {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eceef4;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
 }
 
 .plan-card.is-selected {
@@ -265,5 +270,11 @@ defineExpose({ reset })
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
+}
+
+.plan-confirm:disabled {
+  background: #d8dae5;
+  color: #fff;
+  cursor: default;
 }
 </style>

@@ -18,6 +18,7 @@ function cleanActivityPayload(input: unknown) {
     ...payload,
     dates,
     season_total_fee: seasonTotals.quarter,
+    season_late_total_fee: seasonTotals.lateQuarter,
     season_half_year_total_fee: seasonTotals.halfYear,
   }
 }

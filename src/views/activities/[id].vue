@@ -98,8 +98,10 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
         :class="{ 'cta-disabled': signup.ctaDisabled }"
         type="button"
         :disabled="signup.isSubmitting || signup.ctaDisabled"
+        :aria-busy="signup.isSubmitting"
         @click="actions.handleCtaClick"
       >
+        <span v-if="signup.isSubmitting" class="button-spinner" aria-hidden="true" />
         {{ signup.ctaLabel }}
       </button>
     </div>
@@ -165,19 +167,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       @confirm="actions.confirmLeaveConfirm"
     />
 
-    <ActivitySeasonPlanSheet
-      :open="dialogs.seasonPlanOpen"
-      :quarter-count="dialogs.seasonPlanData.quarterCount"
-      :quarter-date-range="dialogs.seasonPlanData.quarterDateRange"
-      :quarter-total="dialogs.seasonPlanData.quarterTotal"
-      :quarter-fee-per-session="dialogs.seasonPlanData.quarterFeePerSession"
-      :half-year-count="dialogs.seasonPlanData.halfYearCount"
-      :half-year-date-range="dialogs.seasonPlanData.halfYearDateRange"
-      :half-year-total="dialogs.seasonPlanData.halfYearTotal"
-      :half-year-fee-per-session="dialogs.seasonPlanData.halfYearFeePerSession"
-      @close="dialogs.seasonPlanOpen = false"
-      @confirm="actions.handleSeasonPlanConfirm"
-    />
+    <ActivitySeasonPlanSheet :open="dialogs.seasonPlanOpen" :plans="dialogs.seasonPlanOptions" @close="dialogs.seasonPlanOpen = false" @confirm="actions.handleSeasonPlanConfirm" />
 
     <!-- 取消季打報名確認 sheet -->
     <AccessibleDialog
@@ -312,6 +302,10 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
 .cta {
   position: relative;
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   min-height: 57px;
   border-radius: 12px;

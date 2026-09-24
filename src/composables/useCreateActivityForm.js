@@ -24,6 +24,12 @@ export function createActivityFormDefaults() {
     seasonDeadlineType: 'unlimited',
     seasonCloseDate: '',
     seasonCloseTime: '',
+    seasonLateEnabled: false,
+    seasonLateOpenDate: '',
+    seasonLateOpenTime: '00:00',
+    seasonLateDeadlineType: 'unlimited',
+    seasonLateCloseDate: '',
+    seasonLateCloseTime: '',
     pickupOpenDate: '前 7 天',
     pickupOpenTime: '20:00',
     deadlineType: 'unlimited',
@@ -55,6 +61,12 @@ export function populateActivityForm(form, activity, selectedDates, seasonEnable
   form.seasonDeadlineType = activity.season_deadline_type || 'unlimited'
   form.seasonCloseDate = activity.season_close_date || ''
   form.seasonCloseTime = toTimeInputValue(activity.season_close_time)
+  form.seasonLateEnabled = activity.season_late_enabled ?? false
+  form.seasonLateOpenDate = activity.season_late_open_date || ''
+  form.seasonLateOpenTime = toTimeInputValue(activity.season_late_open_time) || '00:00'
+  form.seasonLateDeadlineType = activity.season_late_deadline_type || 'unlimited'
+  form.seasonLateCloseDate = activity.season_late_close_date || ''
+  form.seasonLateCloseTime = toTimeInputValue(activity.season_late_close_time)
   form.pickupLabel = activity.pickup_label || ''
   form.pickupOpenDate = activity.pickup_open_days_before ? `前 ${activity.pickup_open_days_before} 天` : '前 7 天'
   form.pickupOpenTime = toTimeInputValue(activity.pickup_open_time) || '20:00'
@@ -94,6 +106,14 @@ export function getActivityFormErrors(form, selectedDates, seasonEnabled) {
     if (form.seasonDeadlineType === 'custom') {
       checks.push({ field: 'seasonCloseDate', ok: form.seasonCloseDate !== '' }, { field: 'seasonCloseTime', ok: form.seasonCloseTime !== '' })
     }
+
+    if (form.seasonLateEnabled) {
+      checks.push({ field: 'seasonLateOpenDate', ok: form.seasonLateOpenDate !== '' }, { field: 'seasonLateOpenTime', ok: form.seasonLateOpenTime !== '' })
+
+      if (form.seasonLateDeadlineType === 'custom') {
+        checks.push({ field: 'seasonLateCloseDate', ok: form.seasonLateCloseDate !== '' }, { field: 'seasonLateCloseTime', ok: form.seasonLateCloseTime !== '' })
+      }
+    }
   }
 
   if (form.deadlineType === 'custom') {
@@ -128,6 +148,12 @@ export function buildActivityPayload(form, selectedDates, seasonEnabled) {
     season_deadline_type: form.seasonDeadlineType || 'unlimited',
     season_close_date: form.seasonCloseDate || null,
     season_close_time: form.seasonCloseTime || null,
+    season_late_enabled: seasonEnabled.value && form.seasonLateEnabled,
+    season_late_open_date: form.seasonLateOpenDate || null,
+    season_late_open_time: form.seasonLateOpenTime || null,
+    season_late_deadline_type: form.seasonLateDeadlineType || 'unlimited',
+    season_late_close_date: form.seasonLateCloseDate || null,
+    season_late_close_time: form.seasonLateCloseTime || null,
     pickup_label: form.pickupLabel.trim() || null,
     pickup_open_days_before: parseDaysBefore(form.pickupOpenDate),
     pickup_open_time: form.pickupOpenTime || null,

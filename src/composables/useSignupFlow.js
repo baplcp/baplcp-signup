@@ -1,4 +1,3 @@
-import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
 import { useSignupDialogs } from '~/composables/useSignupDialogs'
 import { useSignupFormState } from '~/composables/useSignupFormState'
 import { useSignupSubmission } from '~/composables/useSignupSubmission'
@@ -34,8 +33,6 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     seasonCancelOpen: dialogs.seasonCancelOpen,
     seasonPlanOpen: dialogs.seasonPlanOpen,
   })
-  const seasonPlanData = useSeasonPlanData(activityData)
-
   function adjustSignupCount(type, direction) {
     if (type === 'self' && direction === -1 && viewModels.value.isSeasonLeaveMode.value && formState.signupState.self === 1) {
       dialogs.openLeaveConfirm()
@@ -55,7 +52,6 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     successDialog: dialogs.successDialog,
     leaveConfirmOpen: dialogs.leaveConfirmOpen,
     isSignupChanged: formState.isSignupChanged,
-    seasonPlanData,
     heroCtaButton: dialogs.heroCtaButton,
     signupSheetRef: dialogs.signupSheetRef,
     successDialogButton: dialogs.successDialogButton,

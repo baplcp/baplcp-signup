@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getActivity } from '~/services/activityService'
 import { listSeasonRegistrations } from '~/services/registrationService'
+import { seasonPlanCoversDate } from '~/utils/seasonPlan'
 
 const route = useRoute()
 const activityId = Number(route.params.id)
@@ -39,9 +40,10 @@ const membersWithLeave = computed(() => {
       // 半年打與一季打的單次費用不同，退費需依成員報名的方案計算
       const feePerSession = reg.season_plan === 'half-year' ? halfYearFeePerSession : quarterFeePerSession
       const allLeaveDates = Array.isArray(reg.leave_dates) ? reg.leave_dates : []
+      // 只退成員方案涵蓋的場次，一季的人不會有後三個月的退費
       const leaveDates = allLeaveDates.filter(d => {
         const month = Number(d.split('-')[1])
-        return selectedMonths.value.includes(month)
+        return selectedMonths.value.includes(month) && seasonPlanCoversDate(reg.season_plan, d, activity.value?.dates)
       })
       const leaveCount = leaveDates.length
       const refundAmount = leaveCount * feePerSession

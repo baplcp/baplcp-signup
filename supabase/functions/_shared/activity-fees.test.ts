@@ -8,10 +8,12 @@ Deno.test('calculateSeasonTotals uses unique dates and applies AC only when incl
 
   if (withAc.quarter !== 360 || withAc.halfYear !== 400) throw new Error('expected totals with AC')
   if (withoutAc.quarter !== 300 || withoutAc.halfYear !== 320) throw new Error('expected totals without AC')
+  // 後季沿用一季單價，只算分界點之後的場次
+  if (withAc.lateQuarter !== 120 || withoutAc.lateQuarter !== 100) throw new Error('expected late quarter totals')
 })
 
 Deno.test('calculateSeasonTotals keeps the quarter boundary across a year change', () => {
   const totals = calculateSeasonTotals(['2026-12-05', '2027-01-02', '2027-02-06', '2027-03-06'], 100, 100, 0, false)
 
-  if (totals.quarter !== 300 || totals.halfYear !== 400) throw new Error('expected totals across a year change')
+  if (totals.quarter !== 300 || totals.lateQuarter !== 100 || totals.halfYear !== 400) throw new Error('expected totals across a year change')
 })

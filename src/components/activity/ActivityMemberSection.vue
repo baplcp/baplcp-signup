@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { normalizeSeasonPlan, seasonPlanLabel } from '~/utils/seasonPlan'
 
 const props = defineProps({
   tabs: {
@@ -213,8 +214,8 @@ function handleRemove(member, index) {
               </span>
             </div>
             <div v-show="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
-            <div v-if="isAdmin && member.seasonPlan && !adminMode" class="season-plan-tag" :class="member.seasonPlan === 'half-year' ? 'is-half-year' : 'is-quarter'">
-              {{ member.seasonPlan === 'half-year' ? '半年' : '一季' }}
+            <div v-if="isAdmin && member.seasonPlan && !adminMode" class="season-plan-tag" :class="`is-${normalizeSeasonPlan(member.seasonPlan)}`">
+              {{ seasonPlanLabel(member.seasonPlan) }}
             </div>
             <div v-show="adminMode" class="payment-checks" @click.stop>
               <button class="pay-check-row" type="button" @click.stop="emit('toggle-payment', member, 'paid_court')">
@@ -367,6 +368,11 @@ function handleRemove(member, index) {
 .season-plan-tag.is-quarter {
   background: #eef0ff;
   color: var(--primary-700);
+}
+
+.season-plan-tag.is-late-quarter {
+  background: #fff1e6;
+  color: #b45309;
 }
 
 .season-plan-tag.is-half-year {

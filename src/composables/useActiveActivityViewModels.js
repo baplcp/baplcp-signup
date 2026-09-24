@@ -1,5 +1,7 @@
 import { computed, reactive } from 'vue'
-import { addTaiwanDays, formatTaiwanTime, getTaiwanWeekday, parseTaiwanDate, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { addTaiwanDays, formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
+import { SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -46,25 +48,38 @@ export function useActiveActivityViewModels({
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
   const activityDates = computed(() => activityData.value?.dates || [])
 
-  const seasonQuarterSessionCount = computed(() => {
-    const dates = [...(activityData.value?.dates || [])].sort()
-    if (!dates.length) return 0
-    const cutoff = parseTaiwanDate(dates[0])
-    cutoff.setUTCMonth(cutoff.getUTCMonth() + 3, 1)
-    return dates.filter(date => parseTaiwanDate(date) < cutoff).length
+  const seasonPlans = useSeasonPlanData(activityData)
+  const availableSeasonPlans = computed(() => (activityType.value === 'season' ? seasonPlans.value.filter(plan => plan.available) : []))
+
+  // 每個方案都看得到，不能選的標上原因，使用者才知道它存在、為什麼不能報：
+  // 已經開打的方案報進去會付全額卻只剩幾場；後季是給球季中途加入的人，
+  // 前半季開打前一律不開放，避免有人在新一季開放時就只卡後半季。
+  const visibleSeasonPlans = computed(() => {
+    const today = getTaiwanDateString(nowTick.value)
+    const quarterStartDate = availableSeasonPlans.value.find(plan => plan.plan === SEASON_PLAN_QUARTER)?.firstDate
+    const isLateQuarterOpen = !!quarterStartDate && quarterStartDate < today
+
+    return availableSeasonPlans.value.map(plan => {
+      const waitsForFirstHalf = plan.plan === SEASON_PLAN_LATE_QUARTER && !isLateQuarterOpen
+      const notOpenYet = (plan.openAt && nowTick.value < plan.openAt) || waitsForFirstHalf
+      const unselectableReason = plan.closeAt && nowTick.value >= plan.closeAt ? '已截止' : plan.firstDate && plan.firstDate < today ? '已開打' : notOpenYet ? '尚未開放' : ''
+      return { ...plan, unselectableReason, selectable: !unselectableReason }
+    })
   })
 
-  const seasonDisplaySessionCount = computed(() => {
-    if (activityType.value !== 'season') return 0
-    return selectedSeasonPlan?.value === 'half-year' ? activitySessionCount.value : seasonQuarterSessionCount.value
+  const selectableSeasonPlans = computed(() => visibleSeasonPlans.value.filter(plan => plan.selectable))
+
+  const selectedSeasonPlanDetail = computed(() => {
+    const candidates = selectableSeasonPlans.value.length ? selectableSeasonPlans.value : availableSeasonPlans.value
+    return candidates.find(plan => plan.plan === selectedSeasonPlan?.value) || candidates[0] || null
   })
+
+  const seasonQuarterSessionCount = computed(() => availableSeasonPlans.value.find(plan => plan.plan === SEASON_PLAN_QUARTER)?.count ?? 0)
+  const seasonDisplaySessionCount = computed(() => (activityType.value === 'season' ? (selectedSeasonPlanDetail.value?.count ?? 0) : 0))
 
   const summaryFeeAmount = computed(() => {
     if (!activityData.value) return 255
-    if (activityType.value === 'season') {
-      if (selectedSeasonPlan?.value === 'half-year') return activityData.value.season_half_year_total_fee || 0
-      return activityData.value.season_total_fee || 0
-    }
+    if (activityType.value === 'season') return selectedSeasonPlanDetail.value?.total ?? 0
     const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
     return acEnabled.value ? base + acFeePerSession.value : base
   })
@@ -73,17 +88,20 @@ export function useActiveActivityViewModels({
     const activity = activityData.value
     if (!activity) return null
     if (activityType.value === 'season') {
-      if (!activity.season_open_date || !activity.season_open_time) return null
-      return parseTaiwanDateTime(activity.season_open_date, activity.season_open_time)
+      if (selectableSeasonPlans.value.length) return null
+      const pendingOpenTimes = availableSeasonPlans.value.map(plan => plan.openAt).filter(openAt => openAt && nowTick.value < openAt)
+      return pendingOpenTimes.length ? new Date(Math.min(...pendingOpenTimes.map(openAt => openAt.getTime()))) : null
     }
     if (!resolvedDate.value || activity.pickup_open_days_before == null || !activity.pickup_open_time) return null
     return parseTaiwanDateTime(addTaiwanDays(resolvedDate.value, -activity.pickup_open_days_before), activity.pickup_open_time)
   })
 
+  // 只有每個方案都截止才算季打報名結束。
   const registrationCloseAt = computed(() => {
-    const activity = activityData.value
-    if (!activity || activityType.value !== 'season' || !activity.season_close_date || !activity.season_close_time) return null
-    return parseTaiwanDateTime(activity.season_close_date, activity.season_close_time)
+    if (activityType.value !== 'season') return null
+    const closeTimes = availableSeasonPlans.value.map(plan => plan.closeAt)
+    if (!closeTimes.length || closeTimes.some(closeAt => !closeAt)) return null
+    return new Date(Math.max(...closeTimes.map(closeAt => closeAt.getTime())))
   })
 
   const isSeasonRegistrationClosed = computed(() => (registrationCloseAt.value ? nowTick.value >= registrationCloseAt.value : false))
@@ -163,7 +181,7 @@ export function useActiveActivityViewModels({
   const summaryStatusText = computed(() => {
     if (activityType.value === 'season') {
       if (submittedTotal.value > 0) {
-        if (myFullyPaid.value) return selectedSeasonPlan?.value === 'half-year' ? '已報名半年' : '已報名一季'
+        if (myFullyPaid.value) return `已報名${seasonPlanLabel(selectedSeasonPlan?.value)}`
         return '尚未繳費'
       }
       return '未報名'
@@ -213,6 +231,8 @@ export function useActiveActivityViewModels({
   return {
     resolvedDate,
     registrationOpenAt,
+    seasonPlanOptions: visibleSeasonPlans,
+    selectableSeasonPlans,
     submittedTotal,
     signupTotal,
     hasSubmittedSignup,

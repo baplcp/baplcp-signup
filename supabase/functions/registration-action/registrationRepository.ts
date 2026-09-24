@@ -157,7 +157,7 @@ export async function getActivityForRegistration(supabase: any, activityId: stri
   const { data, error } = await supabase
     .from('activities')
     .select(
-      'id, season_enabled, season_open_date, season_open_time, season_close_date, season_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
+      'id, season_enabled, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
     )
     .eq('id', activityId)
     .maybeSingle()
