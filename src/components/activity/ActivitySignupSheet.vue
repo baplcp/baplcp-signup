@@ -161,11 +161,14 @@ defineExpose({
       <button
         ref="confirmButton"
         class="confirm-signup"
+        :class="{ 'is-submitting': isSubmitting }"
         type="button"
         :disabled="!(isRegistrationOpen || (isSeasonLeaveMode && signupState.guest === 0)) || isSubmitting || !isSignupChanged"
+        :aria-busy="isSubmitting"
         @click="emit('submit')"
       >
-        確認報名
+        <span v-if="isSubmitting" class="button-spinner" aria-hidden="true" />
+        {{ isSubmitting ? '送出中...' : '確認報名' }}
       </button>
       <p v-if="registrationCountdown && !(isSeasonLeaveMode && signupState.guest === 0)" class="signup-countdown">{{ registrationCountdown }}</p>
       <p v-else class="signup-note">送出不代表報名成功，請以名單為準</p>
@@ -458,6 +461,10 @@ defineExpose({
 }
 
 .confirm-signup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   min-height: 48px;
   border-radius: 10px;
@@ -471,6 +478,11 @@ defineExpose({
 .confirm-signup:disabled {
   background: #d8dae5;
   cursor: default;
+}
+
+.confirm-signup.is-submitting:disabled {
+  background: #5768ff;
+  cursor: progress;
 }
 
 .signup-note {
