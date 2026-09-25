@@ -142,7 +142,7 @@ export async function listSeasonPageRegistrations(activityId) {
 }
 
 export async function listGroupActivitySessions(segment, { limit, cursor, now }) {
-  const { data, error } = await supabase.rpc('list_group_activity_sessions', {
+  const { data, error } = await supabase.rpc('list_activities', {
     p_segment: segment,
     p_limit: limit,
     p_now: now.toISOString(),
