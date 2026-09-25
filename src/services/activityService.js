@@ -11,7 +11,7 @@ const SEASON_SIGNUP_FIELDS =
   'id, title, location, start_time, end_time, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
 
 async function fetchSeasonSignupDates(activityId) {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('activity_date', { ascending: true })
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).order('activity_date', { ascending: true })
   if (error) throw error
   return data || []
 }
@@ -65,7 +65,6 @@ export async function getActivity(id) {
     .from('seasons')
     .select(`${ACTIVITY_FORM_FIELDS}, activity_dates(id, activity_date)`)
     .eq('id', id)
-    .eq('activity_dates.is_active', true)
     .order('activity_date', { referencedTable: 'activity_dates' })
     .maybeSingle()
 
@@ -81,7 +80,7 @@ export async function getActivity(id) {
 }
 
 export async function listManagedActivities() {
-  const { data, error } = await supabase.from('seasons').select('id, title, activity_dates(count)').eq('activity_dates.is_active', true).order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('seasons').select('id, title, activity_dates(count)').order('created_at', { ascending: false })
 
   if (error) throw error
 
@@ -109,7 +108,6 @@ export async function listSeasonActivities() {
     .from('seasons')
     .select('id, title, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type, activity_dates(count)')
     .eq('season_enabled', true)
-    .eq('activity_dates.is_active', true)
     .order('created_at', { ascending: false })
 
   if (error) throw error

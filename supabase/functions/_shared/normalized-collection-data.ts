@@ -26,7 +26,7 @@ function uniqueIds(ids: Array<number | string | null | undefined>) {
   return [...new Set(ids.filter((id): id is number | string => id !== null && id !== undefined))]
 }
 
-export async function fetchActiveActivityDates(supabase: any, activityIds: Array<number | string | null | undefined>): Promise<ActivityDate[]> {
+export async function fetchActivityDates(supabase: any, activityIds: Array<number | string | null | undefined>): Promise<ActivityDate[]> {
   const ids = uniqueIds(activityIds)
   if (ids.length === 0) return []
 
@@ -34,7 +34,6 @@ export async function fetchActiveActivityDates(supabase: any, activityIds: Array
     .from('activity_dates')
     .select('id, season_id, activity_date')
     .in('season_id', ids)
-    .eq('is_active', true)
     .order('season_id', { ascending: true })
     .order('activity_date', { ascending: true })
   if (error) throw error

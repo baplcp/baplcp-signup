@@ -53,8 +53,8 @@ function assertSeasonRegistrationWindow(activity: Registration, seasonPlan: Seas
   if (closeDate && closeTime && now >= parseTaiwanDateTime(closeDate, closeTime)) throw new Error('registration_closed')
 }
 
-async function fetchActiveActivityDates(supabase: any, activityId: string | number): Promise<string[]> {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true)
+async function fetchActivityDates(supabase: any, activityId: string | number): Promise<string[]> {
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId)
   if (error) throw error
   return (data || []).map((row: { activity_date: string }) => row.activity_date)
 }
@@ -63,7 +63,7 @@ async function fetchActiveActivityDates(supabase: any, activityId: string | numb
 // 方案第一場已開打就不能再報（會付全額卻只剩幾場），而後季要等前半季開打後
 // 才開放，避免有人在新一季開放報名時就只卡後半季。
 async function assertSeasonPlanSelectable(supabase: any, activityId: string | number, seasonPlan: SeasonPlan, now: Date) {
-  const activityDates = await fetchActiveActivityDates(supabase, activityId)
+  const activityDates = await fetchActivityDates(supabase, activityId)
   const today = getTaiwanDateAndHour(now).date
   const planDates = seasonPlanDates(seasonPlan, activityDates)
   if (!planDates.length) throw new Error('season_plan_unavailable')
@@ -98,7 +98,7 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   const seasonRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
   if (!seasonRegistration) return { error: 'season_registration_not_found', status: 404 }
   // 方案沒涵蓋的場次不算季打出席，請假／回歸對它沒有意義，應改走一般臨打報名。
-  if (!seasonPlanCoversDate(seasonRegistration.season_plan, activityDate, await fetchActiveActivityDates(supabase, activityId))) {
+  if (!seasonPlanCoversDate(seasonRegistration.season_plan, activityDate, await fetchActivityDates(supabase, activityId))) {
     return { error: 'season_plan_not_covering_date', status: 400 }
   }
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)

@@ -6,7 +6,7 @@ import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
 // 季打方案的分界點只看第一場日期，取最早一場即可判斷涵蓋範圍。
 async function fetchFirstActivityDate(supabase: any, activityId: number): Promise<string[]> {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('activity_date', { ascending: true }).limit(1)
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).order('activity_date', { ascending: true }).limit(1)
   if (error) throw error
   return (data || []).map((row: { activity_date: string }) => row.activity_date)
 }

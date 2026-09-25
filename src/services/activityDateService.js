@@ -1,11 +1,10 @@
 import { supabase } from '~/utils/supabase'
 
-export async function fetchActivityDates(activityIds, { activeOnly = true } = {}) {
+export async function fetchActivityDates(activityIds) {
   const ids = [...new Set((activityIds || []).filter(Boolean))]
   if (!ids.length) return []
 
-  let query = supabase.from('activity_dates').select('id, season_id, activity_date').in('season_id', ids)
-  if (activeOnly) query = query.eq('is_active', true)
+  const query = supabase.from('activity_dates').select('id, season_id, activity_date').in('season_id', ids)
 
   const { data, error } = await query.order('season_id', { ascending: true }).order('activity_date', { ascending: true })
   if (error) throw error
