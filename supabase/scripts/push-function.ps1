@@ -1,4 +1,4 @@
 # dev
-supabase functions deploy <function name> --project-ref jloqqjshyyfmwdmtbctg
+npx supabase functions deploy <function name> --project-ref jloqqjshyyfmwdmtbctg
 # prod
-supabase functions deploy <function name> --project-ref rkmxoqopptyuqhbeswqo
+npx supabase functions deploy <function name> --project-ref rkmxoqopptyuqhbeswqo
