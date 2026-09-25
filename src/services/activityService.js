@@ -67,7 +67,14 @@ export async function getActivity(id) {
 }
 
 export async function listManagedActivities() {
-  return fetchActivities(supabase.from('seasons').select('id, title').order('created_at', { ascending: false }))
+  const { data, error } = await supabase.from('seasons').select('id, title, activity_dates(count)').eq('activity_dates.is_active', true).order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data || []).map(({ activity_dates: activityDates, ...activity }) => ({
+    ...activity,
+    sessionCount: activityDates?.[0]?.count ?? 0,
+  }))
 }
 
 export async function getLatestActivitySession(now = new Date()) {
