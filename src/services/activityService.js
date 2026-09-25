@@ -61,9 +61,22 @@ export async function deleteActivity(liffStore, id) {
 }
 
 export async function getActivity(id) {
-  const activities = await fetchActivities(supabase.from('seasons').select(ACTIVITY_FORM_FIELDS).eq('id', id))
-  if (!activities.length) throw new Error('activity_not_found')
-  return activities[0]
+  const { data, error } = await supabase
+    .from('seasons')
+    .select(`${ACTIVITY_FORM_FIELDS}, activity_dates(activity_date)`)
+    .eq('id', id)
+    .eq('activity_dates.is_active', true)
+    .order('sort_order', { referencedTable: 'activity_dates' })
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('activity_not_found')
+
+  const { activity_dates: activityDates, ...activity } = data
+  return {
+    ...activity,
+    dates: (activityDates || []).map(activityDate => activityDate.activity_date),
+  }
 }
 
 export async function listManagedActivities() {
