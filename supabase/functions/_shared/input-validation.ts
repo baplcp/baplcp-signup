@@ -62,6 +62,12 @@ const activityPayloadSchema = z.object(
     title: requiredText(MAX_ACTIVITY_TITLE_LENGTH, 'missing_title'),
     location: requiredText(MAX_ACTIVITY_LOCATION_LENGTH, 'missing_location'),
     dates: z.array(dateStringSchema, { error: 'invalid_dates' }).min(1, 'invalid_dates').max(MAX_ACTIVITY_DATES, 'invalid_dates'),
+    removed_activity_date_ids: z
+      .array(z.number({ error: 'invalid_activity_date_id' }).int('invalid_activity_date_id').positive('invalid_activity_date_id').max(Number.MAX_SAFE_INTEGER, 'invalid_activity_date_id'), {
+        error: 'invalid_activity_date_ids',
+      })
+      .max(MAX_ACTIVITY_DATES, 'invalid_activity_date_ids')
+      .default([]),
     start_time: nullableTimeSchema,
     end_time: nullableTimeSchema,
     season_fee_per_session: integerWithFallback(0, 0, 100000),

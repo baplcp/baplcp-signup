@@ -89,9 +89,9 @@ Fields used by the app:
 Normalized tables:
 
 - `activity_dates` is the canonical table for activity dates. Its `season_id`
-  foreign key points to `seasons`; it keeps an active flag rather than deleting
-  retired dates, so historical registrations and attendance states retain their
-  references.
+  foreign key points to `seasons`. Removing a date from the admin editor
+  permanently removes that date and its associated registrations, guests, and
+  season attendance states.
 
 ### `registrations`
 

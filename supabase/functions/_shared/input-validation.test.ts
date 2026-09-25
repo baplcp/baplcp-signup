@@ -5,11 +5,12 @@ Deno.test('parseActivityPayload normalizes allowed fields and rejects oversized 
     title: '  週日球局  ',
     location: '  體育館  ',
     dates: ['2026-10-04'],
+    removed_activity_date_ids: [12, 19],
     season_fee_per_session: '100',
     unknown: 'discarded',
   })
 
-  if (payload.title !== '週日球局' || payload.location !== '體育館' || payload.season_fee_per_session !== 100) {
+  if (payload.title !== '週日球局' || payload.location !== '體育館' || payload.season_fee_per_session !== 100 || payload.removed_activity_date_ids.join(',') !== '12,19') {
     throw new Error('expected valid activity payload to be normalized')
   }
   if ('unknown' in payload) throw new Error('expected unknown fields to be stripped')
@@ -19,6 +20,13 @@ Deno.test('parseActivityPayload normalizes allowed fields and rejects oversized 
     throw new Error('expected oversized title to be rejected')
   } catch (error) {
     if (!(error instanceof Error) || error.message !== 'invalid_text') throw error
+  }
+
+  try {
+    parseActivityPayload({ title: '週日球局', location: '體育館', dates: ['2026-10-04'], removed_activity_date_ids: [0] })
+    throw new Error('expected invalid activity date ID to be rejected')
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== 'invalid_activity_date_id') throw error
   }
 })
 

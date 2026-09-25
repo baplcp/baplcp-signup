@@ -39,7 +39,7 @@ async function resolveOrganizerIdentity(req: Request, origin: string): Promise<O
 
 async function writeActivity(supabase: any, organizerIdentity: OrganizerIdentity, activityId: string | number | null, payload: Record<string, unknown>) {
   const result = organizerIdentity.isDevAdmin
-    ? supabase.rpc('write_activity_v3', { p_activity_id: activityId, p_payload: payload }).single()
+    ? supabase.rpc('write_activity_v5', { p_activity_id: activityId, p_payload: payload }).single()
     : supabase.rpc('write_activity_v4', { p_activity_id: activityId, p_organizer_user_id: organizerIdentity.userId, p_payload: payload }).single()
   const { data, error } = await result
   if (error) throw error

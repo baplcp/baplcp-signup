@@ -13,11 +13,14 @@ import CreateActivityPickupSection from '~/components/create-activity/CreateActi
 import CreateActivityResultDialog from '~/components/create-activity/CreateActivityResultDialog.vue'
 import CreateActivitySeasonSection from '~/components/create-activity/CreateActivitySeasonSection.vue'
 import CreateActivityTimePickerDialog from '~/components/create-activity/CreateActivityTimePickerDialog.vue'
+import ConfirmDialog from '~/components/activity/ConfirmDialog.vue'
 
 const submitButton = ref(null)
 const isSubmitting = ref(false)
 const editId = ref(null)
 const isPopulatingForm = ref(false)
+const originalActivityDates = ref([])
+const isDateRemovalConfirmOpen = ref(false)
 
 const dialog = reactive({
   isOpen: false,
@@ -88,6 +91,7 @@ onMounted(async () => {
     try {
       const data = await getActivity(idParam)
       populateActivityForm(form, data, selectedDates, seasonEnabled)
+      originalActivityDates.value = data.activityDates || []
 
       const firstDate = selectedDates.value[0]
       if (firstDate) {
@@ -117,6 +121,15 @@ const liffStore = useLiffStore()
 const isOrganizer = computed(() => liffStore.role === 'organizer')
 
 const isEditMode = computed(() => !!editId.value)
+const removedActivityDates = computed(() => {
+  const selectedDateSet = new Set(selectedDates.value)
+  return originalActivityDates.value.filter(activityDate => !selectedDateSet.has(activityDate.activity_date))
+})
+const removedActivityDateIds = computed(() => removedActivityDates.value.map(activityDate => activityDate.id))
+const removedActivityDatesCopy = computed(() => {
+  const labels = removedActivityDates.value.map(activityDate => formatDateLabel(activityDate.activity_date)).join('、')
+  return `移除 ${labels} 後，該日期的報名、訪客與請假／復打資料都會永久刪除，無法復原。是否繼續儲存？`
+})
 
 function goToCreatedActivityList({ refresh = false } = {}) {
   const inAppFrom = window.history.state?.__inAppFrom
@@ -167,7 +180,29 @@ function validate() {
 
 async function handleSubmitActivity() {
   if (!validate()) return
-  const payload = buildActivityPayload(form, selectedDates, seasonEnabled)
+  if (isEditMode.value && removedActivityDateIds.value.length > 0) {
+    isDateRemovalConfirmOpen.value = true
+    return
+  }
+
+  await submitActivity()
+}
+
+function cancelDateRemoval() {
+  isDateRemovalConfirmOpen.value = false
+}
+
+async function confirmDateRemoval() {
+  if (isSubmitting.value) return
+  isDateRemovalConfirmOpen.value = false
+  await submitActivity()
+}
+
+async function submitActivity() {
+  const payload = {
+    ...buildActivityPayload(form, selectedDates, seasonEnabled),
+    removed_activity_date_ids: removedActivityDateIds.value,
+  }
 
   isSubmitting.value = true
   try {
@@ -293,6 +328,19 @@ async function handleSubmitActivity() {
     />
 
     <CreateActivityResultDialog :open="dialog.isOpen" :title="dialog.title" :copy="dialog.copy" :button-text="dialog.buttonText" @close="closeCreateDialog" />
+
+    <ConfirmDialog
+      :open="isDateRemovalConfirmOpen"
+      dialog-id="activity-date-removal-confirm"
+      title="確定移除日期？"
+      :copy="removedActivityDatesCopy"
+      cancel-aria-label="取消移除日期"
+      confirm-text="確認儲存"
+      tone="danger"
+      :z-index="20"
+      @cancel="cancelDateRemoval"
+      @confirm="confirmDateRemoval"
+    />
   </main>
 </template>
 

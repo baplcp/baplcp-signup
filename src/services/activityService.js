@@ -63,7 +63,7 @@ export async function deleteActivity(liffStore, id) {
 export async function getActivity(id) {
   const { data, error } = await supabase
     .from('seasons')
-    .select(`${ACTIVITY_FORM_FIELDS}, activity_dates(activity_date)`)
+    .select(`${ACTIVITY_FORM_FIELDS}, activity_dates(id, activity_date)`)
     .eq('id', id)
     .eq('activity_dates.is_active', true)
     .order('activity_date', { referencedTable: 'activity_dates' })
@@ -75,6 +75,7 @@ export async function getActivity(id) {
   const { activity_dates: activityDates, ...activity } = data
   return {
     ...activity,
+    activityDates: activityDates || [],
     dates: (activityDates || []).map(activityDate => activityDate.activity_date),
   }
 }
