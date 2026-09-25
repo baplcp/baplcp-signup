@@ -11,7 +11,7 @@ const SEASON_SIGNUP_FIELDS =
   'id, title, location, start_time, end_time, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
 
 async function fetchSeasonSignupDates(activityId) {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('sort_order', { ascending: true })
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('activity_date', { ascending: true })
   if (error) throw error
   return data || []
 }
@@ -66,7 +66,7 @@ export async function getActivity(id) {
     .select(`${ACTIVITY_FORM_FIELDS}, activity_dates(activity_date)`)
     .eq('id', id)
     .eq('activity_dates.is_active', true)
-    .order('sort_order', { referencedTable: 'activity_dates' })
+    .order('activity_date', { referencedTable: 'activity_dates' })
     .maybeSingle()
 
   if (error) throw error

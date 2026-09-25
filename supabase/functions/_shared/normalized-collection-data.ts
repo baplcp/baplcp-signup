@@ -2,7 +2,6 @@ type ActivityDate = {
   id: number
   season_id: number
   activity_date: string
-  sort_order: number
 }
 
 type SeasonRegistrationDateStatus = {
@@ -33,11 +32,11 @@ export async function fetchActiveActivityDates(supabase: any, activityIds: Array
 
   const { data, error } = await supabase
     .from('activity_dates')
-    .select('id, season_id, activity_date, sort_order')
+    .select('id, season_id, activity_date')
     .in('season_id', ids)
     .eq('is_active', true)
     .order('season_id', { ascending: true })
-    .order('sort_order', { ascending: true })
+    .order('activity_date', { ascending: true })
   if (error) throw error
   return (data || []) as ActivityDate[]
 }
