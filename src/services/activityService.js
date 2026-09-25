@@ -75,13 +75,19 @@ export async function listHomeActivityCandidates() {
 }
 
 export async function listSeasonActivities() {
-  return fetchActivities(
-    supabase
-      .from('activities')
-      .select('id, title, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type')
-      .eq('season_enabled', true)
-      .order('created_at', { ascending: false })
-  )
+  const { data, error } = await supabase
+    .from('activities')
+    .select('id, title, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type, activity_dates(count)')
+    .eq('season_enabled', true)
+    .eq('activity_dates.is_active', true)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data || []).map(({ activity_dates: activityDates, ...activity }) => ({
+    ...activity,
+    sessionCount: activityDates?.[0]?.count ?? 0,
+  }))
 }
 
 export async function listSeasonActivitiesForRefund() {

@@ -7,14 +7,8 @@ import { parseTaiwanDateTime } from '~/utils/taiwanDate'
 const activities = ref([])
 const isLoading = ref(true)
 
-function formatDateRange(dates) {
-  if (!dates || dates.length === 0) return '—'
-  const sorted = dates.slice().sort()
-  const [, m1] = sorted[0].split('-')
-  const [, m2] = sorted[sorted.length - 1].split('-')
-  const sessions = sorted.length
-  if (m1 === m2) return `${Number(m1)} 月，共 ${sessions} 場`
-  return `${Number(m1)} ~ ${Number(m2)} 月，共 ${sessions} 場`
+function formatSessionCount(sessionCount) {
+  return `共 ${sessionCount} 場`
 }
 
 function getRegistrationBadge(act) {
@@ -54,7 +48,7 @@ onMounted(async () => {
           :key="act.id"
           :to="{ name: 'season', params: { id: act.id } }"
           :title="act.title || '季打報名'"
-          :location="formatDateRange(act.dates)"
+          :location="formatSessionCount(act.sessionCount)"
           :badge="getRegistrationBadge(act).label"
           :badge-variant="getRegistrationBadge(act).variant"
           framed
