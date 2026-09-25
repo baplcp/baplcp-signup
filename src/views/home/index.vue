@@ -6,11 +6,11 @@ import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeParticipationCard from '~/components/home/HomeParticipationCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
-import { getLatestActivitySession } from '~/services/activityService'
-import { countPastParticipations } from '~/services/registrationService'
+import { useHomeStore } from '~/stores/home'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
+const homeStore = useHomeStore()
 const latestActivityTo = ref({ name: 'activities' })
 const participationCount = ref(0)
 const participationLoading = ref(true)
@@ -18,7 +18,7 @@ const imagesBaseUrl = import.meta.env.BASE_URL + 'images/'
 
 async function loadLatestActivity() {
   try {
-    const session = await getLatestActivitySession()
+    const session = await homeStore.loadLatestActivitySession()
     if (session) {
       latestActivityTo.value = {
         name: 'activity',
@@ -34,7 +34,7 @@ async function loadLatestActivity() {
 async function loadParticipationCount() {
   try {
     await liffStore.initialize()
-    participationCount.value = await countPastParticipations(liffStore.userId)
+    participationCount.value = await homeStore.loadParticipationCount(liffStore.userId)
   } catch (error) {
     console.warn('Unable to load participation count', error)
   } finally {
