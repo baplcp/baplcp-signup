@@ -32,7 +32,7 @@ async function isAdminProfile(supabase: any, profile: AdminLineProfile): Promise
 
 async function updateActivityAcEnabled(supabase: any, profile: AdminLineProfile, activityId: string | number, enabled: boolean) {
   const result = profile.isDevAdmin
-    ? supabase.from('activities').update({ ac_enabled: enabled }).eq('id', activityId)
+    ? supabase.from('seasons').update({ ac_enabled: enabled }).eq('id', activityId)
     : supabase.rpc('set_activity_ac_enabled_v1', { p_activity_id: activityId, p_organizer_user_id: profile.userId, p_enabled: enabled })
   const { error } = await result
   if (error) throw error

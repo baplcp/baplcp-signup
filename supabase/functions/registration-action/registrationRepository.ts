@@ -1,5 +1,5 @@
 export const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
+  'id, season_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url)'
 
 export type Registration = Record<string, any>
 
@@ -23,7 +23,7 @@ export async function findRegistration(
   supabase: any,
   { activityId, memberId, activityDateId, activeOnly = true }: { activityId: string | number; memberId: string; activityDateId: number | null; activeOnly?: boolean }
 ) {
-  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).eq('member_id', memberId)
+  let query = supabase.from('registrations').select(REGISTRATION_FIELDS).eq('season_id', activityId).eq('member_id', memberId)
   if (activeOnly) query = query.is('cancelled_at', null)
   query = activityDateId === null ? query.is('activity_date_id', null) : query.eq('activity_date_id', activityDateId)
 
@@ -155,7 +155,7 @@ export async function writeRegistrationWithRetry(
 
 export async function getActivityForRegistration(supabase: any, activityId: string | number) {
   const { data, error } = await supabase
-    .from('activities')
+    .from('seasons')
     .select(
       'id, season_enabled, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, pickup_open_days_before, pickup_open_time, pickup_deadline_type, pickup_close_days_before, pickup_close_time'
     )

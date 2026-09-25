@@ -1,6 +1,6 @@
 type ActivityDate = {
   id: number
-  activity_id: number
+  season_id: number
   activity_date: string
   sort_order: number
 }
@@ -33,10 +33,10 @@ export async function fetchActiveActivityDates(supabase: any, activityIds: Array
 
   const { data, error } = await supabase
     .from('activity_dates')
-    .select('id, activity_id, activity_date, sort_order')
-    .in('activity_id', ids)
+    .select('id, season_id, activity_date, sort_order')
+    .in('season_id', ids)
     .eq('is_active', true)
-    .order('activity_id', { ascending: true })
+    .order('season_id', { ascending: true })
     .order('sort_order', { ascending: true })
   if (error) throw error
   return (data || []) as ActivityDate[]
@@ -44,15 +44,15 @@ export async function fetchActiveActivityDates(supabase: any, activityIds: Array
 
 export function groupActivityDatesByActivityId(activityDates: ActivityDate[]) {
   return activityDates.reduce((datesByActivityId, activityDate) => {
-    const dates = datesByActivityId.get(activityDate.activity_id) || []
+    const dates = datesByActivityId.get(activityDate.season_id) || []
     dates.push(activityDate)
-    datesByActivityId.set(activityDate.activity_id, dates)
+    datesByActivityId.set(activityDate.season_id, dates)
     return datesByActivityId
   }, new Map<number, ActivityDate[]>())
 }
 
 export async function fetchActivityDateId(supabase: any, activityId: number | string, activityDate: string) {
-  const { data, error } = await supabase.from('activity_dates').select('id').eq('activity_id', activityId).eq('activity_date', activityDate).maybeSingle()
+  const { data, error } = await supabase.from('activity_dates').select('id').eq('season_id', activityId).eq('activity_date', activityDate).maybeSingle()
   if (error) throw error
   return data?.id ?? null
 }

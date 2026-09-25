@@ -7,7 +7,7 @@ under `supabase/migrations/`.
 ## Security Model
 
 - Browser clients use the anon key for reads only.
-- Writes to `activities`, `registrations`, and `members` are blocked for
+- Writes to `seasons`, `registrations`, and `members` are blocked for
   `anon` and `authenticated` roles.
 - Write operations go through Edge Functions using the service role key:
   - `activity-admin`: organizer-only activity create/update/delete.
@@ -39,7 +39,7 @@ admin operations.
 
 ## Tables
 
-### `activities`
+### `seasons`
 
 Primary key:
 
@@ -88,9 +88,10 @@ Fields used by the app:
 
 Normalized tables:
 
-- `activity_dates` is the canonical table for activity dates. It keeps an
-  active flag rather than deleting retired dates, so historical registrations
-  and attendance states retain their references.
+- `activity_dates` is the canonical table for activity dates. Its `season_id`
+  foreign key points to `seasons`; it keeps an active flag rather than deleting
+  retired dates, so historical registrations and attendance states retain their
+  references.
 
 ### `registrations`
 
@@ -100,7 +101,7 @@ Primary key:
 
 Fields used by the app:
 
-- `activity_id bigint`
+- `season_id bigint`
 - `member_id uuid` — required foreign key to `members.id`
 - `cancelled_at timestamptz, nullable` — the member's cancellation time; a
   null value means this member is currently registered.
@@ -114,8 +115,8 @@ Fields used by the app:
 
 Database invariants:
 
-- One uncancelled pickup registration per `(activity_id, activity_date_id, member_id)`.
-- One uncancelled season registration per `(activity_id, member_id)` where
+- One uncancelled pickup registration per `(season_id, activity_date_id, member_id)`.
+- One uncancelled season registration per `(season_id, member_id)` where
   `activity_date_id is null`.
 - Each row is exactly one member's self-registration; `created_at` is its
   registration time. A later registration creates a new row rather than
@@ -124,7 +125,7 @@ Database invariants:
   uncancelled participant rows.
 - A season plan only covers the activity dates inside its own range, decided by
   `season_plan_covers_date(season_plan, activity_date, quarter_cutoff)` with the
-  cutoff from `activity_season_quarter_cutoff(activity_id)`: the quarter plan
+  cutoff from `activity_season_quarter_cutoff(season_id)`: the quarter plan
   covers the three calendar months from the first date, the late-quarter plan
   covers the rest, and the half-year plan covers every date. Member lists,
   per-date capacity, session occupancy, attendance totals and reminders all use
@@ -136,7 +137,7 @@ Database invariants:
 Normalized tables:
 
 - `registration_guests` is the canonical per-guest participation table. It
-  belongs directly to an `activity_id`, `activity_date_id`, and `invited_by`
+  belongs directly to a `season_id`, `activity_date_id`, and `invited_by`
   member—not a registration row. `created_at` is the invitation time and a
   rejoin creates a new row.
 - `season_registration_date_statuses` is the canonical season-member
@@ -174,8 +175,8 @@ Roles:
 
 - `20260520000000_lock_member_registration_writes.sql`: blocks direct anon
   writes to `members` and `registrations`.
-- `20260520001000_lock_activity_writes.sql`: blocks direct anon writes to
-  `activities`.
+- `20260520001000_lock_activity_writes.sql`: blocks direct anon writes to the
+  season table (named `activities` before the later rename).
 - `20260520002000_enforce_registration_consistency.sql`: unique active
   registration indexes and capacity trigger.
 - `20260520003000_persist_partial_cancellations.sql`: persisted partial
@@ -266,3 +267,6 @@ Roles:
   season plan with its own signup window and total fee, constrains
   `registrations.season_plan`, and makes member lists, per-date capacity,
   session occupancy and attendance totals respect each plan's date range.
+- `20260946000000_rename_activities_to_seasons.sql`: renames `activities` to
+  `seasons` and every direct foreign-key column from `activity_id` to
+  `season_id`, including relevant RPC result fields.

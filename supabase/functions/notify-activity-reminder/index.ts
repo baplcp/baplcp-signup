@@ -6,7 +6,7 @@ import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
 // 季打方案的分界點只看第一場日期，取最早一場即可判斷涵蓋範圍。
 async function fetchFirstActivityDate(supabase: any, activityId: number): Promise<string[]> {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true).order('activity_date', { ascending: true }).limit(1)
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('activity_date', { ascending: true }).limit(1)
   if (error) throw error
   return (data || []).map((row: { activity_date: string }) => row.activity_date)
 }
@@ -103,12 +103,12 @@ serve(async _req => {
         const { data: allSeasonRegs, error: sErr } = await supabase
           .from('registrations')
           .select('id, member_id, created_at, season_plan, member:members!registrations_member_id_fkey(user_id, display_name)')
-          .eq('activity_id', activity.id)
+          .eq('season_id', activity.season_id)
           .is('activity_date_id', null)
           .is('cancelled_at', null)
         if (sErr) throw sErr
         // 只算方案涵蓋這一天的季打成員，例如一季的人不該出現在後三個月。
-        const activityFirstDate = await fetchFirstActivityDate(supabase, activity.id)
+        const activityFirstDate = await fetchFirstActivityDate(supabase, activity.season_id)
         const seasonRegs = (allSeasonRegs || []).filter(registration => seasonPlanCoversDate(registration.season_plan, targetDate, activityFirstDate))
         const seasonDateStatuses = await fetchSeasonRegistrationDateStatuses(
           supabase,
@@ -120,7 +120,7 @@ serve(async _req => {
         const { data: pickupRegs, error: pErr } = await supabase
           .from('registrations')
           .select('id, member_id, created_at, member:members!registrations_member_id_fkey(user_id, display_name)')
-          .eq('activity_id', activity.id)
+          .eq('season_id', activity.season_id)
           .eq('activity_date_id', targetActivityDate.id)
           .is('cancelled_at', null)
         if (pErr) throw pErr
@@ -274,7 +274,7 @@ serve(async _req => {
         const messageText = (header + (pickupLine ? `本週臨打\n${pickupLine}\n\n` : '') + (seasonLine ? `本週季打\n${seasonLine}\n\n` : '') + genderLine + vacancyLine + footer).trimEnd()
 
         await sendWithGranularFallback(lineToken, lineGroupId, messageText, substitution, fallbackNames)
-        console.log(`Reminded: activity ${activity.id} (${targetDate}), pickup: ${confirmedPickup.length}, season: ${confirmedSeason.length}`)
+        console.log(`Reminded: season ${activity.season_id} (${targetDate}), pickup: ${confirmedPickup.length}, season: ${confirmedSeason.length}`)
         notified++
       }
     }

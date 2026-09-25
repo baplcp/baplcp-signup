@@ -163,7 +163,7 @@ serve(async _req => {
     if (error) throw error
 
     const notifications: Notification[] = (data || []).map(notification => ({
-      id: notification.activity_id,
+      id: notification.season_id,
       activityDateId: notification.activity_date_id ?? null,
       title: notification.title,
       pickupLabel: notification.pickup_label ?? null,

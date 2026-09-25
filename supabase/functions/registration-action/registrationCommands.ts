@@ -26,7 +26,7 @@ export type RegistrationCommandResult = { ok: true } | { error: string; status: 
 const MEMBER_GUEST_LIMIT = 2
 
 function selfRegistrationPayload(activityId: string | number, activityDateId: number | null, memberId: string, seasonPlan?: string) {
-  return { activity_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
+  return { season_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
 }
 
 function guestPayload(activityId: string | number, activityDateId: number, memberId: string, guests: Array<{ id?: string; name: string; gender: string }>, isAdmin: boolean) {
@@ -54,7 +54,7 @@ function assertSeasonRegistrationWindow(activity: Registration, seasonPlan: Seas
 }
 
 async function fetchActiveActivityDates(supabase: any, activityId: string | number): Promise<string[]> {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true)
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true)
   if (error) throw error
   return (data || []).map((row: { activity_date: string }) => row.activity_date)
 }

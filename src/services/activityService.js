@@ -11,7 +11,7 @@ const SEASON_SIGNUP_FIELDS =
   'id, title, location, start_time, end_time, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
 
 async function fetchSeasonSignupDates(activityId) {
-  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('activity_id', activityId).eq('is_active', true).order('sort_order', { ascending: true })
+  const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).eq('is_active', true).order('sort_order', { ascending: true })
   if (error) throw error
   return data || []
 }
@@ -23,9 +23,9 @@ async function hydrateActivityDates(activities, { includeActivityDateRecords = f
   const datesByActivityId = groupActivityDates(activityDates)
   const activityDateRecordsByActivityId = includeActivityDateRecords
     ? activityDates.reduce((recordsByActivityId, activityDate) => {
-        const records = recordsByActivityId.get(activityDate.activity_id) || []
+        const records = recordsByActivityId.get(activityDate.season_id) || []
         records.push(activityDate)
-        recordsByActivityId.set(activityDate.activity_id, records)
+        recordsByActivityId.set(activityDate.season_id, records)
         return recordsByActivityId
       }, new Map())
     : null
@@ -61,22 +61,22 @@ export async function deleteActivity(liffStore, id) {
 }
 
 export async function getActivity(id) {
-  const activities = await fetchActivities(supabase.from('activities').select(ACTIVITY_FORM_FIELDS).eq('id', id))
+  const activities = await fetchActivities(supabase.from('seasons').select(ACTIVITY_FORM_FIELDS).eq('id', id))
   if (!activities.length) throw new Error('activity_not_found')
   return activities[0]
 }
 
 export async function listManagedActivities() {
-  return fetchActivities(supabase.from('activities').select('id, title').order('created_at', { ascending: false }))
+  return fetchActivities(supabase.from('seasons').select('id, title').order('created_at', { ascending: false }))
 }
 
 export async function listHomeActivityCandidates() {
-  return fetchActivities(supabase.from('activities').select('id, end_time').order('created_at', { ascending: false }).limit(20), { includeActivityDateRecords: true })
+  return fetchActivities(supabase.from('seasons').select('id, end_time').order('created_at', { ascending: false }).limit(20), { includeActivityDateRecords: true })
 }
 
 export async function listSeasonActivities() {
   const { data, error } = await supabase
-    .from('activities')
+    .from('seasons')
     .select('id, title, season_open_date, season_open_time, season_close_date, season_close_time, season_deadline_type, activity_dates(count)')
     .eq('season_enabled', true)
     .eq('activity_dates.is_active', true)
@@ -91,7 +91,7 @@ export async function listSeasonActivities() {
 }
 
 export async function listSeasonActivitiesForRefund() {
-  return fetchActivities(supabase.from('activities').select('id, title, season_fee_per_session').eq('season_enabled', true).order('created_at', { ascending: false }))
+  return fetchActivities(supabase.from('seasons').select('id, title, season_fee_per_session').eq('season_enabled', true).order('created_at', { ascending: false }))
 }
 
 export async function getActivityPage(activityId, activityDateId = null) {
@@ -114,7 +114,7 @@ export async function getSeasonSignupPage(activityId) {
   const parsedActivityId = Number(activityId)
   if (!Number.isSafeInteger(parsedActivityId)) return null
 
-  const { data: activity, error } = await supabase.from('activities').select(SEASON_SIGNUP_FIELDS).eq('id', parsedActivityId).maybeSingle()
+  const { data: activity, error } = await supabase.from('seasons').select(SEASON_SIGNUP_FIELDS).eq('id', parsedActivityId).maybeSingle()
   if (error) throw error
   if (!activity) return null
 

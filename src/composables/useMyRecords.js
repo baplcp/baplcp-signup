@@ -49,9 +49,9 @@ export function useMyRecords() {
   const pickupDatesById = computed(() => new Map((sources.value?.pickupActivityDates || []).map(activityDate => [activityDate.id, activityDate])))
   const seasonDatesByActivityId = computed(() => {
     return (sources.value?.seasonActivityDates || []).reduce((datesByActivityId, activityDate) => {
-      const dates = datesByActivityId.get(activityDate.activity_id) || []
+      const dates = datesByActivityId.get(activityDate.season_id) || []
       dates.push(activityDate)
-      datesByActivityId.set(activityDate.activity_id, dates)
+      datesByActivityId.set(activityDate.season_id, dates)
       return datesByActivityId
     }, new Map())
   })
@@ -64,7 +64,7 @@ export function useMyRecords() {
     const leaveKeys = new Set(sources.value.leaveDates.map(leave => `${leave.registrationId}:${leave.activityDate}`))
 
     sources.value.registrations.forEach(registration => {
-      const activity = activitiesById.value.get(registration.activity_id)
+      const activity = activitiesById.value.get(registration.season_id)
 
       if (registration.activity_date_id) {
         const activityDate = pickupDatesById.value.get(registration.activity_date_id)
@@ -72,7 +72,7 @@ export function useMyRecords() {
         records.push({
           key: `pickup:${registration.id}`,
           date: activityDate.activity_date,
-          activityId: registration.activity_id,
+          activityId: registration.season_id,
           activityDateId: activityDate.id,
           unpaid: isPickupUnpaid(registration, activity),
         })
@@ -80,7 +80,7 @@ export function useMyRecords() {
       }
 
       // 季打的繳費勾選是整季共用且預設未繳，無法代表單場狀態，因此季打場次不標示尚未繳費。
-      const activityDates = seasonDatesByActivityId.value.get(registration.activity_id) || []
+      const activityDates = seasonDatesByActivityId.value.get(registration.season_id) || []
       const dates = activityDates.map(activityDate => activityDate.activity_date)
       activityDates.forEach(activityDate => {
         const date = activityDate.activity_date
@@ -89,7 +89,7 @@ export function useMyRecords() {
         records.push({
           key: `season:${registration.id}:${activityDate.id}`,
           date,
-          activityId: registration.activity_id,
+          activityId: registration.season_id,
           activityDateId: activityDate.id,
           unpaid: false,
         })
@@ -110,8 +110,8 @@ export function useMyRecords() {
 
     return seasonRegistrations.value
       .map(registration => {
-        const activity = activitiesById.value.get(registration.activity_id)
-        const dates = (seasonDatesByActivityId.value.get(registration.activity_id) || []).map(activityDate => activityDate.activity_date)
+        const activity = activitiesById.value.get(registration.season_id)
+        const dates = (seasonDatesByActivityId.value.get(registration.season_id) || []).map(activityDate => activityDate.activity_date)
         const feePerSession = seasonFeePerSession(registration, activity)
         // 只退方案涵蓋的場次，例如一季方案不會有後三個月的退費。
         const leaveDates = [

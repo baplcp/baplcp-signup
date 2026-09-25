@@ -48,7 +48,7 @@ async function writeActivity(supabase: any, organizerIdentity: OrganizerIdentity
 
 async function deleteActivity(supabase: any, organizerIdentity: OrganizerIdentity, activityId: string | number) {
   const result = organizerIdentity.isDevAdmin
-    ? supabase.from('activities').delete().eq('id', activityId)
+    ? supabase.from('seasons').delete().eq('id', activityId)
     : supabase.rpc('delete_activity_v1', { p_activity_id: activityId, p_organizer_user_id: organizerIdentity.userId })
   const { error } = await result
   if (error) throw error

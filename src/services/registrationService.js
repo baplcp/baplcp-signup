@@ -4,7 +4,7 @@ import { supabase } from '~/utils/supabase'
 import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const REGISTRATION_FIELDS =
-  'id, activity_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url, gender)'
+  'id, season_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url, gender)'
 
 function guestOwnerKey(activityDateId, memberId) {
   return `${activityDateId}:${memberId}`
@@ -128,13 +128,13 @@ export async function getActivityRegistration(registrationId) {
 
 export async function listSeasonRegistrations(activityId) {
   return listRegistrations(
-    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).is('cancelled_at', null).order('created_at', { ascending: true })
+    supabase.from('registrations').select(REGISTRATION_FIELDS).eq('season_id', activityId).is('activity_date_id', null).is('cancelled_at', null).order('created_at', { ascending: true })
   )
 }
 
 // 季打頁需同時顯示已取消名單，因此保留取消紀錄；不會讀取任何單場臨打或群外資料。
 export async function listSeasonPageRegistrations(activityId) {
-  return listRegistrations(supabase.from('registrations').select(REGISTRATION_FIELDS).eq('activity_id', activityId).is('activity_date_id', null).order('created_at', { ascending: true }), {
+  return listRegistrations(supabase.from('registrations').select(REGISTRATION_FIELDS).eq('season_id', activityId).is('activity_date_id', null).order('created_at', { ascending: true }), {
     includeGuests: false,
     includeDateStates: false,
     includeActivityDates: false,
@@ -169,18 +169,18 @@ export async function listMyRecordSources(userId) {
 
   const { data: registrations, error: registrationError } = await supabase
     .from('registrations')
-    .select('id, activity_id, activity_date_id, paid_court, paid_ac, season_plan, created_at')
+    .select('id, season_id, activity_date_id, paid_court, paid_ac, season_plan, created_at')
     .eq('member_id', member.id)
     .is('cancelled_at', null)
   if (registrationError) throw registrationError
   if (!registrations?.length) return empty
 
-  const activityIds = [...new Set(registrations.map(registration => registration.activity_id))]
+  const activityIds = [...new Set(registrations.map(registration => registration.season_id))]
   const seasonRegistrationIds = registrations.filter(registration => !registration.activity_date_id).map(registration => registration.id)
 
   const [activitiesResult, seasonActivityDates, pickupActivityDates, leaveStatesResult] = await Promise.all([
-    supabase.from('activities').select(MY_RECORD_ACTIVITY_FIELDS).in('id', activityIds),
-    fetchActivityDates(registrations.filter(registration => !registration.activity_date_id).map(registration => registration.activity_id)),
+    supabase.from('seasons').select(MY_RECORD_ACTIVITY_FIELDS).in('id', activityIds),
+    fetchActivityDates(registrations.filter(registration => !registration.activity_date_id).map(registration => registration.season_id)),
     fetchActivityDatesByIds(registrations.map(registration => registration.activity_date_id)),
     seasonRegistrationIds.length
       ? supabase.from('season_registration_date_statuses').select('registration_id, activity_date_id').in('registration_id', seasonRegistrationIds).eq('is_on_leave', true)
@@ -218,11 +218,11 @@ export function subscribeToRegistrationChanges(activityId, onChange, { includeGu
   if (!activityId) return null
 
   const channel = supabase.channel(`registrations-live-${activityId}`)
-  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${activityId}` }, change => {
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `season_id=eq.${activityId}` }, change => {
     const registration = change.new?.activity_date_id !== undefined ? change.new : change.old
     if (!seasonOnly || registration?.activity_date_id == null) onChange(change)
   })
-  if (includeGuests) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `activity_id=eq.${activityId}` }, onChange)
+  if (includeGuests) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `season_id=eq.${activityId}` }, onChange)
   return channel.subscribe()
 }
 

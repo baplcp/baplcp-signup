@@ -78,12 +78,12 @@ serve(async req => {
       } else {
         const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
         if (profileError) throw profileError
-        const { data: latestSeason } = await supabase.from('activities').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        const { data: latestSeason } = await supabase.from('seasons').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
         if (latestSeason) {
           const { data: seasonReg } = await supabase
             .from('registrations')
             .select('id')
-            .eq('activity_id', latestSeason.id)
+            .eq('season_id', latestSeason.id)
             .eq('member_id', data.id)
             .is('activity_date_id', null)
             .is('cancelled_at', null)

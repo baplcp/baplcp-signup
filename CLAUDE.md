@@ -86,7 +86,7 @@ Router 位於 `src/router/index.js`，採 `createWebHashHistory()`；Vite produc
 以 `supabase/SCHEMA.md` 與最新 migration 為準，不要由 UI 欄位或舊程式碼反推 schema。
 
 - 瀏覽器使用 anon key，僅做 RLS 允許的讀取、realtime 訂閱與公開 RPC。
-- `activities`、`registrations`、`members` 與正規化參與資料的寫入不可由 browser client 直接執行。
+- `seasons`、`registrations`、`members` 與正規化參與資料的寫入不可由 browser client 直接執行。
 - `activity_dates` 是活動日期的 canonical 資料；退役日期保留紀錄以維持歷史報名關聯。
 - `registrations` 的每列代表一位會員的自我報名；`registration_guests` 為獨立的來賓參與資料；`season_registration_date_statuses` 記錄季報成員各場的請假／回歸狀態。
 - 報名、候補、名額、取消、來賓與繳費會牽涉交易與併發規則。優先使用既有 Edge Function action／RPC，切勿在前端模擬寫入流程。
