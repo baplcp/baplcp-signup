@@ -39,7 +39,7 @@ async function confirmGender() {
 <template>
   <Layout>
     <RouterView v-slot="{ Component }">
-      <KeepAlive include="ActivitiesListPage">
+      <KeepAlive include="ActivitiesListPage,SeasonsListPage">
         <component :is="Component" />
       </KeepAlive>
     </RouterView>

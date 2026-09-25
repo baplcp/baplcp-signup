@@ -4,6 +4,8 @@ import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
 import { listSeasonActivities } from '~/services/activityService'
 import { parseTaiwanDateTime } from '~/utils/taiwanDate'
 
+defineOptions({ name: 'SeasonsListPage' })
+
 const activities = ref([])
 const isLoading = ref(true)
 
