@@ -70,8 +70,17 @@ export async function listManagedActivities() {
   return fetchActivities(supabase.from('seasons').select('id, title').order('created_at', { ascending: false }))
 }
 
-export async function listHomeActivityCandidates() {
-  return fetchActivities(supabase.from('seasons').select('id, end_time').order('created_at', { ascending: false }).limit(20), { includeActivityDateRecords: true })
+export async function getLatestActivitySession(now = new Date()) {
+  const { data, error } = await supabase.rpc('list_activities', {
+    p_segment: 'upcoming',
+    p_limit: 1,
+    p_now: now.toISOString(),
+    p_cursor_activity_date: null,
+    p_cursor_created_at: null,
+    p_cursor_activity_date_id: null,
+  })
+  if (error) throw error
+  return data?.[0] || null
 }
 
 export async function listSeasonActivities() {

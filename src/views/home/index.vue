@@ -6,10 +6,9 @@ import HomeHero from '~/components/home/HomeHero.vue'
 import HomeInfoCard from '~/components/home/HomeInfoCard.vue'
 import HomeParticipationCard from '~/components/home/HomeParticipationCard.vue'
 import HomeUtilityItem from '~/components/home/HomeUtilityItem.vue'
-import { listHomeActivityCandidates } from '~/services/activityService'
+import { getLatestActivitySession } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
-import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
 const liffStore = useLiffStore()
 const latestActivityTo = ref({ name: 'activities' })
@@ -17,36 +16,13 @@ const participationCount = ref(0)
 const participationLoading = ref(true)
 const imagesBaseUrl = import.meta.env.BASE_URL + 'images/'
 
-const now = new Date()
-
-function isDateExpired(dateStr, endTime) {
-  if (!endTime) {
-    const todayStr = getTaiwanDateString(now)
-    return dateStr < todayStr
-  }
-  const end = parseTaiwanDateTime(dateStr, endTime)
-  end.setUTCHours(end.getUTCHours() + 1)
-  return now > end
-}
-
 async function loadLatestActivity() {
   try {
-    const activities = await listHomeActivityCandidates()
-    let nearestActivityDate = null
-    let nearestActivity = null
-
-    for (const activity of activities) {
-      const candidate = (activity.activityDates || []).find(activityDate => !isDateExpired(activityDate.activity_date, activity.end_time))
-      if (candidate && (!nearestActivityDate || candidate.activity_date < nearestActivityDate.activity_date)) {
-        nearestActivityDate = candidate
-        nearestActivity = activity
-      }
-    }
-
-    if (nearestActivityDate && nearestActivity) {
+    const session = await getLatestActivitySession()
+    if (session) {
       latestActivityTo.value = {
         name: 'activity',
-        params: { id: nearestActivity.id, activityDateId: nearestActivityDate.id },
+        params: { id: session.season_id, activityDateId: session.activity_date_id },
         query: { type: 'latest' },
       }
     }
