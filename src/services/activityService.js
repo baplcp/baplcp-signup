@@ -123,11 +123,15 @@ export async function getSeasonSignupPage(activityId) {
   const parsedActivityId = Number(activityId)
   if (!Number.isSafeInteger(parsedActivityId)) return null
 
-  const { data: activity, error } = await supabase.from('seasons').select(SEASON_SIGNUP_FIELDS).eq('id', parsedActivityId).maybeSingle()
+  const [activityResult, dates, seasonRegistrations] = await Promise.all([
+    supabase.from('seasons').select(SEASON_SIGNUP_FIELDS).eq('id', parsedActivityId).maybeSingle(),
+    fetchSeasonSignupDates(parsedActivityId),
+    listSeasonPageRegistrations(parsedActivityId),
+  ])
+
+  const { data: activity, error } = activityResult
   if (error) throw error
   if (!activity) return null
-
-  const [dates, seasonRegistrations] = await Promise.all([fetchSeasonSignupDates(activity.id), listSeasonPageRegistrations(activity.id)])
 
   return {
     activity: {
