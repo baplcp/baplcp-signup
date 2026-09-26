@@ -138,17 +138,47 @@ export function useActiveActivityViewModels({
     return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} 後開放` : `${minutes}:${String(seconds).padStart(2, '0')} 後開放`
   })
 
+  // 季打跨過一季分界點時，名單依期間分成兩頁（例如 7-9月、10-12月）；
+  // 半年成員涵蓋兩段期間，兩頁都會出現。
+  const seasonRangeTabs = computed(() => {
+    if (activityType.value !== 'season') return []
+    return seasonPlans.value
+      .filter(plan => (plan.plan === SEASON_PLAN_QUARTER || plan.plan === SEASON_PLAN_LATE_QUARTER) && plan.count > 0)
+      .map(plan => ({ label: plan.dateRange, plan: plan.plan, firstDate: plan.firstDate }))
+  })
+  const hasSeasonRangeTabs = computed(() => seasonRangeTabs.value.length > 1)
+  const segmentTabs = computed(() => {
+    if (activityType.value !== 'season') return ['臨打', '季打', '報名成功']
+    return hasSeasonRangeTabs.value ? seasonRangeTabs.value.map(tab => tab.label) : ['全部']
+  })
+  // 還沒點選時預設顯示進行中的那一段：後季第一場到了就切到後季。
+  const currentSegment = computed(() => {
+    if (segmentTabs.value.includes(activeSegment.value)) return activeSegment.value
+    if (!hasSeasonRangeTabs.value) return segmentTabs.value[0]
+    const today = getTaiwanDateString(nowTick.value)
+    const lateTab = seasonRangeTabs.value.find(tab => tab.plan === SEASON_PLAN_LATE_QUARTER)
+    return lateTab?.firstDate && today >= lateTab.firstDate ? lateTab.label : seasonRangeTabs.value[0].label
+  })
+  const currentSeasonRangeTab = computed(() => seasonRangeTabs.value.find(tab => tab.label === currentSegment.value) || null)
+  // 分頁內重新編號與判斷候補，因為每一段期間的名額是分開計算的。
+  const seasonTabMemberList = computed(() => {
+    const tab = currentSeasonRangeTab.value
+    if (!tab) return memberList.value
+    const capacity = activityData.value?.single_capacity ?? Infinity
+    return memberList.value.filter(member => seasonPlansOverlap(member.seasonPlan, tab.plan)).map((member, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
+  })
+
   const vacancyCount = computed(() => {
     if (activityType.value === 'season') {
       const capacity = activityData.value?.season_capacity
       if (!capacity || capacity === 'unlimited') return '∞'
-      return Math.max(0, Number(capacity) - memberList.value.filter(member => !member.status).length)
+      return Math.max(0, Number(capacity) - seasonTabMemberList.value.filter(member => !member.status).length)
     }
     return Math.max(0, (activityData.value?.single_capacity ?? 0) - memberList.value.filter(member => !member.status).length)
   })
 
-  const segmentTabs = computed(() => (activityType.value === 'season' ? ['全部'] : ['臨打', '季打', '報名成功']))
   const filteredMemberList = computed(() => {
+    if (activityType.value === 'season') return seasonTabMemberList.value
     if (activeSegment.value === '臨打') return memberList.value.filter(member => !member.isSeason || member.isRejoined)
     if (activeSegment.value === '季打') return memberList.value.filter(member => member.isSeason)
     if (activeSegment.value === '報名成功') return memberList.value.filter(member => !member.status)
@@ -290,7 +320,7 @@ export function useActiveActivityViewModels({
       isSeasonRegistrationClosed,
     }),
     members: reactive({
-      activeSegment,
+      activeSegment: currentSegment,
       segmentTabs,
       filteredMemberList,
       genderCounts,
