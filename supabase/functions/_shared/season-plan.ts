@@ -39,3 +39,10 @@ export function seasonPlanCoversDate(seasonPlan: unknown, activityDate: string |
 export function seasonPlanDates(seasonPlan: unknown, dates: string[]): string[] {
   return sortedActivityDates(dates).filter(activityDate => seasonPlanCoversDate(seasonPlan, activityDate, dates))
 }
+
+// 與資料庫 season_plans_overlap 相同：一季與後季不重疊，半年與任何方案都重疊。
+export function seasonPlansOverlap(left: unknown, right: unknown): boolean {
+  const leftPlan = normalizeSeasonPlan(left)
+  const rightPlan = normalizeSeasonPlan(right)
+  return leftPlan === rightPlan || leftPlan === SEASON_PLAN_HALF_YEAR || rightPlan === SEASON_PLAN_HALF_YEAR
+}

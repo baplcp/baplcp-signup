@@ -70,7 +70,7 @@ export async function handleRegistrationAction(context: RegistrationActionContex
 
   if (action === 'season-cancel') {
     const memberId = await syncRegistrationMember(supabase, profile)
-    return toActionResult(await cancelSeasonRegistration({ ...context, memberId }))
+    return toActionResult(await cancelSeasonRegistration({ ...context, memberId }, body))
   }
 
   if (action === 'admin-toggle-payment') {

@@ -2,7 +2,7 @@ import { useSignupDialogs } from '~/composables/useSignupDialogs'
 import { useSignupFormState } from '~/composables/useSignupFormState'
 import { useSignupSubmission } from '~/composables/useSignupSubmission'
 
-export function useSignupFlow({ liffStore, activityData, activityType, resolvedDate, isAdmin, myRegistration, mySeasonRegistration, fetchRegistrations, viewModels }) {
+export function useSignupFlow({ liffStore, activityData, activityType, resolvedDate, isAdmin, myRegistration, mySeasonRegistration, mySeasonRegistrations, fetchRegistrations, viewModels }) {
   const formState = useSignupFormState({
     isAdmin,
     myRegistration,
@@ -22,6 +22,7 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     resolvedDate,
     myRegistration,
     mySeasonRegistration,
+    mySeasonRegistrations,
     fetchRegistrations,
     viewModels,
     signupState: formState.signupState,
@@ -67,5 +68,7 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     handleCtaClick: submission.handleCtaClick,
     handleSeasonPlanConfirm: submission.handleSeasonPlanConfirm,
     confirmSeasonCancel: submission.confirmSeasonCancel,
+    requestSeasonCancel: submission.requestSeasonCancel,
+    seasonCancelPlanLabel: submission.seasonCancelPlanLabel,
   }
 }

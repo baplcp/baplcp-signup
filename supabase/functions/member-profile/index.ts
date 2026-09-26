@@ -87,6 +87,8 @@ serve(async req => {
             .eq('member_id', data.id)
             .is('activity_date_id', null)
             .is('cancelled_at', null)
+            // 一季 + 後季會有兩筆有效季打報名，只要有任一筆就是季打成員。
+            .limit(1)
             .maybeSingle()
           const nextIsSeason = !!seasonReg
           if (nextIsSeason !== data.is_season) {

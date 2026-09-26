@@ -32,6 +32,20 @@ export async function findRegistration(
   return hydrateRegistrationCollections(data)
 }
 
+// 一季與後季不重疊，同一成員可以同時有兩筆有效季打報名，不能用 maybeSingle 查。
+export async function findActiveSeasonRegistrations(supabase: any, { activityId, memberId }: { activityId: string | number; memberId: string }): Promise<Registration[]> {
+  const { data, error } = await supabase
+    .from('registrations')
+    .select(REGISTRATION_FIELDS)
+    .eq('season_id', activityId)
+    .eq('member_id', memberId)
+    .is('activity_date_id', null)
+    .is('cancelled_at', null)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return Promise.all((data || []).map(hydrateRegistrationCollections))
+}
+
 export async function syncRegistrationMember(supabase: any, profile: { userId: string; displayName: string; pictureUrl?: string | null }) {
   const { data: existing, error: findError } = await supabase.from('members').select('id').eq('user_id', profile.userId).maybeSingle()
   if (findError) throw findError

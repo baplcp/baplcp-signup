@@ -37,14 +37,16 @@ export function useActiveActivityPage() {
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
 
-  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, memberGenders, fetchRegistrations } = useActiveActivityRegistrations({
-    activityData,
-    activityType,
-    resolvedDate,
-    getActivityId: () => route.params.id,
-    liffStore,
-    loadActivityPage: (activityId, activityDateId) => (isSeasonSignupPage.value ? getSeasonSignupPage(activityId) : getActivityPage(activityId, activityDateId)),
-  })
+  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, mySeasonRegistrations, memberGenders, fetchRegistrations } = useActiveActivityRegistrations(
+    {
+      activityData,
+      activityType,
+      resolvedDate,
+      getActivityId: () => route.params.id,
+      liffStore,
+      loadActivityPage: (activityId, activityDateId) => (isSeasonSignupPage.value ? getSeasonSignupPage(activityId) : getActivityPage(activityId, activityDateId)),
+    }
+  )
 
   const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
     activityData,
@@ -65,6 +67,7 @@ export function useActiveActivityPage() {
     isAdmin,
     myRegistration,
     mySeasonRegistration,
+    mySeasonRegistrations,
     fetchRegistrations,
     viewModels: viewModelsRef,
   })
@@ -82,6 +85,7 @@ export function useActiveActivityPage() {
     leaveMemberList,
     myRegistration,
     mySeasonRegistration,
+    mySeasonRegistrations,
     activeSegment,
     isLoading,
     isSubmitting: signupFlow.isSubmitting,
@@ -220,8 +224,10 @@ export function useActiveActivityPage() {
     removeDialog: registrationAdminActions.removeDialog,
     leaveConfirmOpen: signupFlow.leaveConfirmOpen,
     seasonCancelOpen: signupFlow.seasonCancelOpen,
+    seasonCancelPlanLabel: signupFlow.seasonCancelPlanLabel,
     seasonPlanOpen: signupFlow.seasonPlanOpen,
     seasonPlanOptions: viewModels.seasonPlanOptions,
+    isSeasonPlanManageMode: computed(() => viewModels.hasSubmittedSignup.value),
   })
 
   const admin = reactive({
@@ -256,6 +262,7 @@ export function useActiveActivityPage() {
     handleCtaClick: signupFlow.handleCtaClick,
     handleSeasonPlanConfirm: signupFlow.handleSeasonPlanConfirm,
     confirmSeasonCancel: signupFlow.confirmSeasonCancel,
+    requestSeasonCancel: signupFlow.requestSeasonCancel,
     closeSuccessDialog: () => signupFlow.setSuccessDialogOpen(false),
     handleEscape,
   }
