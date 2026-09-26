@@ -5,6 +5,7 @@ import { formatDateLabel, useCreateActivityCalendar } from '~/composables/useCre
 import { buildActivityPayload, populateActivityForm } from '~/composables/useCreateActivityForm'
 import { useCreateActivityPageForm } from '~/composables/useCreateActivityPageForm'
 import { useCreateActivityTimePicker } from '~/composables/useCreateActivityTimePicker'
+import { clearSeasonsListCache } from '~/composables/useSeasonsListCache'
 import { createActivity, getActivity, updateActivity } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
 import CreateActivityCalendarDialog from '~/components/create-activity/CreateActivityCalendarDialog.vue'
@@ -208,6 +209,7 @@ async function submitActivity() {
   try {
     if (isEditMode.value) {
       await updateActivity(liffStore, editId.value, payload)
+      await clearSeasonsListCache()
       openCreateDialog({
         title: '設定已更新',
         copy: '球局設定已更新完成。',

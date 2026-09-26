@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '~/components/Layout.vue'
+import { keptAlivePageNames } from '~/composables/useSeasonsListCache'
 import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
@@ -42,7 +43,7 @@ async function confirmGender() {
 
   <Layout>
     <RouterView v-slot="{ Component }">
-      <KeepAlive include="ActivitiesListPage,SeasonsListPage">
+      <KeepAlive :include="keptAlivePageNames">
         <component :is="Component" />
       </KeepAlive>
     </RouterView>
