@@ -6,6 +6,7 @@ import { useLiffStore } from '~/stores/liff'
 
 const liffStore = useLiffStore()
 const router = useRouter()
+const isDevEnvironment = import.meta.env.DEV || import.meta.env.BASE_URL.includes('/dev/')
 
 // LINE OAuth 登入後還原原本的頁面（外部瀏覽器 OAuth 回調用）
 watch(
@@ -37,6 +38,8 @@ async function confirmGender() {
 </script>
 
 <template>
+  <span v-if="isDevEnvironment" class="environment-badge" title="開發環境">DEV</span>
+
   <Layout>
     <RouterView v-slot="{ Component }">
       <KeepAlive include="ActivitiesListPage,SeasonsListPage">
@@ -70,6 +73,23 @@ async function confirmGender() {
 </template>
 
 <style scoped>
+.environment-badge {
+  position: fixed;
+  bottom: 8px;
+  left: 8px;
+  z-index: 30000;
+  padding: 3px 6px;
+  border: 1px solid rgba(199, 144, 81, 0.45);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #9a622e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
 .gender-prompt-overlay {
   z-index: 20000;
 }
