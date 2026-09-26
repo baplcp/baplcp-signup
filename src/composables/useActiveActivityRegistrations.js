@@ -14,6 +14,8 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   const seasonRegistrations = ref([])
   const myRegistration = ref(null)
   const mySeasonRegistration = ref(null)
+  // 一季 + 後季的人會同時有兩筆有效季打報名。
+  const mySeasonRegistrations = ref([])
   const memberGenders = ref({})
   let latestFetchId = 0
 
@@ -34,7 +36,8 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
   function getSeasonRegistrationState(data) {
     const active = data.filter(registration => !registration.cancelled_at)
     const cancelled = data.filter(registration => registration.cancelled_at)
-    const myRegistration = active.find(registration => registration.user_id === liffStore.userId && registration.is_self_registration) || null
+    const myActive = active.filter(registration => registration.user_id === liffStore.userId && registration.is_self_registration)
+    const myRegistration = myActive[0] || null
 
     return {
       registrations: data,
@@ -42,6 +45,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
       seasonRegistrations: data,
       myRegistration,
       mySeasonRegistration: myRegistration,
+      mySeasonRegistrations: myActive,
       memberGenders: mergeMemberGenders(data, liffStore),
     }
   }
@@ -52,10 +56,8 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     const seasonRegistrations = seasonData || []
     // 取消後重新報名季打會產生新的一筆報名，請假狀態要以目前有效的那筆為準；
     // 方案沒涵蓋的場次（例如後季成員看 9 月場）就不是季打成員，應走一般臨打報名。
-    const mySeasonRegistration =
-      seasonRegistrations.find(
-        registration => registration.user_id === liffStore.userId && !registration.cancelled_at && seasonPlanCoversDate(registration.season_plan, resolvedDate.value, activityDates)
-      ) || null
+    const mySeasonRegistrations = seasonRegistrations.filter(registration => registration.user_id === liffStore.userId && !registration.cancelled_at)
+    const mySeasonRegistration = mySeasonRegistrations.find(registration => seasonPlanCoversDate(registration.season_plan, resolvedDate.value, activityDates)) || null
 
     return {
       registrations: data,
@@ -63,6 +65,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
       seasonRegistrations,
       myRegistration,
       mySeasonRegistration,
+      mySeasonRegistrations,
       memberGenders: mergeMemberGenders([...data, ...seasonRegistrations], liffStore),
     }
   }
@@ -87,6 +90,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     seasonRegistrations.value = nextState.seasonRegistrations
     myRegistration.value = nextState.myRegistration
     mySeasonRegistration.value = nextState.mySeasonRegistration
+    mySeasonRegistrations.value = nextState.mySeasonRegistrations
     memberGenders.value = nextState.memberGenders
     return page.activity
   }
@@ -97,6 +101,7 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
     seasonRegistrations,
     myRegistration,
     mySeasonRegistration,
+    mySeasonRegistrations,
     memberGenders,
     fetchRegistrations,
   }

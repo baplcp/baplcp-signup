@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchRegistrationGuests, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
+import { pickupGuestPriorityCutoff, sortPickupParticipants } from '../_shared/pickup-priority.ts'
 import { getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
 import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
@@ -135,9 +136,11 @@ serve(async _req => {
         const totalCapacity = Number(activity.single_capacity) || 0
 
         // ── 統一排序與名額計算（對齊前端 useActivityMemberLists 邏輯）──
-        // 與前端相同：season + pickup 全部展平後依時間排序，再依 single_capacity 截斷
+        // 與前端相同：season + pickup 全部展平後排序（開放報名後第一個星期二 23:59 前
+        // 群內優先於群外，之後依報名時間），再依 single_capacity 截斷
         type FlatSlot = {
           kind: 'season_self' | 'pickup_self' | 'guest'
+          isGuest: boolean
           userId: string
           displayName: string
           ts: string
@@ -152,12 +155,12 @@ serve(async _req => {
           if (dateStatus?.is_on_leave) continue
           // 同前端：有回歸時間則用回歸時間，否則用 created_at
           const ts = dateStatus?.rejoined_at || reg.created_at
-          mainSlots.push({ kind: 'season_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
+          mainSlots.push({ kind: 'season_self', isGuest: false, userId: member.user_id, displayName: member.display_name ?? member.user_id, ts })
         }
 
         for (const reg of pickupRegs ?? []) {
           const member = registrationMember(reg)
-          mainSlots.push({ kind: 'pickup_self', userId: member.user_id, displayName: member.display_name ?? member.user_id, ts: reg.created_at })
+          mainSlots.push({ kind: 'pickup_self', isGuest: false, userId: member.user_id, displayName: member.display_name ?? member.user_id, ts: reg.created_at })
         }
 
         for (const guest of guests) {
@@ -165,6 +168,7 @@ serve(async _req => {
           if (!member) continue
           mainSlots.push({
             kind: 'guest',
+            isGuest: true,
             userId: member.user_id,
             displayName: member.display_name ?? member.user_id,
             ts: guest.created_at,
@@ -172,8 +176,10 @@ serve(async _req => {
           })
         }
 
-        mainSlots.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
-        const confirmedSlots = totalCapacity > 0 ? mainSlots.slice(0, totalCapacity) : mainSlots
+        const { data: pickupOpenSetting, error: pickupOpenError } = await supabase.from('seasons').select('pickup_open_days_before').eq('id', activity.season_id).maybeSingle()
+        if (pickupOpenError) throw pickupOpenError
+        const sortedSlots = sortPickupParticipants(mainSlots, pickupGuestPriorityCutoff(targetDate, pickupOpenSetting?.pickup_open_days_before ?? null))
+        const confirmedSlots = totalCapacity > 0 ? sortedSlots.slice(0, totalCapacity) : sortedSlots
 
         // ── 重組 confirmedSeason / confirmedPickup ─────────────────
         const confirmedSeason: ConfirmedUser[] = []

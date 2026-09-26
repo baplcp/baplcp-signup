@@ -1,9 +1,10 @@
 import { computed, reactive } from 'vue'
 import { addTaiwanDays, formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
 import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
-import { SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
+import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel, seasonPlansOverlap } from '~/utils/seasonPlan'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const SEASON_PLAN_ORDER = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
 
 export function useActiveActivityViewModels({
   activityData,
@@ -18,6 +19,7 @@ export function useActiveActivityViewModels({
   leaveMemberList,
   myRegistration,
   mySeasonRegistration,
+  mySeasonRegistrations,
   activeSegment,
   isLoading,
   isSubmitting,
@@ -54,16 +56,27 @@ export function useActiveActivityViewModels({
   // 每個方案都看得到，不能選的標上原因，使用者才知道它存在、為什麼不能報：
   // 已經開打的方案報進去會付全額卻只剩幾場；後季是給球季中途加入的人，
   // 前半季開打前一律不開放，避免有人在新一季開放時就只卡後半季。
+  // 已報名的方案不能重複報；範圍重疊的方案（例如已報一季再報半年）也不能並存，
+  // 一季與後季不重疊，所以已報一季的人可以續報後季。
+  const mySeasonPlans = computed(() => {
+    if (activityType.value !== 'season') return []
+    const plans = new Set((mySeasonRegistrations?.value || []).map(registration => normalizeSeasonPlan(registration.season_plan)))
+    return SEASON_PLAN_ORDER.filter(plan => plans.has(plan))
+  })
   const visibleSeasonPlans = computed(() => {
     const today = getTaiwanDateString(nowTick.value)
     const quarterStartDate = availableSeasonPlans.value.find(plan => plan.plan === SEASON_PLAN_QUARTER)?.firstDate
     const isLateQuarterOpen = !!quarterStartDate && quarterStartDate < today
 
     return availableSeasonPlans.value.map(plan => {
+      const isRegistered = mySeasonPlans.value.includes(plan.plan)
+      const overlapsRegistered = !isRegistered && mySeasonPlans.value.some(registeredPlan => seasonPlansOverlap(registeredPlan, plan.plan))
       const waitsForFirstHalf = plan.plan === SEASON_PLAN_LATE_QUARTER && !isLateQuarterOpen
       const notOpenYet = (plan.openAt && nowTick.value < plan.openAt) || waitsForFirstHalf
-      const unselectableReason = plan.closeAt && nowTick.value >= plan.closeAt ? '已截止' : plan.firstDate && plan.firstDate < today ? '已開打' : notOpenYet ? '尚未開放' : ''
-      return { ...plan, unselectableReason, selectable: !unselectableReason }
+      // 已報名或與已報方案重疊的方案，對使用者來說都是不能再報，一律標示已截止。
+      const unselectableReason =
+        isRegistered || overlapsRegistered ? '已截止' : plan.closeAt && nowTick.value >= plan.closeAt ? '已截止' : plan.firstDate && plan.firstDate < today ? '已開打' : notOpenYet ? '尚未開放' : ''
+      return { ...plan, isRegistered, unselectableReason, selectable: !unselectableReason }
     })
   })
 
@@ -75,11 +88,20 @@ export function useActiveActivityViewModels({
   })
 
   const seasonQuarterSessionCount = computed(() => availableSeasonPlans.value.find(plan => plan.plan === SEASON_PLAN_QUARTER)?.count ?? 0)
-  const seasonDisplaySessionCount = computed(() => (activityType.value === 'season' ? (selectedSeasonPlanDetail.value?.count ?? 0) : 0))
+  // 已報名時摘要卡顯示自己報的方案加總，例如一季 + 後季。
+  const registeredSeasonPlanDetails = computed(() => availableSeasonPlans.value.filter(plan => mySeasonPlans.value.includes(plan.plan)))
+  const seasonDisplaySessionCount = computed(() => {
+    if (activityType.value !== 'season') return 0
+    if (registeredSeasonPlanDetails.value.length) return registeredSeasonPlanDetails.value.reduce((sum, plan) => sum + plan.count, 0)
+    return selectedSeasonPlanDetail.value?.count ?? 0
+  })
 
   const summaryFeeAmount = computed(() => {
     if (!activityData.value) return 255
-    if (activityType.value === 'season') return selectedSeasonPlanDetail.value?.total ?? 0
+    if (activityType.value === 'season') {
+      if (registeredSeasonPlanDetails.value.length) return registeredSeasonPlanDetails.value.reduce((sum, plan) => sum + plan.total, 0)
+      return selectedSeasonPlanDetail.value?.total ?? 0
+    }
     const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
     return acEnabled.value ? base + acFeePerSession.value : base
   })
@@ -167,8 +189,11 @@ export function useActiveActivityViewModels({
   const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
   const myFullyPaid = computed(() => {
     if (!hasSubmittedSignup.value || !myRegistration.value) return false
-    const registration = myRegistration.value
     const acRequired = acEnabled.value && acFeePerSession.value > 0
+    if (activityType.value === 'season') {
+      return (mySeasonRegistrations?.value || []).every(registration => registration.paid_court && (!acRequired || registration.paid_ac))
+    }
+    const registration = myRegistration.value
     if (registration.is_self_registration && !registration.cancelled_at && (!registration.paid_court || (acRequired && !registration.paid_ac))) return false
     return (registration.guests || []).filter(guest => !guest.cancelled_at).every(guest => guest.paid_court && (!acRequired || guest.paid_ac))
   })
@@ -181,7 +206,7 @@ export function useActiveActivityViewModels({
   const summaryStatusText = computed(() => {
     if (activityType.value === 'season') {
       if (submittedTotal.value > 0) {
-        if (myFullyPaid.value) return `已報名${seasonPlanLabel(selectedSeasonPlan?.value)}`
+        if (myFullyPaid.value) return `已報名${mySeasonPlans.value.length ? mySeasonPlans.value.map(seasonPlanLabel).join('、') : seasonPlanLabel(selectedSeasonPlan?.value)}`
         return '尚未繳費'
       }
       return '未報名'

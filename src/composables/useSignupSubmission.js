@@ -1,6 +1,7 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { invokeRegistrationAction } from '~/services/registrationService'
 import { startLineOAuth } from '~/utils/lineOAuth'
+import { normalizeSeasonPlan, seasonPlanLabel } from '~/utils/seasonPlan'
 
 function formatRegistrationOpenTime(viewModels) {
   return viewModels.registrationOpenAt.value ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
@@ -13,6 +14,7 @@ export function useSignupSubmission({
   resolvedDate,
   myRegistration,
   mySeasonRegistration,
+  mySeasonRegistrations,
   fetchRegistrations,
   viewModels,
   signupState,
@@ -25,6 +27,9 @@ export function useSignupSubmission({
   seasonPlanOpen,
 }) {
   const isSubmitting = ref(false)
+  // 一季 + 後季的人要指定取消哪一個方案；null 表示取消全部季打報名。
+  const seasonCancelPlan = ref(null)
+  const seasonCancelPlanLabel = computed(() => (seasonCancelPlan.value ? seasonPlanLabel(seasonCancelPlan.value) : '季打'))
 
   async function submitSignup() {
     if (isSubmitting.value) return
@@ -127,11 +132,17 @@ export function useSignupSubmission({
     }
     if (currentViewModels.isSeasonRegistrationClosed.value && !currentViewModels.hasSubmittedSignup.value) return
     if (currentViewModels.hasSubmittedSignup.value) {
-      if (currentViewModels.isSeasonRegistrationClosed.value) {
-        setSuccessDialogOpen(true, { title: '已超過截止時間', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
+      // 還能加報其他方案時（例如已報一季續報後季）開啟方案選單，選單內不提供取消。
+      if (currentViewModels.selectableSeasonPlans.value.length) {
+        seasonPlanOpen.value = true
         return
       }
-      seasonCancelOpen.value = true
+      // 同時報了多個方案時暫不開放自行取消，避免一次取消錯方案。
+      if ((mySeasonRegistrations?.value?.length ?? 0) > 1) {
+        setSuccessDialogOpen(true, { title: '已報名多個方案', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
+        return
+      }
+      requestSeasonCancel(mySeasonRegistrations?.value?.[0]?.season_plan)
       return
     }
     // 還沒開放時先說明開放時間，不要開啟一張都不能選的方案選單；
@@ -175,13 +186,24 @@ export function useSignupSubmission({
     }
   }
 
+  function requestSeasonCancel(plan) {
+    if (viewModels.value.isSeasonRegistrationClosed.value) {
+      seasonPlanOpen.value = false
+      setSuccessDialogOpen(true, { title: '已超過截止時間', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
+      return
+    }
+    seasonCancelPlan.value = plan ? normalizeSeasonPlan(plan) : null
+    seasonPlanOpen.value = false
+    seasonCancelOpen.value = true
+  }
+
   async function confirmSeasonCancel() {
     seasonCancelOpen.value = false
     if (!myRegistration.value) return
     try {
-      await invokeRegistrationAction(liffStore, { action: 'season-cancel', activityId: activityData.value?.id })
-      liffStore.isSeason = false
+      await invokeRegistrationAction(liffStore, { action: 'season-cancel', activityId: activityData.value?.id, ...(seasonCancelPlan.value ? { seasonPlan: seasonCancelPlan.value } : {}) })
       await fetchRegistrations()
+      liffStore.isSeason = (mySeasonRegistrations?.value?.length ?? 0) > 0
     } catch {
       setSuccessDialogOpen(true, { title: '取消失敗', copy: '請稍後再試。', buttonText: '確認' })
     }
@@ -193,5 +215,6 @@ export function useSignupSubmission({
     handleCtaClick,
     handleSeasonPlanConfirm,
     confirmSeasonCancel,
+    seasonCancelPlanLabel,
   }
 }

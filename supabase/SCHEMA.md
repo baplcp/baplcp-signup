@@ -116,8 +116,12 @@ Fields used by the app:
 Database invariants:
 
 - One uncancelled pickup registration per `(season_id, activity_date_id, member_id)`.
-- One uncancelled season registration per `(season_id, member_id)` where
-  `activity_date_id is null`.
+- One uncancelled season registration per `(season_id, member_id, season_plan)`
+  where `activity_date_id is null`. A member may hold several season plans for
+  the same season only when their ranges do not overlap
+  (`season_plans_overlap`), e.g. quarter + late-quarter; the
+  `registrations_prevent_overlapping_season_plans` trigger rejects overlaps with
+  `season_plan_overlap`.
 - Each row is exactly one member's self-registration; `created_at` is its
   registration time. A later registration creates a new row rather than
   reusing a cancelled row.
@@ -271,3 +275,9 @@ Roles:
 - `20260946000000_rename_activities_to_seasons.sql`: renames `activities` to
   `seasons` and every direct foreign-key column from `activity_id` to
   `season_id`, including relevant RPC result fields.
+- `20260953000000_allow_consecutive_season_plans.sql`: lets a quarter member
+  also register the late quarter by making the active season uniqueness
+  per plan and rejecting overlapping plans with a trigger.
+- `20260954000000_limit_member_guests_to_one.sql`: lowers the per-member guest
+  limit to 1 (organizers unlimited). Members who already had more guests may
+  keep or reduce them but cannot add more.

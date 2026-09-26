@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AccessibleDialog from '~/components/AccessibleDialog.vue'
 
 // plans 來自 useActiveActivityViewModels，含已截止或已開打的方案：
@@ -13,9 +13,16 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  // 已報名的人開啟時是管理模式：已報的方案標示已報名，還能報的方案可以續報（例如一季續報後季）。
+  manage: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close', 'confirm'])
+
+const title = computed(() => (props.manage ? '管理季打報名' : '選擇報名方案'))
 
 function firstSelectablePlan() {
   return props.plans.find(plan => plan.selectable)?.plan || ''
@@ -46,9 +53,9 @@ function confirm() {
 </script>
 
 <template>
-  <AccessibleDialog :open="open" title="選擇報名方案" overlay-class="plan-overlay phone-container modal-frame" content-class="plan-sheet" @close="emit('close')">
+  <AccessibleDialog :open="open" :title="title" overlay-class="plan-overlay phone-container modal-frame" content-class="plan-sheet" @close="emit('close')">
     <div class="drag-handle" aria-hidden="true"></div>
-    <h2 id="plan-sheet-title" class="plan-title">選擇報名方案</h2>
+    <h2 id="plan-sheet-title" class="plan-title">{{ title }}</h2>
 
     <div class="plan-options">
       <button

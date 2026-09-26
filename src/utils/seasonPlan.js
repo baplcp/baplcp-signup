@@ -62,3 +62,10 @@ export function seasonPlanMonthRange(dates) {
 export function hasLateQuarterDates(dates) {
   return seasonPlanDates(SEASON_PLAN_LATE_QUARTER, dates).length > 0
 }
+
+// 與資料庫 season_plans_overlap 相同：一季與後季不重疊，半年與任何方案都重疊。
+export function seasonPlansOverlap(left, right) {
+  const leftPlan = normalizeSeasonPlan(left)
+  const rightPlan = normalizeSeasonPlan(right)
+  return leftPlan === rightPlan || leftPlan === SEASON_PLAN_HALF_YEAR || rightPlan === SEASON_PLAN_HALF_YEAR
+}

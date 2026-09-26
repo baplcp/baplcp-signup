@@ -1,9 +1,18 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, getTaiwanDateAndHour, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
-import { normalizeSeasonPlan, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanCoversDate, seasonPlanDates, type SeasonPlan } from '../_shared/season-plan.ts'
 import {
-  findRegistration,
+  normalizeSeasonPlan,
+  SEASON_PLAN_HALF_YEAR,
+  SEASON_PLAN_LATE_QUARTER,
+  SEASON_PLAN_QUARTER,
+  seasonPlanCoversDate,
+  seasonPlanDates,
+  seasonPlansOverlap,
+  type SeasonPlan,
+} from '../_shared/season-plan.ts'
+import {
+  findActiveSeasonRegistrations,
   getActivityForRegistration,
   setSeasonRegistrationDateStatus,
   writeRegistration,
@@ -23,7 +32,10 @@ export type RegistrationCommandContext = {
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
 
-const MEMBER_GUEST_LIMIT = 2
+// 群內成員每場最多帶 1 位群外朋友；上限調降前已經帶 2 位的人仍可送出原本的 2 位，
+// 資料庫只擋「超過上限且比原本更多」的寫入。
+const MEMBER_GUEST_LIMIT = 1
+const LEGACY_MEMBER_GUEST_INPUT_LIMIT = 2
 
 function selfRegistrationPayload(activityId: string | number, activityDateId: number | null, memberId: string, seasonPlan?: string) {
   return { season_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
@@ -88,19 +100,20 @@ function assertRegistrationWindow(activity: Registration, activityDate: string, 
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
-  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : MEMBER_GUEST_LIMIT)
+  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : LEGACY_MEMBER_GUEST_INPUT_LIMIT)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
   if (guestCount > 0) assertRegistrationWindow(activity, activityDate, now, isAdmin)
   const activityDateId = await fetchActivityDateId(supabase, activityId, activityDate)
   if (activityDateId === null) return { error: 'activity_date_not_found', status: 404 }
-  const seasonRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
-  if (!seasonRegistration) return { error: 'season_registration_not_found', status: 404 }
+  const seasonRegistrations = await findActiveSeasonRegistrations(supabase, { activityId, memberId })
+  if (!seasonRegistrations.length) return { error: 'season_registration_not_found', status: 404 }
+  // 一季 + 後季的人有兩筆季打報名，請假要落在涵蓋這一場的那筆；
   // 方案沒涵蓋的場次不算季打出席，請假／回歸對它沒有意義，應改走一般臨打報名。
-  if (!seasonPlanCoversDate(seasonRegistration.season_plan, activityDate, await fetchActivityDates(supabase, activityId))) {
-    return { error: 'season_plan_not_covering_date', status: 400 }
-  }
+  const activityDates = await fetchActivityDates(supabase, activityId)
+  const seasonRegistration = seasonRegistrations.find(registration => seasonPlanCoversDate(registration.season_plan, activityDate, activityDates))
+  if (!seasonRegistration) return { error: 'season_plan_not_covering_date', status: 400 }
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
   const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
   if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
@@ -114,20 +127,32 @@ export async function directSeasonRegister(context: Omit<RegistrationCommandCont
   const seasonPlan = normalizeSeasonPlan(body?.seasonPlan)
   assertSeasonRegistrationWindow(activity, seasonPlan, now)
   await assertSeasonPlanSelectable(supabase, activityId, seasonPlan, now)
-  const findActiveSelf = () => findRegistration(supabase, { activityId, memberId, activityDateId: null })
+  // 已報一季的人可以續報後季；範圍重疊的方案（例如已報一季再報半年）不能並存，
+  // 要先取消原本的報名。資料庫 trigger 也會擋，這裡先回傳明確的錯誤。
+  const activeRegistrations = await findActiveSeasonRegistrations(supabase, { activityId, memberId })
+  if (activeRegistrations.some(registration => normalizeSeasonPlan(registration.season_plan) !== seasonPlan && seasonPlansOverlap(registration.season_plan, seasonPlan))) {
+    return { error: 'season_plan_overlap', status: 409 }
+  }
+  const findActiveSelf = async () => (await findActiveSeasonRegistrations(supabase, { activityId, memberId })).find(registration => normalizeSeasonPlan(registration.season_plan) === seasonPlan)
   await writeRegistrationWithRetry(supabase, {
-    existing: await findActiveSelf(),
+    existing: activeRegistrations.find(registration => normalizeSeasonPlan(registration.season_plan) === seasonPlan),
     findAfterConflict: findActiveSelf,
     createPayload: () => selfRegistrationPayload(activityId, null, memberId, seasonPlan),
   })
   return { ok: true }
 }
 
-export async function cancelSeasonRegistration(context: Omit<RegistrationCommandContext, 'isAdmin'>): Promise<RegistrationCommandResult> {
+const SEASON_PLANS = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
+
+// 有帶 seasonPlan 時只取消該方案；沒帶時沿用舊行為取消這個活動的全部季打報名。
+export async function cancelSeasonRegistration(context: Omit<RegistrationCommandContext, 'isAdmin'>, body: Record<string, any> = {}): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, submitTime } = context
+  const requestedPlan = body?.seasonPlan
+  if (requestedPlan != null && !SEASON_PLANS.includes(requestedPlan)) return { error: 'invalid_season_plan', status: 400 }
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)
-  const activeRegistration = await findRegistration(supabase, { activityId, memberId, activityDateId: null })
-  if (activeRegistration) await writeRegistration(supabase, activeRegistration.id, { cancelled_at: submitTime })
+  const activeRegistrations = await findActiveSeasonRegistrations(supabase, { activityId, memberId })
+  const targets = requestedPlan == null ? activeRegistrations : activeRegistrations.filter(registration => normalizeSeasonPlan(registration.season_plan) === requestedPlan)
+  for (const registration of targets) await writeRegistration(supabase, registration.id, { cancelled_at: submitTime })
   return { ok: true }
 }
