@@ -101,7 +101,7 @@ function handleRowClick(act, index) {
     setOffset(index, 0)
     return
   }
-  router.push({ name: 'admin-activity-edit', params: { id: act.id } })
+  router.replace({ name: 'admin-activity-edit', params: { id: act.id } })
 }
 
 // 刪除確認

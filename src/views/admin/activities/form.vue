@@ -112,6 +112,19 @@ onMounted(async () => {
 })
 
 function returnToPreviousPage() {
+  if (route.name === 'admin-activity-edit') {
+    const previousPath = window.history.state?.__inAppFallbackFrom
+    router.replace({
+      name: 'admin-activities',
+      state: {
+        __inAppFrom: typeof previousPath === 'string' && previousPath.startsWith('/') ? previousPath : '/',
+        __inAppFallbackFrom: '/',
+        __skipInAppFromUpdate: true,
+      },
+    })
+    return
+  }
+
   if (window.history.length > 1) window.history.back()
   else router.replace({ name: 'activities' })
 }
