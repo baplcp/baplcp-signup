@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
+import { errorMessage } from './errorMessage.ts'
 
 const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',
@@ -52,7 +53,7 @@ serve(async req => {
     )
     return jsonResponse(result.body, result.status, origin)
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'internal_error'
+    const message = errorMessage(e)
     const status = ['missing_line_token', 'invalid_line_token', 'invalid_line_profile'].includes(message)
       ? 401
       : message === 'forbidden'

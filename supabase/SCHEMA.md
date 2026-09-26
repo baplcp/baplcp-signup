@@ -121,8 +121,9 @@ Database invariants:
 - Each row is exactly one member's self-registration; `created_at` is its
   registration time. A later registration creates a new row rather than
   reusing a cancelled row.
-- `write_registration_v3` locks the activity and calculates capacity from
-  uncancelled participant rows.
+- `write_registration_v3` locks the season while it writes. `single_capacity`
+  only separates confirmed players from waitlisted players; it never blocks a
+  pickup registration. `season_capacity` remains the hard enrollment limit.
 - A season plan only covers the activity dates inside its own range, decided by
   `season_plan_covers_date(season_plan, activity_date, quarter_cutoff)` with the
   cutoff from `activity_season_quarter_cutoff(season_id)`: the quarter plan
