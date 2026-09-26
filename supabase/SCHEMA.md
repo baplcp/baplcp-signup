@@ -278,3 +278,6 @@ Roles:
 - `20260953000000_allow_consecutive_season_plans.sql`: lets a quarter member
   also register the late quarter by making the active season uniqueness
   per plan and rejecting overlapping plans with a trigger.
+- `20260954000000_limit_member_guests_to_one.sql`: lowers the per-member guest
+  limit to 1 (organizers unlimited). Members who already had more guests may
+  keep or reduce them but cannot add more.

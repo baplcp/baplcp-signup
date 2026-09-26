@@ -118,6 +118,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       :registration-countdown="signup.registrationCountdown"
       :show-guest-validation="signup.showGuestValidation"
       :is-admin="admin.isAdmin"
+      :guest-limit="signup.guestLimit"
       @close="actions.setSignupOpen(false)"
       @adjust-count="actions.adjustSignupCount"
       @submit="actions.submitSignup"

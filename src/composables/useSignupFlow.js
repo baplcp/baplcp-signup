@@ -50,6 +50,7 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     seasonPlanOpen: dialogs.seasonPlanOpen,
     selectedSeasonPlan: formState.selectedSeasonPlan,
     signupState: formState.signupState,
+    guestLimit: formState.guestLimit,
     successDialog: dialogs.successDialog,
     leaveConfirmOpen: dialogs.leaveConfirmOpen,
     isSignupChanged: formState.isSignupChanged,

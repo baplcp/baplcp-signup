@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { pickupGuestPriorityCutoff, sortPickupParticipants } from '~/utils/pickupPriority'
 import { seasonPlanCoversDate } from '~/utils/seasonPlan'
 
 function formatRegistrationTime(isoString) {
@@ -41,6 +42,7 @@ function guestEntry(reg, guest) {
     _regId: reg.id,
     _memberType: 'guest',
     _guestId: guest.id,
+    isGuest: true,
     paidCourt: guest.paid_court ?? false,
     paidAc: guest.paid_ac ?? false,
   }
@@ -104,8 +106,9 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       })
     })
 
-    members.sort((a, b) => new Date(a._ts) - new Date(b._ts))
-    return members.map(({ _ts, ...member }, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
+    // 開放報名後第一個星期二 23:59 前，群內成員優先於群外朋友；之後依報名時間排序。
+    const cutoff = pickupGuestPriorityCutoff(resolvedDate.value, activityData.value?.pickup_open_days_before)
+    return sortPickupParticipants(members, cutoff).map(({ _ts, isGuest, ...member }, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
   })
 
   const cancelledMemberList = computed(() => {

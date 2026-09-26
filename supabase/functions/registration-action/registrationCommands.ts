@@ -32,7 +32,10 @@ export type RegistrationCommandContext = {
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
 
-const MEMBER_GUEST_LIMIT = 2
+// 群內成員每場最多帶 1 位群外朋友；上限調降前已經帶 2 位的人仍可送出原本的 2 位，
+// 資料庫只擋「超過上限且比原本更多」的寫入。
+const MEMBER_GUEST_LIMIT = 1
+const LEGACY_MEMBER_GUEST_INPUT_LIMIT = 2
 
 function selfRegistrationPayload(activityId: string | number, activityDateId: number | null, memberId: string, seasonPlan?: string) {
   return { season_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
@@ -97,7 +100,7 @@ function assertRegistrationWindow(activity: Registration, activityDate: string, 
 
 export async function updateSeasonLeave(context: RegistrationCommandContext, body: Record<string, any>): Promise<RegistrationCommandResult> {
   const { supabase, memberId, activityId, submitTime, now, isAdmin } = context
-  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : MEMBER_GUEST_LIMIT)
+  const { activityDate, selfCount, guestCount, guests } = parseSeasonLeaveInput(body, isAdmin ? Number.MAX_SAFE_INTEGER : LEGACY_MEMBER_GUEST_INPUT_LIMIT)
   const normalizedGuests = guests.slice(0, guestCount)
   const activity = await getActivityForRegistration(supabase, activityId)
   assertSeasonEnabled(activity)

@@ -208,6 +208,7 @@ export function useActiveActivityPage() {
     isSubmitting: signupFlow.isSubmitting,
     showGuestValidation: signupFlow.showGuestValidation,
     signupState: signupFlow.signupState,
+    guestLimit: signupFlow.guestLimit,
     signupTotal: computed(() => viewModels.signup.signupTotal),
     isSignupChanged: signupFlow.isSignupChanged,
     isRegistrationOpen: computed(() => viewModels.signup.isRegistrationOpen),

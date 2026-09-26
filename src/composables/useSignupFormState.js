@@ -1,5 +1,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 
+const MEMBER_GUEST_LIMIT = 1
+
 function toGuestForm(guests = []) {
   return guests.filter(guest => !guest.cancelled_at).map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '' }))
 }
@@ -66,8 +68,11 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     syncGuestLength(signupState, signupState.guest)
   }
 
+  // 群內成員最多帶 1 位群外朋友；上限調降前已經帶 2 位的人可以保留，但不能再往上加。
+  const guestLimit = computed(() => (isAdmin.value ? Infinity : Math.max(MEMBER_GUEST_LIMIT, toGuestForm(myRegistration.value?.guests).length)))
+
   function adjustSignupCount(type, direction) {
-    const max = type === 'self' ? 1 : isAdmin.value ? Infinity : 2
+    const max = type === 'self' ? 1 : guestLimit.value
     signupState[type] = Math.max(0, Math.min(max, signupState[type] + direction))
     if (type === 'guest') syncGuestLength(signupState, signupState.guest)
   }
@@ -79,5 +84,6 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     isSignupChanged,
     resetSignupState,
     adjustSignupCount,
+    guestLimit,
   }
 }
