@@ -274,6 +274,12 @@ function handleRemove(member, index) {
   box-shadow: 0 10px 20px rgba(87, 104, 255, 0.22);
 }
 
+/* 季打頁沿用標題區漸層中段的橘色 */
+.hero-season .activity-segment-tab.is-active {
+  background: #e09a3a;
+  box-shadow: 0 10px 20px rgba(224, 154, 58, 0.24);
+}
+
 .gender-summary {
   margin: -4px 2px 8px;
   color: #8f95b2;
