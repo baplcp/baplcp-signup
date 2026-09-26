@@ -73,17 +73,9 @@ export function useActiveActivityViewModels({
       const overlapsRegistered = !isRegistered && mySeasonPlans.value.some(registeredPlan => seasonPlansOverlap(registeredPlan, plan.plan))
       const waitsForFirstHalf = plan.plan === SEASON_PLAN_LATE_QUARTER && !isLateQuarterOpen
       const notOpenYet = (plan.openAt && nowTick.value < plan.openAt) || waitsForFirstHalf
-      const unselectableReason = isRegistered
-        ? '已報名'
-        : overlapsRegistered
-          ? '與已報方案重疊'
-          : plan.closeAt && nowTick.value >= plan.closeAt
-            ? '已截止'
-            : plan.firstDate && plan.firstDate < today
-              ? '已開打'
-              : notOpenYet
-                ? '尚未開放'
-                : ''
+      // 已報名或與已報方案重疊的方案，對使用者來說都是不能再報，一律標示已截止。
+      const unselectableReason =
+        isRegistered || overlapsRegistered ? '已截止' : plan.closeAt && nowTick.value >= plan.closeAt ? '已截止' : plan.firstDate && plan.firstDate < today ? '已開打' : notOpenYet ? '尚未開放' : ''
       return { ...plan, isRegistered, unselectableReason, selectable: !unselectableReason }
     })
   })

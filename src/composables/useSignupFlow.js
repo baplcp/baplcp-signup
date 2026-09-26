@@ -68,7 +68,6 @@ export function useSignupFlow({ liffStore, activityData, activityType, resolvedD
     handleCtaClick: submission.handleCtaClick,
     handleSeasonPlanConfirm: submission.handleSeasonPlanConfirm,
     confirmSeasonCancel: submission.confirmSeasonCancel,
-    requestSeasonCancel: submission.requestSeasonCancel,
     seasonCancelPlanLabel: submission.seasonCancelPlanLabel,
   }
 }

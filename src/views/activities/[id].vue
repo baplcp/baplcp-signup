@@ -173,7 +173,6 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       :manage="dialogs.isSeasonPlanManageMode"
       @close="dialogs.seasonPlanOpen = false"
       @confirm="actions.handleSeasonPlanConfirm"
-      @cancel-plan="actions.requestSeasonCancel"
     />
 
     <!-- 取消季打報名確認 sheet -->

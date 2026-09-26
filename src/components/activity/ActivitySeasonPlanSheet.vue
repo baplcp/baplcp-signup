@@ -13,17 +13,16 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  // 已報名的人開啟時是管理模式：已報的方案可以取消，還能報的方案可以續報（例如一季續報後季）。
+  // 已報名的人開啟時是管理模式：已報的方案標示已報名，還能報的方案可以續報（例如一季續報後季）。
   manage: {
     type: Boolean,
     default: false,
   },
 })
 
-const emit = defineEmits(['close', 'confirm', 'cancel-plan'])
+const emit = defineEmits(['close', 'confirm'])
 
 const title = computed(() => (props.manage ? '管理季打報名' : '選擇報名方案'))
-const hasSelectablePlan = computed(() => props.plans.some(plan => plan.selectable))
 
 function firstSelectablePlan() {
   return props.plans.find(plan => plan.selectable)?.plan || ''
@@ -59,33 +58,32 @@ function confirm() {
     <h2 id="plan-sheet-title" class="plan-title">{{ title }}</h2>
 
     <div class="plan-options">
-      <div v-for="planOption in plans" :key="planOption.plan" class="plan-option">
-        <button
-          class="plan-card"
-          :class="{ 'is-selected': selectedPlan === planOption.plan, 'is-unselectable': !planOption.selectable }"
-          type="button"
-          :disabled="!planOption.selectable"
-          @click="selectedPlan = planOption.plan"
-        >
-          <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === planOption.plan }" aria-hidden="true"></div>
-          <div class="plan-card-body">
-            <p class="plan-card-name">
-              {{ planOption.name }}
-              <span v-if="planOption.unselectableReason" class="plan-card-tag">{{ planOption.unselectableReason }}</span>
-            </p>
-            <p class="plan-card-meta">{{ planOption.dateRange }}・{{ planOption.count }} 次</p>
-            <p class="plan-card-fee">${{ planOption.feePerSession.toLocaleString() }} / 次</p>
-          </div>
-          <div class="plan-card-total">
-            <p class="plan-card-price">${{ planOption.total.toLocaleString() }}</p>
-            <p class="plan-card-unit">/人</p>
-          </div>
-        </button>
-        <button v-if="manage && planOption.isRegistered" class="plan-card-cancel" type="button" @click="emit('cancel-plan', planOption.plan)">取消{{ planOption.name }}報名</button>
-      </div>
+      <button
+        v-for="planOption in plans"
+        :key="planOption.plan"
+        class="plan-card"
+        :class="{ 'is-selected': selectedPlan === planOption.plan, 'is-unselectable': !planOption.selectable }"
+        type="button"
+        :disabled="!planOption.selectable"
+        @click="selectedPlan = planOption.plan"
+      >
+        <div class="plan-card-radio" :class="{ 'is-on': selectedPlan === planOption.plan }" aria-hidden="true"></div>
+        <div class="plan-card-body">
+          <p class="plan-card-name">
+            {{ planOption.name }}
+            <span v-if="planOption.unselectableReason" class="plan-card-tag">{{ planOption.unselectableReason }}</span>
+          </p>
+          <p class="plan-card-meta">{{ planOption.dateRange }}・{{ planOption.count }} 次</p>
+          <p class="plan-card-fee">${{ planOption.feePerSession.toLocaleString() }} / 次</p>
+        </div>
+        <div class="plan-card-total">
+          <p class="plan-card-price">${{ planOption.total.toLocaleString() }}</p>
+          <p class="plan-card-unit">/人</p>
+        </div>
+      </button>
     </div>
 
-    <button v-if="!manage || hasSelectablePlan" class="plan-confirm" type="button" :disabled="!selectedPlan" @click="confirm">確認報名</button>
+    <button class="plan-confirm" type="button" :disabled="!selectedPlan" @click="confirm">確認報名</button>
   </AccessibleDialog>
 </template>
 
@@ -147,21 +145,6 @@ function confirm() {
   display: grid;
   gap: 10px;
   margin-bottom: 20px;
-}
-
-.plan-option {
-  display: grid;
-  gap: 6px;
-}
-
-.plan-card-cancel {
-  justify-self: end;
-  min-height: 36px;
-  padding: 6px 4px;
-  color: #d14343;
-  font-size: 13px;
-  line-height: 1.35;
-  font-weight: 500;
 }
 
 .plan-card {

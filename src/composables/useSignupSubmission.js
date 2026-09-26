@@ -132,11 +132,14 @@ export function useSignupSubmission({
     }
     if (currentViewModels.isSeasonRegistrationClosed.value && !currentViewModels.hasSubmittedSignup.value) return
     if (currentViewModels.hasSubmittedSignup.value) {
-      // 還能加報其他方案（例如已報一季續報後季），或同時報了多個方案要選擇取消哪一個時，
-      // 開啟方案選單管理；否則維持原本直接詢問是否取消的流程。
-      const registeredCount = mySeasonRegistrations?.value?.length ?? 0
-      if (currentViewModels.selectableSeasonPlans.value.length || registeredCount > 1) {
+      // 還能加報其他方案時（例如已報一季續報後季）開啟方案選單，選單內不提供取消。
+      if (currentViewModels.selectableSeasonPlans.value.length) {
         seasonPlanOpen.value = true
+        return
+      }
+      // 同時報了多個方案時暫不開放自行取消，避免一次取消錯方案。
+      if ((mySeasonRegistrations?.value?.length ?? 0) > 1) {
+        setSuccessDialogOpen(true, { title: '已報名多個方案', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
         return
       }
       requestSeasonCancel(mySeasonRegistrations?.value?.[0]?.season_plan)
@@ -212,7 +215,6 @@ export function useSignupSubmission({
     handleCtaClick,
     handleSeasonPlanConfirm,
     confirmSeasonCancel,
-    requestSeasonCancel,
     seasonCancelPlanLabel,
   }
 }
