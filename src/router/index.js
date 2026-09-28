@@ -98,7 +98,7 @@ function getRouteFallback(path) {
 router.beforeEach(async (to, from) => {
   if (to.meta.requiresOrganizer) {
     const liffStore = useLiffStore()
-    await liffStore.initialize()
+    await liffStore.ensureMemberProfile()
     if (liffStore.role !== 'organizer') return { name: 'home' }
   }
 

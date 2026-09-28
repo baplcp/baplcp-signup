@@ -23,7 +23,7 @@ watch(
 const selectedGender = ref('')
 const saving = ref(false)
 
-const showGenderPrompt = computed(() => liffStore.initialized && !!liffStore.userId && liffStore.gender === null)
+const showGenderPrompt = computed(() => liffStore.initialized && liffStore.memberProfileInitialized && !!liffStore.userId && liffStore.gender === null)
 
 // 每次 prompt 出現時重置選擇
 watch(showGenderPrompt, val => {

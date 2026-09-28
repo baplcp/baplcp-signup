@@ -7,6 +7,7 @@ import { supabase } from '~/utils/supabase'
 import { consumeOAuthCallback, hasLineOAuthCallback, popPostOAuthRedirect, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
 
 let initializationPromise = null
+let memberProfilePromise = null
 const EXTERNAL_OAUTH_SESSION_KEY = 'line-oauth-session'
 const EXTERNAL_OAUTH_SESSION_SKEW_MS = 60 * 1000
 
@@ -19,6 +20,7 @@ export const useLiffStore = defineStore('liff', () => {
   const role = ref('member')
   const gender = ref(null)
   const isSeason = ref(false)
+  const memberProfileInitialized = ref(false)
   const pendingRedirect = ref(null)
 
   function getUserProfile() {
@@ -70,12 +72,12 @@ export const useLiffStore = defineStore('liff', () => {
     )
   }
 
-  async function applyExternalOAuthSession(session) {
+  function applyExternalOAuthSession(session) {
     userId.value = session.userId
     displayName.value = session.displayName
     pictureUrl.value = session.pictureUrl ?? null
     lineAccessToken.value = session.accessToken
-    await syncMember(session.userId, session.displayName)
+    startMemberProfileSync(session.userId, session.displayName)
     initialized.value = true
   }
 
@@ -92,12 +94,33 @@ export const useLiffStore = defineStore('liff', () => {
     }
   }
 
+  function startMemberProfileSync(uid, name) {
+    memberProfileInitialized.value = false
+    memberProfilePromise = syncMember(uid, name).finally(() => {
+      memberProfileInitialized.value = true
+    })
+    return memberProfilePromise
+  }
+
+  async function ensureMemberProfile() {
+    await initialize()
+    await memberProfilePromise
+  }
+
+  function applyLiffProfile(profile) {
+    userId.value = profile.userId
+    displayName.value = profile.displayName
+    pictureUrl.value = profile.pictureUrl
+    lineAccessToken.value = liff.getAccessToken()
+    startMemberProfileSync(profile.userId, profile.displayName)
+  }
+
   async function initializeClient() {
     if (import.meta.env.DEV) {
       userId.value = 'dev-user-001'
       displayName.value = 'Dev User'
       pictureUrl.value = null
-      await syncMember('dev-user-001', 'Dev User')
+      startMemberProfileSync('dev-user-001', 'Dev User')
       initialized.value = true
       return
     }
@@ -115,7 +138,7 @@ export const useLiffStore = defineStore('liff', () => {
         })
         if (!error && data?.userId && data?.displayName && data?.accessToken) {
           saveExternalOAuthSession(data)
-          await applyExternalOAuthSession({
+          applyExternalOAuthSession({
             userId: data.userId,
             displayName: data.displayName,
             pictureUrl: data.pictureUrl ?? null,
@@ -159,11 +182,7 @@ export const useLiffStore = defineStore('liff', () => {
         if (liff.isLoggedIn()) {
           // 已透過 LIFF token 登入
           const profile = await liff.getProfile()
-          userId.value = profile.userId
-          displayName.value = profile.displayName
-          pictureUrl.value = profile.pictureUrl
-          lineAccessToken.value = liff.getAccessToken()
-          await syncMember(profile.userId, profile.displayName)
+          applyLiffProfile(profile)
         }
 
         // withLoginOnExternalBrowser 會在尚未登入時啟動 liff.login()。
@@ -175,11 +194,7 @@ export const useLiffStore = defineStore('liff', () => {
       // LIFF Browser — 正常 LIFF 流程
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile()
-        userId.value = profile.userId
-        displayName.value = profile.displayName
-        pictureUrl.value = profile.pictureUrl
-        lineAccessToken.value = liff.getAccessToken()
-        await syncMember(profile.userId, profile.displayName)
+        applyLiffProfile(profile)
 
         initialized.value = true
       } else {
@@ -209,11 +224,7 @@ export const useLiffStore = defineStore('liff', () => {
       try {
         if (liff.isInClient() && liff.isLoggedIn()) {
           const profile = await liff.getProfile()
-          userId.value = profile.userId
-          displayName.value = profile.displayName
-          pictureUrl.value = profile.pictureUrl
-          lineAccessToken.value = liff.getAccessToken()
-          await syncMember(profile.userId, profile.displayName)
+          applyLiffProfile(profile)
         }
       } catch (profileErr) {
         console.warn('LIFF profile fetch after liff.state redirect failed', profileErr)
@@ -257,6 +268,8 @@ export const useLiffStore = defineStore('liff', () => {
   function login() {
     // 清空 singleton，確保跳轉回來後重新初始化（避免 same-page 跳轉時舊 promise 已完成）
     initializationPromise = null
+    memberProfilePromise = null
+    memberProfileInitialized.value = false
     liff.login({ redirectUri: window.location.href })
   }
 
@@ -269,9 +282,11 @@ export const useLiffStore = defineStore('liff', () => {
     role,
     gender,
     isSeason,
+    memberProfileInitialized,
     pendingRedirect,
     getUserProfile,
     initialize,
+    ensureMemberProfile,
     getLineAccessToken,
     login,
     updateGender,

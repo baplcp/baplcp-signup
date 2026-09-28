@@ -60,7 +60,7 @@ serve(async req => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     if (action === 'sync') {
-      const { data, error } = await supabase.from('members').select('id, role, gender, is_season').eq('user_id', profile.userId).maybeSingle()
+      const { data, error } = await supabase.from('members').select('role, gender, is_season, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
       let role = data?.role ?? 'member'
@@ -75,28 +75,9 @@ serve(async req => {
           role: 'member',
         })
         if (insertError) throw insertError
-      } else {
+      } else if (data.display_name !== profile.displayName || data.picture_url !== profile.pictureUrl) {
         const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
         if (profileError) throw profileError
-        const { data: latestSeason } = await supabase.from('seasons').select('id').eq('season_enabled', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
-        if (latestSeason) {
-          const { data: seasonReg } = await supabase
-            .from('registrations')
-            .select('id')
-            .eq('season_id', latestSeason.id)
-            .eq('member_id', data.id)
-            .is('activity_date_id', null)
-            .is('cancelled_at', null)
-            // 一季 + 後季會有兩筆有效季打報名，只要有任一筆就是季打成員。
-            .limit(1)
-            .maybeSingle()
-          const nextIsSeason = !!seasonReg
-          if (nextIsSeason !== data.is_season) {
-            const { error: seasonError } = await supabase.from('members').update({ is_season: nextIsSeason }).eq('user_id', profile.userId)
-            if (seasonError) throw seasonError
-          }
-          isSeason = nextIsSeason
-        }
       }
 
       return jsonResponse({ role, gender, isSeason }, 200, origin)
