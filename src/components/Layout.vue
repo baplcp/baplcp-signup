@@ -2,7 +2,6 @@
 import { ref, computed, nextTick, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
-import { startLineOAuth } from '~/utils/lineOAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,11 +57,6 @@ function closeMenu() {
 
 function requestLineLogin() {
   closeMenu()
-  if (liffStore.isExternalBrowser) {
-    startLineOAuth()
-    return
-  }
-
   liffStore.login()
 }
 

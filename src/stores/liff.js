@@ -4,10 +4,9 @@ import { ref } from 'vue'
 import { LIFF_ID } from '~/config/env'
 import { syncMemberProfile, updateMemberGender } from '~/services/memberProfileService'
 import { supabase } from '~/utils/supabase'
-import { consumeOAuthCallback, hasLineOAuthCallback, popPostOAuthRedirect, startLineOAuth, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
+import { consumeOAuthCallback, hasLineOAuthCallback, popPostOAuthRedirect, LINE_OAUTH_REDIRECT_URI } from '~/utils/lineOAuth'
 
 let initializationPromise = null
-const AUTO_LINE_OAUTH_ATTEMPTED_KEY = 'line-oauth-auto-attempted'
 const EXTERNAL_OAUTH_SESSION_KEY = 'line-oauth-session'
 const EXTERNAL_OAUTH_SESSION_SKEW_MS = 60 * 1000
 
@@ -20,7 +19,6 @@ export const useLiffStore = defineStore('liff', () => {
   const role = ref('member')
   const gender = ref(null)
   const isSeason = ref(false)
-  const isExternalBrowser = ref(false)
   const pendingRedirect = ref(null)
 
   function getUserProfile() {
@@ -29,10 +27,6 @@ export const useLiffStore = defineStore('liff', () => {
       displayName: displayName.value,
       pictureUrl: pictureUrl.value,
     }
-  }
-
-  function clearAutoLineOAuthAttempt() {
-    sessionStorage.removeItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY)
   }
 
   function readExternalOAuthSession() {
@@ -77,20 +71,12 @@ export const useLiffStore = defineStore('liff', () => {
   }
 
   async function applyExternalOAuthSession(session) {
-    isExternalBrowser.value = true
     userId.value = session.userId
     displayName.value = session.displayName
     pictureUrl.value = session.pictureUrl ?? null
     lineAccessToken.value = session.accessToken
     await syncMember(session.userId, session.displayName)
-    clearAutoLineOAuthAttempt()
     initialized.value = true
-  }
-
-  function startLineOAuthOnce() {
-    if (sessionStorage.getItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY)) return
-    sessionStorage.setItem(AUTO_LINE_OAUTH_ATTEMPTED_KEY, '1')
-    startLineOAuth()
   }
 
   // 登入時透過 Edge Function 同步 members；production 不信任前端傳入的 LINE 身分。
@@ -116,12 +102,13 @@ export const useLiffStore = defineStore('liff', () => {
       return
     }
 
-    // 在 liff.init() 之前先檢查 LINE OAuth callback，
-    // 避免 LIFF SDK 把 ?code 參數誤判為自己的 OAuth 並消耗掉
-    const hasOAuthCallback = hasLineOAuthCallback()
-    const oauthCode = consumeOAuthCallback()
+    // 保留舊版自訂 OAuth 的 callback 相容性；但 LIFF SDK 自己的登入 callback
+    // 也會帶 code/state，且包含 liffClientId/liffRedirectUri，必須交回 liff.init() 處理。
+    const callbackParams = new URLSearchParams(window.location.search)
+    const isLiffLoginCallback = callbackParams.has('liffClientId') || callbackParams.has('liffRedirectUri')
+    const hasOAuthCallback = !isLiffLoginCallback && hasLineOAuthCallback()
+    const oauthCode = hasOAuthCallback ? consumeOAuthCallback() : null
     if (oauthCode) {
-      isExternalBrowser.value = true
       try {
         const { data, error } = await supabase.functions.invoke('line-token', {
           body: { code: oauthCode, redirectUri: LINE_OAUTH_REDIRECT_URI },
@@ -149,18 +136,20 @@ export const useLiffStore = defineStore('liff', () => {
       return
     }
     if (hasOAuthCallback) {
-      isExternalBrowser.value = true
       initialized.value = true
       return
     }
 
     try {
-      await liff.init({ liffId: LIFF_ID })
+      await liff.init({
+        liffId: LIFF_ID,
+        // LINE 內建瀏覽器與一般外部瀏覽器都會被 LIFF 視為 external。
+        // 交由 SDK 啟動登入，才能沿用 LINE App 的既有登入狀態。
+        withLoginOnExternalBrowser: true,
+      })
 
       if (!liff.isInClient()) {
-        // 外部瀏覽器（電腦版、行動版非 LINE 瀏覽器）
-        isExternalBrowser.value = true
-
+        // 非 LIFF Browser（包括 LINE 內建瀏覽器與一般外部瀏覽器）
         const savedOAuthSession = readExternalOAuthSession()
         if (savedOAuthSession) {
           await applyExternalOAuthSession(savedOAuthSession)
@@ -168,53 +157,35 @@ export const useLiffStore = defineStore('liff', () => {
         }
 
         if (liff.isLoggedIn()) {
-          // 已透過 LIFF token（極少數情況）登入
+          // 已透過 LIFF token 登入
           const profile = await liff.getProfile()
           userId.value = profile.userId
           displayName.value = profile.displayName
           pictureUrl.value = profile.pictureUrl
           lineAccessToken.value = liff.getAccessToken()
           await syncMember(profile.userId, profile.displayName)
-          clearAutoLineOAuthAttempt()
         }
 
+        // withLoginOnExternalBrowser 會在尚未登入時啟動 liff.login()。
+        // 不要改用自訂 OAuth，也不要以 sessionStorage 阻擋下一次登入嘗試。
         initialized.value = true
-        if (!userId.value) startLineOAuthOnce()
         return
       }
 
-      // LINE 內部瀏覽器 — 正常 LIFF 流程
+      // LIFF Browser — 正常 LIFF 流程
       if (liff.isLoggedIn()) {
-        sessionStorage.removeItem('liff-login-attempted')
         const profile = await liff.getProfile()
         userId.value = profile.userId
         displayName.value = profile.displayName
         pictureUrl.value = profile.pictureUrl
         lineAccessToken.value = liff.getAccessToken()
         await syncMember(profile.userId, profile.displayName)
-        clearAutoLineOAuthAttempt()
-
-        // LIFF auth 後回到首頁時，還原 auth 前的 hash 路由
-        const savedHash = sessionStorage.getItem('liff-post-login-hash')
-        if (savedHash) {
-          sessionStorage.removeItem('liff-post-login-hash')
-          const path = savedHash.startsWith('#') ? savedHash.slice(1) : savedHash
-          pendingRedirect.value = path
-        }
 
         initialized.value = true
-      } else if (!sessionStorage.getItem('liff-login-attempted')) {
-        sessionStorage.setItem('liff-login-attempted', '1')
-        // 儲存目前的 hash 路由，讓 auth 回來後可以還原（OAuth redirect 不保留 hash fragment）
-        const currentHash = window.location.hash
-        if (currentHash && currentHash !== '#/' && currentHash !== '#') {
-          sessionStorage.setItem('liff-post-login-hash', currentHash)
-        }
-        initialized.value = true
-        liff.login({ redirectUri: window.location.href })
       } else {
+        // LIFF Browser 會在 liff.init() 時自動登入；若仍未取得身分，顯示登入失敗狀態。
+        // liff.login() 不可在 LIFF Browser 呼叫。
         initialized.value = true
-        startLineOAuthOnce()
       }
     } catch (e) {
       console.error('LIFF init failed', e)
@@ -236,16 +207,13 @@ export const useLiffStore = defineStore('liff', () => {
       // 從通知連結進入時，liff.init() 會透過 hash change 完成 liff.state redirect（SPA 跳轉，不重載頁面），
       // 此時 LIFF auth 已完成但 liff.init() 已拋出，需在此補上 profile 取得。
       try {
-        if (!liff.isInClient()) {
-          isExternalBrowser.value = true
-        } else if (liff.isLoggedIn()) {
+        if (liff.isInClient() && liff.isLoggedIn()) {
           const profile = await liff.getProfile()
           userId.value = profile.userId
           displayName.value = profile.displayName
           pictureUrl.value = profile.pictureUrl
           lineAccessToken.value = liff.getAccessToken()
           await syncMember(profile.userId, profile.displayName)
-          clearAutoLineOAuthAttempt()
         }
       } catch (profileErr) {
         console.warn('LIFF profile fetch after liff.state redirect failed', profileErr)
@@ -253,7 +221,6 @@ export const useLiffStore = defineStore('liff', () => {
 
       if (!userId.value) {
         initialized.value = true
-        startLineOAuthOnce()
         return
       }
 
@@ -302,7 +269,6 @@ export const useLiffStore = defineStore('liff', () => {
     role,
     gender,
     isSeason,
-    isExternalBrowser,
     pendingRedirect,
     getUserProfile,
     initialize,

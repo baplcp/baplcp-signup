@@ -1,6 +1,5 @@
 import { computed, ref } from 'vue'
 import { invokeRegistrationAction } from '~/services/registrationService'
-import { startLineOAuth } from '~/utils/lineOAuth'
 import { normalizeSeasonPlan, seasonPlanLabel } from '~/utils/seasonPlan'
 
 function formatRegistrationOpenTime(viewModels) {
@@ -46,9 +45,9 @@ export function useSignupSubmission({
     if (!liffStore.userId) {
       setSuccessDialogOpen(true, {
         title: '請先登入',
-        copy: liffStore.isExternalBrowser ? '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往 LINE 登入。' : '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往登入。',
-        buttonText: liffStore.isExternalBrowser ? '以 LINE 登入' : '前往 LINE 登入',
-        onButtonClick: () => (liffStore.isExternalBrowser ? startLineOAuth() : liffStore.login()),
+        copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往 LINE 登入。',
+        buttonText: '以 LINE 登入',
+        onButtonClick: () => liffStore.login(),
       })
       return
     }
@@ -164,8 +163,7 @@ export function useSignupSubmission({
   async function directSeasonRegister() {
     await liffStore.initialize()
     if (!liffStore.userId) {
-      if (liffStore.isExternalBrowser) startLineOAuth()
-      else liffStore.login()
+      liffStore.login()
       return
     }
     if (!viewModels.value.isRegistrationOpen.value) {

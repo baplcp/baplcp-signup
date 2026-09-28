@@ -1,5 +1,4 @@
 import { nextTick, reactive, ref } from 'vue'
-import { startLineOAuth } from '~/utils/lineOAuth'
 
 export function useSignupDialogs({ liffStore, resetSignupState, signupState }) {
   const signupOpen = ref(false)
@@ -50,8 +49,7 @@ export function useSignupDialogs({ liffStore, resetSignupState, signupState }) {
 
   function setSignupOpen(isOpen, options = {}) {
     if (isOpen && !liffStore.userId) {
-      if (liffStore.isExternalBrowser) startLineOAuth()
-      else liffStore.login()
+      liffStore.login()
       return
     }
 
