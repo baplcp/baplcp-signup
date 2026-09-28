@@ -107,6 +107,26 @@ export const useLiffStore = defineStore('liff', () => {
     await memberProfilePromise
   }
 
+  async function getLiffProfile() {
+    // liff.init() 取得的 ID token 已含有主 profile，避免額外呼叫 Profile API。
+    // 這些資料只用於前端顯示；後端仍以 access token 向 LINE 驗證身分。
+    try {
+      const idToken = liff.getDecodedIDToken()
+      if (idToken?.sub && idToken.name) {
+        return {
+          userId: idToken.sub,
+          displayName: idToken.name,
+          pictureUrl: idToken.picture ?? null,
+        }
+      }
+    } catch (error) {
+      console.warn('LIFF ID token profile unavailable', error)
+    }
+
+    // 尚未開啟 openid scope 或 SDK 沒有 ID token 時，維持既有登入行為。
+    return liff.getProfile()
+  }
+
   function applyLiffProfile(profile) {
     userId.value = profile.userId
     displayName.value = profile.displayName
@@ -181,7 +201,7 @@ export const useLiffStore = defineStore('liff', () => {
 
         if (liff.isLoggedIn()) {
           // 已透過 LIFF token 登入
-          const profile = await liff.getProfile()
+          const profile = await getLiffProfile()
           applyLiffProfile(profile)
         }
 
@@ -193,7 +213,7 @@ export const useLiffStore = defineStore('liff', () => {
 
       // LIFF Browser — 正常 LIFF 流程
       if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile()
+        const profile = await getLiffProfile()
         applyLiffProfile(profile)
 
         initialized.value = true
@@ -223,7 +243,7 @@ export const useLiffStore = defineStore('liff', () => {
       // 此時 LIFF auth 已完成但 liff.init() 已拋出，需在此補上 profile 取得。
       try {
         if (liff.isInClient() && liff.isLoggedIn()) {
-          const profile = await liff.getProfile()
+          const profile = await getLiffProfile()
           applyLiffProfile(profile)
         }
       } catch (profileErr) {
