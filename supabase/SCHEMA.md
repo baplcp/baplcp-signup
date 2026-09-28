@@ -281,3 +281,7 @@ Roles:
 - `20260954000000_limit_member_guests_to_one.sql`: lowers the per-member guest
   limit to 1 (organizers unlimited). Members who already had more guests may
   keep or reduce them but cannot add more.
+- `20260955000000_reclaim_pg_net_response_storage.sql`: removes the redundant
+  daily pg_net response cleanup job. If its operational response log has
+  already bloated, truncate `net._http_response` manually during low traffic;
+  it is intentionally not part of the migration.
