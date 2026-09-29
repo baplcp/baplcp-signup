@@ -58,14 +58,21 @@ if [[ ! "$PROJECT_REF" =~ ^[a-z0-9]+$ ]]; then
   fail "$ENV_FILE_NAME 的 SUPABASE_PROJECT_REF 格式不正確：$PROJECT_REF"
 fi
 
-FUNCTIONS=(
-  "activity-admin"
-  "registration-action"
-  "member-profile"
-  "line-token"
-  "notify-registration-open"
-  "notify-activity-reminder"
-)
+FUNCTIONS_DIRECTORY="$(pwd)/supabase/functions"
+
+if [ ! -d "$FUNCTIONS_DIRECTORY" ]; then
+  fail "找不到 Supabase Edge Functions 目錄：supabase/functions"
+fi
+
+# Edge Function 各自位於第一層子目錄；底線開頭目錄（例如 _shared）是共用程式碼，不部署。
+FUNCTIONS=()
+while IFS= read -r function_name; do
+  FUNCTIONS+=("$function_name")
+done < <(find "$FUNCTIONS_DIRECTORY" -mindepth 1 -maxdepth 1 -type d ! -name '_*' -exec basename {} \; | sort)
+
+if [ ${#FUNCTIONS[@]} -eq 0 ]; then
+  fail "supabase/functions 中沒有可部署的 Edge Function。"
+fi
 
 echo ""
 echo "BAPLCP 報名系統 - 部署雲端功能"
