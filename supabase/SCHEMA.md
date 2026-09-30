@@ -140,6 +140,9 @@ Database invariants:
   covers the rest, and the half-year plan covers every date. Member lists,
   per-date capacity, session occupancy, attendance totals and reminders all use
   that rule, so a quarter member does not occupy a later date.
+- `set_season_registration_date_status_v3` also enforces this range before it
+  stores a leave or rejoin state, so a plan cannot have a date status outside
+  its covered sessions.
 - Season capacity is only shared between plans whose ranges overlap
   (`season_plans_overlap`): quarter and late-quarter do not compete for the same
   seats, half-year competes with both.
@@ -296,3 +299,5 @@ Roles:
 - `20260957000000_scope_season_plan_to_season_registrations.sql`: stores a
   season plan only on season registrations and makes `write_registration_v3`
   persist null for pickup registrations.
+- `20260958000000_enforce_season_leave_plan_coverage.sql`: prevents leave and
+  rejoin states from being written for dates outside the season plan's range.
