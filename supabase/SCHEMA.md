@@ -107,8 +107,9 @@ Fields used by the app:
   null value means this member is currently registered.
 - `paid_court boolean`
 - `paid_ac boolean`
-- `season_plan text` — `'quarter'` (一季), `'late-quarter'` (後季) or `'half-year'` (半年),
-  only meaningful for season registrations. A constraint rejects any other value.
+- `season_plan text, nullable` — `'quarter'` (一季), `'late-quarter'` (後季) or
+  `'half-year'` (半年) for a season registration; it is always null for pickup
+  registrations.
 - `activity_date_id bigint, nullable` — canonical pickup reference. A null
   value identifies a season registration. For pickup rows, the composite
   foreign key `(activity_date_id, season_id)` requires the date to belong to
@@ -124,6 +125,8 @@ Database invariants:
   (`season_plans_overlap`), e.g. quarter + late-quarter; the
   `registrations_prevent_overlapping_season_plans` trigger rejects overlaps with
   `season_plan_overlap`.
+- A season registration has one valid `season_plan`; a pickup registration has
+  no `season_plan`.
 - Each row is exactly one member's self-registration; `created_at` is its
   registration time. A later registration creates a new row rather than
   reusing a cancelled row.
@@ -290,3 +293,6 @@ Roles:
 - `20260956000000_enforce_registration_activity_date_season.sql`: requires
   every registration to have a season, prevents pickup dates from referencing
   another season, and cascades deleted dates to their pickup registrations.
+- `20260957000000_scope_season_plan_to_season_registrations.sql`: stores a
+  season plan only on season registrations and makes `write_registration_v3`
+  persist null for pickup registrations.
