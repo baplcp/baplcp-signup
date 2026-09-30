@@ -110,7 +110,9 @@ Fields used by the app:
 - `season_plan text` — `'quarter'` (一季), `'late-quarter'` (後季) or `'half-year'` (半年),
   only meaningful for season registrations. A constraint rejects any other value.
 - `activity_date_id bigint, nullable` — canonical pickup reference. A null
-  value identifies a season registration.
+  value identifies a season registration. For pickup rows, the composite
+  foreign key `(activity_date_id, season_id)` requires the date to belong to
+  the same season; deleting that date cascades to its pickup registrations.
 - `created_at timestamptz`
 
 Database invariants:
@@ -285,3 +287,6 @@ Roles:
   daily pg_net response cleanup job. If its operational response log has
   already bloated, truncate `net._http_response` manually during low traffic;
   it is intentionally not part of the migration.
+- `20260956000000_enforce_registration_activity_date_season.sql`: requires
+  every registration to have a season, prevents pickup dates from referencing
+  another season, and cascades deleted dates to their pickup registrations.
