@@ -213,6 +213,7 @@ function handleRemove(member, index) {
                 {{ member.time }}<template v-if="member.addedBy"> · {{ member.addedBy }}</template>
               </span>
             </div>
+            <div v-if="member.isPriority && !adminMode" class="priority-tag">優先</div>
             <div v-show="member.status && !adminMode" class="status-tag activity-member-status">{{ member.status }}</div>
             <div v-if="isAdmin && member.seasonPlan && !adminMode" class="season-plan-tag" :class="`is-${normalizeSeasonPlan(member.seasonPlan)}`">
               {{ seasonPlanLabel(member.seasonPlan) }}
@@ -359,6 +360,18 @@ function handleRemove(member, index) {
   font-size: 12px;
   line-height: 1;
   text-align: center;
+}
+
+.priority-tag {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e7f7ec;
+  color: #1a7f45;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 
 .season-plan-tag {

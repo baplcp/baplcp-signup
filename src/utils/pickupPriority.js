@@ -59,3 +59,13 @@ export function sortPickupParticipants(entries, cutoff) {
     .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1])
     .map(({ entry }) => entry)
 }
+
+// 回傳「因為群內優先而排到群外朋友前面」的 entries：優先時段內報名的群內成員，
+// 而且有群外朋友比他更早報名。
+export function priorityPromotedParticipants(entries, cutoff) {
+  if (!cutoff) return new Set()
+  const cutoffTime = cutoff.getTime()
+  const timeOf = entry => new Date(entry._ts).getTime()
+  const earliestGuestTime = Math.min(...entries.filter(entry => entry.isGuest && timeOf(entry) < cutoffTime).map(timeOf))
+  return new Set(entries.filter(entry => !entry.isGuest && timeOf(entry) < cutoffTime && timeOf(entry) > earliestGuestTime))
+}
