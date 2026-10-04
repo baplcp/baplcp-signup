@@ -1,6 +1,7 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
 import { addTaiwanDays, getTaiwanDateAndHour, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
+import { pickupSecondGuestCutoff } from '../_shared/pickup-priority.ts'
 import {
   normalizeSeasonPlan,
   SEASON_PLAN_HALF_YEAR,
@@ -32,17 +33,24 @@ export type RegistrationCommandContext = {
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
 
-// 群內成員每場最多帶 1 位群外朋友；上限調降前已經帶 2 位的人仍可送出原本的 2 位，
-// 資料庫只擋「超過上限且比原本更多」的寫入。
+// 群內成員每場最多帶 1 位群外朋友，開放後第一個星期二 23:59 之後可以
+// 再多帶 1 位；上限調降前已經帶 2 位的人仍可送出原本的 2 位，資料庫只擋「超過上限且比
+// 原本更多」的寫入。與資料庫 pickup_guest_invitation_limit 相同規則。
 const MEMBER_GUEST_LIMIT = 1
+const MEMBER_GUEST_LIMIT_AFTER_PRIORITY_CUTOFF = 2
+
+function memberGuestLimit(activity: Registration, activityDate: string, now: Date): number {
+  const cutoff = pickupSecondGuestCutoff(activityDate, activity.pickup_open_days_before)
+  return cutoff && now >= cutoff ? MEMBER_GUEST_LIMIT_AFTER_PRIORITY_CUTOFF : MEMBER_GUEST_LIMIT
+}
 const LEGACY_MEMBER_GUEST_INPUT_LIMIT = 2
 
 function selfRegistrationPayload(activityId: string | number, activityDateId: number | null, memberId: string, seasonPlan?: string) {
   return { season_id: activityId, activity_date_id: activityDateId, member_id: memberId, ...(seasonPlan ? { season_plan: seasonPlan } : {}) }
 }
 
-function guestPayload(activityId: string | number, activityDateId: number, memberId: string, guests: Array<{ id?: string; name: string; gender: string }>, isAdmin: boolean) {
-  return { p_activity_id: Number(activityId), p_activity_date_id: activityDateId, p_invited_by: memberId, p_guests: guests, p_invitation_limit: isAdmin ? null : MEMBER_GUEST_LIMIT }
+function guestPayload(activityId: string | number, activityDateId: number, memberId: string, guests: Array<{ id?: string; name: string; gender: string }>, invitationLimit: number | null) {
+  return { p_activity_id: Number(activityId), p_activity_date_id: activityDateId, p_invited_by: memberId, p_guests: guests, p_invitation_limit: invitationLimit }
 }
 
 function assertSeasonEnabled(activity: Registration) {
@@ -117,7 +125,7 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
   const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
   if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
-  await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin))
+  await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin ? null : memberGuestLimit(activity, activityDate, now)))
   return { ok: true }
 }
 

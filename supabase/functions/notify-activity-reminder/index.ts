@@ -136,7 +136,7 @@ serve(async _req => {
         const totalCapacity = Number(activity.single_capacity) || 0
 
         // ── 統一排序與名額計算（對齊前端 useActivityMemberLists 邏輯）──
-        // 與前端相同：season + pickup 全部展平後排序（開放報名後第一個星期二 23:59 前
+        // 與前端相同：season + pickup 全部展平後排序（開放報名後前 2 小時內
         // 群內優先於群外，之後依報名時間），再依 single_capacity 截斷
         type FlatSlot = {
           kind: 'season_self' | 'pickup_self' | 'guest'
@@ -176,9 +176,9 @@ serve(async _req => {
           })
         }
 
-        const { data: pickupOpenSetting, error: pickupOpenError } = await supabase.from('seasons').select('pickup_open_days_before').eq('id', activity.season_id).maybeSingle()
+        const { data: pickupOpenSetting, error: pickupOpenError } = await supabase.from('seasons').select('pickup_open_days_before, pickup_open_time').eq('id', activity.season_id).maybeSingle()
         if (pickupOpenError) throw pickupOpenError
-        const sortedSlots = sortPickupParticipants(mainSlots, pickupGuestPriorityCutoff(targetDate, pickupOpenSetting?.pickup_open_days_before ?? null))
+        const sortedSlots = sortPickupParticipants(mainSlots, pickupGuestPriorityCutoff(targetDate, pickupOpenSetting?.pickup_open_days_before ?? null, pickupOpenSetting?.pickup_open_time ?? null))
         const confirmedSlots = totalCapacity > 0 ? sortedSlots.slice(0, totalCapacity) : sortedSlots
 
         // ── 重組 confirmedSeason / confirmedPickup ─────────────────

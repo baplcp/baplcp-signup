@@ -69,6 +69,7 @@ export function useActiveActivityPage() {
     mySeasonRegistration,
     mySeasonRegistrations,
     fetchRegistrations,
+    nowTick,
     viewModels: viewModelsRef,
   })
 

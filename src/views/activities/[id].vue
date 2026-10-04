@@ -86,7 +86,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
 
     <ActivityMemberSubList v-if="members.showCancelledMemberList" :label="members.cancelledMemberListLabel" :members="members.cancelledMemberList" />
 
-    <ActivityMemberSubList v-if="members.showLeaveMemberList" label="已請假" :members="members.leaveMemberList" :show-meta="false" />
+    <ActivityMemberSubList v-if="members.showLeaveMemberList" label="已請假" :members="members.leaveMemberList" />
 
     <div class="page-end-pad"></div>
 

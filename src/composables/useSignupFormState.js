@@ -1,6 +1,5 @@
 import { computed, reactive, ref, watch } from 'vue'
-
-const MEMBER_GUEST_LIMIT = 1
+import { memberGuestLimit } from '~/utils/pickupPriority'
 
 function toGuestForm(guests = []) {
   return guests.filter(guest => !guest.cancelled_at).map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '' }))
@@ -15,7 +14,7 @@ function syncGuestLength(signupState, count) {
   signupState.guests.splice(count)
 }
 
-export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistration, resolvedDate, viewModels }) {
+export function useSignupFormState({ isAdmin, activityData, myRegistration, mySeasonRegistration, resolvedDate, nowTick, viewModels }) {
   const signupState = reactive({ self: 0, guest: 0, guests: [] })
   const showGuestValidation = ref(false)
   const selectedSeasonPlan = ref('quarter')
@@ -68,8 +67,13 @@ export function useSignupFormState({ isAdmin, myRegistration, mySeasonRegistrati
     syncGuestLength(signupState, signupState.guest)
   }
 
-  // 群內成員最多帶 1 位群外朋友；上限調降前已經帶 2 位的人可以保留，但不能再往上加。
-  const guestLimit = computed(() => (isAdmin.value ? Infinity : Math.max(MEMBER_GUEST_LIMIT, toGuestForm(myRegistration.value?.guests).length)))
+  // 群內成員最多帶 1 位群外朋友，開放後第一個星期二 23:59 之後可以再多帶 1 位；
+  // 上限調降前已經帶 2 位的人可以保留，但不能再往上加。
+  const guestLimit = computed(() => {
+    if (isAdmin.value) return Infinity
+    const limit = memberGuestLimit(resolvedDate.value, activityData.value?.pickup_open_days_before, nowTick.value)
+    return Math.max(limit, toGuestForm(myRegistration.value?.guests).length)
+  })
 
   function adjustSignupCount(type, direction) {
     const max = type === 'self' ? 1 : guestLimit.value
