@@ -2,12 +2,14 @@ import { useSignupDialogs } from '~/composables/useSignupDialogs'
 import { useSignupFormState } from '~/composables/useSignupFormState'
 import { useSignupSubmission } from '~/composables/useSignupSubmission'
 
-export function useSignupFlow({ liffStore, activityData, activityType, resolvedDate, isAdmin, myRegistration, mySeasonRegistration, mySeasonRegistrations, fetchRegistrations, viewModels }) {
+export function useSignupFlow({ liffStore, activityData, activityType, resolvedDate, isAdmin, myRegistration, mySeasonRegistration, mySeasonRegistrations, fetchRegistrations, nowTick, viewModels }) {
   const formState = useSignupFormState({
     isAdmin,
+    activityData,
     myRegistration,
     mySeasonRegistration,
     resolvedDate,
+    nowTick,
     viewModels,
   })
   const dialogs = useSignupDialogs({

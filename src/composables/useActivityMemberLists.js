@@ -106,8 +106,9 @@ export function useActivityMemberLists({ activityData, activityType, resolvedDat
       })
     })
 
-    // 開放報名後第一個星期二 23:59 前，群內成員優先於群外朋友；之後依報名時間排序。
-    const cutoff = pickupGuestPriorityCutoff(resolvedDate.value, activityData.value?.pickup_open_days_before)
+    // 開放報名後前 2 小時內，群內成員優先於群外朋友；之後依報名時間排序。
+    // （2026-10-04 12:00 前就開放的場次維持舊規則：優先到星期二 23:59。）
+    const cutoff = pickupGuestPriorityCutoff(resolvedDate.value, activityData.value?.pickup_open_days_before, activityData.value?.pickup_open_time)
     return sortPickupParticipants(members, cutoff).map(({ _ts, isGuest, ...member }, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
   })
 
