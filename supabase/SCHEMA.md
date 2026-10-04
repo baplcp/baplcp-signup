@@ -301,7 +301,7 @@ Roles:
   persist null for pickup registrations.
 - `20260958000000_enforce_season_leave_plan_coverage.sql`: prevents leave and
   rejoin states from being written for dates outside the season plan's range.
-- `20260959000000_allow_second_guest_after_priority_cutoff.sql`: after the
+- `20261004164941_allow_second_guest_after_priority_cutoff.sql`: after the
   member-priority cutoff (first Tuesday 23:59 after pickup opens, dates from
   2026-10-01) members may bring a second guest; adds
   `pickup_guest_priority_cutoff` and `pickup_guest_invitation_limit`.
