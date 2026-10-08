@@ -174,7 +174,7 @@ async function confirmDelete() {
       </div>
     </template>
 
-    <div class="fab-container">
+    <div class="fab-container phone-container">
       <button class="fab-create-btn" type="button" @click="router.push({ name: 'admin-activity-create' })">
         <svg class="fab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -335,8 +335,6 @@ async function confirmDelete() {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
   padding: 12px 16px 28px;
   background: var(--surface);
   border-top: 1px solid rgba(16, 24, 64, 0.08);
@@ -362,5 +360,12 @@ async function confirmDelete() {
   width: 20px;
   height: 20px;
   flex: 0 0 auto;
+}
+
+@media (min-width: 768px) {
+  .fab-container {
+    bottom: 24px;
+    border-radius: 0 0 24px 24px;
+  }
 }
 </style>
