@@ -133,7 +133,15 @@ watch(
         </svg>
       </button>
 
-      <AccessibleDialog :open="isMenuOpen" title="選單" overlay-class="menu-overlay phone-container modal-frame" content-class="side-menu" z-index="var(--layer-menu)" @close="closeMenu">
+      <AccessibleDialog
+        :open="isMenuOpen"
+        :unmount-on-hide="true"
+        title="選單"
+        overlay-class="menu-overlay phone-container modal-frame"
+        content-class="side-menu"
+        z-index="var(--layer-menu)"
+        @close="closeMenu"
+      >
         <div class="drawer-profile">
           <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
           <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
@@ -401,12 +409,13 @@ watch(
   overflow: hidden;
   background: transparent;
   pointer-events: none;
-  transition: background 0.28s ease;
+  animation: menu-overlay-close 0.32s ease both;
 }
 
 .menu-overlay.is-open {
   background: var(--overlay-40);
   pointer-events: auto;
+  animation: menu-overlay-open 0.28s ease both;
 }
 
 .side-menu {
@@ -422,7 +431,7 @@ watch(
   flex-direction: column;
   overflow: hidden;
   transform: translateX(100%);
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: menu-slide-out 0.32s ease both;
 }
 
 .side-menu::-webkit-scrollbar {
@@ -431,6 +440,43 @@ watch(
 
 .menu-overlay.is-open .side-menu {
   transform: translateX(0);
+  animation: menu-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menu-overlay-open {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--overlay-40);
+  }
+}
+
+@keyframes menu-overlay-close {
+  from {
+    background-color: var(--overlay-40);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes menu-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes menu-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .drawer-profile {

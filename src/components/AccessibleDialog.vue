@@ -31,6 +31,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  unmountOnHide: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close'])
@@ -63,7 +67,7 @@ function restoreFocus(event) {
 </script>
 
 <template>
-  <DialogRoot :open="open" :unmount-on-hide="false" @update:open="handleOpenChange">
+  <DialogRoot :open="open" :unmount-on-hide="unmountOnHide" @update:open="handleOpenChange">
     <DialogPortal>
       <DialogOverlay as-child>
         <div :class="[overlayClass, { 'is-open': open }]" :style="zIndex == null ? undefined : { zIndex }">
