@@ -14,6 +14,9 @@ under `supabase/migrations/`.
   - `registration-action`: LINE-verified registration changes and organizer
     registration administration.
   - `member-profile`: LINE-verified member sync and profile updates.
+- `count_past_participations` is callable only by the service role. The browser
+  requests its own count through `member-profile`, which derives the member ID
+  from the verified LINE access token.
 - Public read RLS policies are versioned in
   `20260520005000_version_public_rls_policies.sql`.
 

@@ -1,7 +1,6 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
 import { fetchActivityDates, fetchActivityDatesByIds } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
-import { getTaiwanDateString } from '~/utils/taiwanDate'
 
 const REGISTRATION_FIELDS =
   'id, season_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url, gender)'
@@ -203,15 +202,9 @@ export async function listMyRecordSources(userId) {
   }
 }
 
-export async function countPastParticipations(userId) {
-  if (!userId) return 0
-  const { data, error } = await supabase.rpc('count_past_participations', {
-    p_user_id: userId,
-    p_start_date: PARTICIPATION_COUNT_START_DATE,
-    p_end_date: getTaiwanDateString(),
-  })
-  if (error) throw error
-  return Number(data || 0)
+export async function countPastParticipations(liffStore) {
+  const data = await invokeLineFunction(liffStore, 'member-profile', { action: 'count-past-participations' })
+  return Number(data?.count ?? 0)
 }
 
 export function subscribeToRegistrationChanges(activityId, onChange, { includeGuests = true, seasonOnly = false } = {}) {

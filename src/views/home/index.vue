@@ -34,7 +34,7 @@ async function loadLatestActivity() {
 async function loadParticipationCount() {
   try {
     await liffStore.initialize()
-    participationCount.value = await homeStore.loadParticipationCount(liffStore.userId)
+    participationCount.value = await homeStore.loadParticipationCount()
   } catch (error) {
     console.warn('Unable to load participation count', error)
   } finally {
