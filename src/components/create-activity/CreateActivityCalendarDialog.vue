@@ -24,7 +24,7 @@ const emit = defineEmits(['close', 'change-month', 'select-date'])
 </script>
 
 <template>
-  <AccessibleDialog :open="open" :title="title" overlay-class="calendar-overlay phone-container modal-frame" content-class="calendar-sheet" @close="emit('close')">
+  <AccessibleDialog :open="open" :title="title" overlay-class="calendar-overlay bottom-sheet-overlay phone-container modal-frame" content-class="calendar-sheet bottom-sheet" @close="emit('close')">
     <div class="calendar-header">
       <button class="calendar-nav" type="button" aria-label="上一個月" @click="emit('change-month', -1)">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
@@ -60,24 +60,12 @@ const emit = defineEmits(['close', 'change-month', 'select-date'])
 
 <style>
 .calendar-overlay {
-  position: fixed;
-  z-index: 20;
-  overflow: hidden;
-  margin: auto;
-  display: none;
-  align-items: flex-end;
-  background: rgba(0, 0, 0, 0.32);
-}
-
-.calendar-overlay.is-open {
-  display: flex;
+  z-index: var(--layer-form-dialog);
+  background: var(--overlay-32);
 }
 
 .calendar-sheet {
-  width: 100%;
-  padding: 16px;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
 .calendar-header {
@@ -130,7 +118,7 @@ const emit = defineEmits(['close', 'change-month', 'select-date'])
 
 .calendar-day.is-selected {
   background: var(--primary-600);
-  color: #fff;
+  color: var(--neutral-0);
 }
 
 .calendar-actions {
@@ -148,12 +136,12 @@ const emit = defineEmits(['close', 'change-month', 'select-date'])
 }
 
 .calendar-action.is-muted {
-  background: #f4f6fa;
+  background: var(--neutral-100);
   color: var(--muted);
 }
 
 .calendar-action.is-primary {
   background: var(--primary-600);
-  color: #fff;
+  color: var(--neutral-0);
 }
 </style>

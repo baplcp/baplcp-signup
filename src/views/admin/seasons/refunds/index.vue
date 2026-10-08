@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { listSeasonActivitiesForRefund } from '~/services/activityService'
 
 const router = useRouter()
@@ -56,14 +57,11 @@ onMounted(loadActivities)
           </svg>
         </button>
       </div>
-      <p v-else class="empty-hint">目前沒有季打活動</p>
+      <PageFeedback v-else kind="empty" message="目前沒有季打活動" />
     </template>
 
-    <p v-if="isLoading" class="loading-hint">載入中…</p>
-    <div v-else-if="loadError" class="load-error" role="alert">
-      <p class="loading-hint">無法載入季打資料，請確認網路後再試一次。</p>
-      <button class="retry-button" type="button" @click="loadActivities">重新載入</button>
-    </div>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
+    <PageFeedback v-else-if="loadError" kind="error" message="無法載入季打資料，請確認網路後再試一次。" @retry="loadActivities" />
   </main>
 </template>
 
@@ -71,7 +69,7 @@ onMounted(loadActivities)
 .season-refund-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 0;
+  padding: 31px var(--page-inline-space) 0;
 }
 
 .page-header {
@@ -104,7 +102,7 @@ onMounted(loadActivities)
   gap: 12px;
   width: 100%;
   padding: 16px 0;
-  border-bottom: 1px solid var(--border-subtle, rgba(16, 24, 64, 0.06));
+  border-bottom: 1px solid var(--border-subtle);
   background: none;
   border-left: none;
   border-right: none;
@@ -133,29 +131,5 @@ onMounted(loadActivities)
 .season-sub {
   font-size: 13px;
   color: var(--muted-soft, #8f95b2);
-}
-
-.empty-hint,
-.loading-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
-}
-
-.load-error {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-}
-
-.retry-button {
-  min-height: 40px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: var(--primary, #3366ff);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
 }
 </style>

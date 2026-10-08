@@ -76,8 +76,8 @@ defineExpose({
   <AccessibleDialog
     :open="open"
     :title="isSeasonLeaveMode ? '季打請假或臨打報名' : '報名此球局'"
-    overlay-class="signup-overlay phone-container modal-frame"
-    content-class="signup-sheet"
+    overlay-class="signup-overlay sliding-sheet-overlay phone-container modal-frame"
+    content-class="signup-sheet sliding-sheet"
     @close="emit('close')"
   >
     <div class="signup-sheet-header">
@@ -183,41 +183,14 @@ defineExpose({
 
 <style>
 .signup-overlay {
-  position: fixed;
-  overflow: hidden;
-  left: 0;
-  right: 0;
-  margin: auto;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s ease;
-}
-
-.signup-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
+  z-index: var(--layer-floating);
 }
 
 .signup-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
   height: min(422px, calc(100% - 48px));
-  border-radius: 16px 16px 0 0;
-  background: #fff;
-  color: #101840;
-  display: flex;
-  flex-direction: column;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  color: var(--text);
   overflow: hidden;
-  transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.signup-overlay.is-open .signup-sheet {
-  transform: translateY(0);
 }
 
 .signup-sheet-header {
@@ -234,7 +207,7 @@ defineExpose({
   font-size: 20px;
   line-height: 1.4;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
   white-space: nowrap;
 }
 
@@ -243,7 +216,7 @@ defineExpose({
   padding: 4px 8px;
   border-radius: 6px;
   background: #f7f8fe;
-  color: #5768ff;
+  color: var(--primary-700);
   font-size: 13px;
   line-height: 1.4;
   font-weight: 500;
@@ -261,7 +234,7 @@ defineExpose({
   margin-left: auto;
   display: grid;
   place-items: center;
-  color: #474d66;
+  color: var(--neutral-700);
   flex: 0 0 auto;
 }
 
@@ -292,7 +265,7 @@ defineExpose({
   width: 100%;
   border: 1px solid #edeff5;
   border-radius: 12px;
-  background: #fff;
+  background: var(--neutral-0);
   padding: 13px 17px;
 }
 
@@ -314,7 +287,7 @@ defineExpose({
   font-size: 16px;
   line-height: 1.4;
   font-weight: 500;
-  color: #101840;
+  color: var(--text);
 }
 
 .signup-stepper {
@@ -330,8 +303,8 @@ defineExpose({
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #5768ff;
-  color: #fff;
+  background: var(--primary-700);
+  color: var(--neutral-0);
   transition:
     background 0.18s ease,
     transform 0.18s ease;
@@ -342,7 +315,7 @@ defineExpose({
 }
 
 .stepper-btn:disabled {
-  background: #d8dae5;
+  background: var(--neutral-300);
   cursor: default;
 }
 
@@ -388,8 +361,8 @@ defineExpose({
   min-height: 42px;
   border: 1px solid rgba(86, 103, 137, 0.2);
   border-radius: 8px;
-  background: #fff;
-  color: #101840;
+  background: var(--neutral-0);
+  color: var(--text);
   font: inherit;
   font-size: 16px;
   line-height: 1.5;
@@ -407,12 +380,12 @@ defineExpose({
 }
 
 .guest-select.is-error {
-  border-color: #d14343;
+  border-color: var(--danger-500);
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
 }
 
 .guest-input.is-error {
-  border-color: #d14343;
+  border-color: var(--danger-500);
   box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
 }
 
@@ -424,17 +397,17 @@ defineExpose({
 }
 
 .guest-name-limit {
-  color: #8f95b2;
+  color: var(--muted-soft);
   text-align: right;
 }
 
 .guest-name-error {
-  color: #d14343;
+  color: var(--danger-500);
 }
 
 .guest-select {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #696f8c 50%), linear-gradient(135deg, #696f8c 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--neutral-600) 50%), linear-gradient(135deg, var(--neutral-600) 50%, transparent 50%);
   background-position:
     calc(100% - 18px) 18px,
     calc(100% - 13px) 18px;
@@ -447,12 +420,12 @@ defineExpose({
 
 .guest-input::placeholder,
 .guest-select:invalid {
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .signup-count {
   margin: 0 0 13px;
-  color: #5768ff;
+  color: var(--primary-700);
   font-size: 15px;
   line-height: 1.4;
   font-weight: 500;
@@ -461,8 +434,8 @@ defineExpose({
 
 .signup-sheet-footer {
   flex: 0 0 auto;
-  padding: 0 22px 21px;
-  background: #fff;
+  padding: 0 22px calc(21px + env(safe-area-inset-bottom));
+  background: var(--neutral-0);
 }
 
 .confirm-signup {
@@ -473,26 +446,26 @@ defineExpose({
   width: 100%;
   min-height: 48px;
   border-radius: 10px;
-  background: #5768ff;
-  color: #fff;
+  background: var(--primary-700);
+  color: var(--neutral-0);
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
 }
 
 .confirm-signup:disabled {
-  background: #d8dae5;
+  background: var(--neutral-300);
   cursor: default;
 }
 
 .confirm-signup.is-submitting:disabled {
-  background: #5768ff;
+  background: var(--primary-700);
   cursor: progress;
 }
 
 .signup-note {
   margin: 13px 0 0;
-  color: #696f8c;
+  color: var(--neutral-600);
   font-size: 13px;
   line-height: 1.25;
   text-align: center;
@@ -500,7 +473,7 @@ defineExpose({
 
 .signup-countdown {
   margin: 13px 0 0;
-  color: #8f95b2;
+  color: var(--muted-soft);
   font-size: 13px;
   line-height: 1.25;
   font-weight: 400;

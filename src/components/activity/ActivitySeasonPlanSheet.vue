@@ -53,7 +53,7 @@ function confirm() {
 </script>
 
 <template>
-  <AccessibleDialog :open="open" :title="title" overlay-class="plan-overlay phone-container modal-frame" content-class="plan-sheet" @close="emit('close')">
+  <AccessibleDialog :open="open" :title="title" overlay-class="plan-overlay sliding-sheet-overlay phone-container modal-frame" content-class="plan-sheet sliding-sheet" @close="emit('close')">
     <div class="drag-handle" aria-hidden="true"></div>
     <h2 id="plan-sheet-title" class="plan-title">{{ title }}</h2>
 
@@ -89,47 +89,19 @@ function confirm() {
 
 <style>
 .plan-overlay {
-  position: fixed;
-  overflow: hidden;
-  left: 0;
-  right: 0;
-  margin: auto;
-  z-index: 10003;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s ease;
-}
-
-.plan-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
+  z-index: var(--layer-plan-dialog);
 }
 
 .plan-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
-  padding: 10px 20px 32px;
-  display: flex;
-  flex-direction: column;
+  padding: 10px 20px calc(32px + env(safe-area-inset-bottom));
   gap: 0;
-  transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.plan-overlay.is-open .plan-sheet {
-  transform: translateY(0);
 }
 
 .drag-handle {
   width: 36px;
   height: 4px;
   border-radius: 99px;
-  background: #d8dae5;
+  background: var(--neutral-300);
   margin: 0 auto 16px;
 }
 
@@ -138,7 +110,7 @@ function confirm() {
   font-size: 18px;
   line-height: 1.36;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
 }
 
 .plan-options {
@@ -154,7 +126,7 @@ function confirm() {
   gap: 12px;
   border: 1.5px solid #e3e6ef;
   border-radius: 12px;
-  background: #fff;
+  background: var(--neutral-0);
   padding: 13px 14px;
   text-align: left;
   transition:
@@ -188,7 +160,7 @@ function confirm() {
 }
 
 .plan-card.is-selected {
-  border-color: #1bc4bf;
+  border-color: var(--secondary-500);
   border-width: 2px;
   background: #f0fdfb;
 }
@@ -197,7 +169,7 @@ function confirm() {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid #d8dae5;
+  border: 1.5px solid var(--neutral-300);
   flex: 0 0 auto;
   margin-top: 2px;
   display: flex;
@@ -209,8 +181,8 @@ function confirm() {
 }
 
 .plan-card-radio.is-on {
-  border-color: #1bc4bf;
-  background: #1bc4bf;
+  border-color: var(--secondary-500);
+  background: var(--secondary-500);
 }
 
 .plan-card-radio.is-on::after {
@@ -218,7 +190,7 @@ function confirm() {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--neutral-0);
 }
 
 .plan-card-body {
@@ -231,21 +203,21 @@ function confirm() {
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
 }
 
 .plan-card-meta {
   margin: 3px 0 0;
   font-size: 12px;
   line-height: 1.35;
-  color: #696f8c;
+  color: var(--neutral-600);
 }
 
 .plan-card-fee {
   margin: 5px 0 0;
   font-size: 12px;
   line-height: 1.35;
-  color: #1bc4bf;
+  color: var(--secondary-500);
 }
 
 .plan-card-total {
@@ -258,30 +230,30 @@ function confirm() {
   font-size: 17px;
   line-height: 1.4;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
 }
 
 .plan-card-unit {
   margin: 2px 0 0;
   font-size: 12px;
   line-height: 1.25;
-  color: #696f8c;
+  color: var(--neutral-600);
 }
 
 .plan-confirm {
   width: 100%;
   min-height: 50px;
   border-radius: 10px;
-  background: #1bc4bf;
-  color: #fff;
+  background: var(--secondary-500);
+  color: var(--neutral-0);
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
 }
 
 .plan-confirm:disabled {
-  background: #d8dae5;
-  color: #fff;
+  background: var(--neutral-300);
+  color: var(--neutral-0);
   cursor: default;
 }
 </style>

@@ -34,7 +34,7 @@ async function loadLatestActivity() {
 async function loadParticipationCount() {
   try {
     await liffStore.initialize()
-    participationCount.value = await homeStore.loadParticipationCount(liffStore.userId)
+    participationCount.value = await homeStore.loadParticipationCount()
   } catch (error) {
     console.warn('Unable to load participation count', error)
   } finally {
@@ -164,7 +164,7 @@ const utilityItems = [
   margin-top: -124px;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
-  padding: 20px 16px 40px;
+  padding: 20px var(--page-inline-space) 40px;
   min-height: calc(100% - 251px);
   z-index: 1;
 }

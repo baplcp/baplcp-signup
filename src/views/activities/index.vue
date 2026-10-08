@@ -2,6 +2,7 @@
 import GroupActiveCard from '~/components/group-list/GroupActiveCard.vue'
 import GroupEventSection from '~/components/group-list/GroupEventSection.vue'
 import GroupSegmentTabs from '~/components/group-list/GroupSegmentTabs.vue'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { useGroupListPage } from '~/composables/useGroupListPage'
 
 defineOptions({ name: 'ActivitiesListPage' })
@@ -33,7 +34,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
         :location="latestActivity.location"
         :to="latestActivity.to"
       />
-      <p v-else-if="isSegmentVisible('latest')" class="empty-hint">目前沒有即將到來的球局</p>
+      <PageFeedback v-else-if="isSegmentVisible('latest')" kind="empty" message="目前沒有即將到來的球局" />
 
       <GroupEventSection
         v-show="isSegmentVisible('upcoming')"
@@ -69,7 +70,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
       />
     </template>
 
-    <p v-if="isLoading" class="loading-hint">載入中…</p>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
   </main>
 </template>
 
@@ -77,7 +78,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
 .group-list-page {
   background: var(--surface);
   min-height: 100%;
-  padding: 31px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 31px var(--page-inline-space) calc(20px + env(safe-area-inset-bottom));
 }
 
 .page-header {
@@ -103,13 +104,5 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
   letter-spacing: 0.36px;
   font-weight: 700;
   color: var(--text);
-}
-
-.empty-hint,
-.loading-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
 }
 </style>

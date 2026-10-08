@@ -151,6 +151,16 @@ export const useLiffStore = defineStore('liff', () => {
     const isLiffLoginCallback = callbackParams.has('liffClientId') || callbackParams.has('liffRedirectUri')
     const hasOAuthCallback = !isLiffLoginCallback && hasLineOAuthCallback()
     const oauthCode = hasOAuthCallback ? consumeOAuthCallback() : null
+
+    function clearLiffLoginCallback() {
+      if (!isLiffLoginCallback) return
+
+      const url = new URL(window.location.href)
+      for (const key of ['code', 'state', 'liffClientId', 'liffRedirectUri']) {
+        url.searchParams.delete(key)
+      }
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
+    }
     if (oauthCode) {
       try {
         const { data, error } = await supabase.functions.invoke('line-token', {
@@ -190,6 +200,7 @@ export const useLiffStore = defineStore('liff', () => {
         // 交由 SDK 啟動登入，才能沿用 LINE App 的既有登入狀態。
         withLoginOnExternalBrowser: true,
       })
+      clearLiffLoginCallback()
 
       if (!liff.isInClient()) {
         // 非 LIFF Browser（包括 LINE 內建瀏覽器與一般外部瀏覽器）
@@ -238,6 +249,8 @@ export const useLiffStore = defineStore('liff', () => {
           return
         }
       }
+
+      clearLiffLoginCallback()
 
       // 從通知連結進入時，liff.init() 會透過 hash change 完成 liff.state redirect（SPA 跳轉，不重載頁面），
       // 此時 LIFF auth 已完成但 liff.init() 已拋出，需在此補上 profile 取得。

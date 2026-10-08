@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getLatestActivitySession } from '~/services/activityService'
 import { countPastParticipations } from '~/services/registrationService'
+import { useLiffStore } from '~/stores/liff'
 
 export const useHomeStore = defineStore('home', () => {
+  const liffStore = useLiffStore()
   const latestActivitySession = ref(null)
   const hasLatestActivitySession = ref(false)
   const participationCounts = ref({})
@@ -27,12 +29,13 @@ export const useHomeStore = defineStore('home', () => {
     return latestActivitySessionPromise
   }
 
-  async function loadParticipationCount(userId) {
+  async function loadParticipationCount() {
+    const userId = liffStore.userId
     if (!userId) return 0
     if (Object.hasOwn(participationCounts.value, userId)) return participationCounts.value[userId]
     if (participationCountPromises.has(userId)) return participationCountPromises.get(userId)
 
-    const promise = countPastParticipations(userId)
+    const promise = countPastParticipations(liffStore)
       .then(count => {
         participationCounts.value = { ...participationCounts.value, [userId]: count }
         return count

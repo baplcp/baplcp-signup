@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import GroupEventRow from '~/components/group-list/GroupEventRow.vue'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { listSeasonActivities } from '~/services/activityService'
 import { parseTaiwanDateTime } from '~/utils/taiwanDate'
 
@@ -56,10 +57,10 @@ onMounted(async () => {
           framed
         />
       </div>
-      <p v-else class="empty-hint">目前沒有開放中的季打報名</p>
+      <PageFeedback v-else kind="empty" message="目前沒有開放中的季打報名" />
     </template>
 
-    <p v-if="isLoading" class="loading-hint">載入中…</p>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
   </main>
 </template>
 
@@ -67,7 +68,7 @@ onMounted(async () => {
 .season-list-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 0;
+  padding: 31px var(--page-inline-space) 0;
 }
 
 .page-header {
@@ -86,13 +87,5 @@ onMounted(async () => {
 .activity-list {
   display: grid;
   gap: 0;
-}
-
-.empty-hint,
-.loading-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
 }
 </style>

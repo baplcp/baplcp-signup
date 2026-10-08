@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AccessibleDialog from '~/components/AccessibleDialog.vue'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { deleteActivity, listManagedActivities } from '~/services/activityService'
 import { useLiffStore } from '~/stores/liff'
 
@@ -145,15 +146,12 @@ async function confirmDelete() {
       <h1 class="page-title">管理球局</h1>
     </div>
 
-    <p v-if="isLoading" class="hint">載入中…</p>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
 
-    <div v-else-if="loadError" class="load-error" role="alert">
-      <p class="hint">無法載入球局資料，請確認網路後再試一次。</p>
-      <button class="retry-button" type="button" @click="loadActivities">重新載入</button>
-    </div>
+    <PageFeedback v-else-if="loadError" kind="error" message="無法載入球局資料，請確認網路後再試一次。" @retry="loadActivities" />
 
     <template v-else>
-      <p v-if="activities.length === 0" class="hint">尚無球局資料</p>
+      <PageFeedback v-if="activities.length === 0" kind="empty" message="尚無球局資料" />
 
       <div v-else class="activity-list">
         <div v-for="(act, index) in activities" :key="act.id" class="swipe-row-container">
@@ -176,7 +174,7 @@ async function confirmDelete() {
       </div>
     </template>
 
-    <div class="fab-container">
+    <div class="fab-container phone-container">
       <button class="fab-create-btn" type="button" @click="router.push({ name: 'admin-activity-create' })">
         <svg class="fab-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -209,7 +207,7 @@ async function confirmDelete() {
 .manage-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 96px;
+  padding: 31px var(--page-inline-space) 96px;
 }
 
 .page-header {
@@ -227,29 +225,6 @@ async function confirmDelete() {
   letter-spacing: 0.48px;
   font-weight: 700;
   color: var(--text);
-}
-
-.hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
-}
-
-.load-error {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-}
-
-.retry-button {
-  min-height: 40px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: var(--primary, #3366ff);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 .activity-list {
@@ -296,7 +271,7 @@ async function confirmDelete() {
 
 .confirm-overlay {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--layer-floating);
   margin: auto;
 }
 
@@ -360,8 +335,6 @@ async function confirmDelete() {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
   padding: 12px 16px 28px;
   background: var(--surface);
   border-top: 1px solid rgba(16, 24, 64, 0.08);
@@ -375,7 +348,7 @@ async function confirmDelete() {
   gap: 8px;
   width: 100%;
   padding: 14px 20px;
-  background: var(--primary, #3366ff);
+  background: var(--primary-700);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -387,5 +360,12 @@ async function confirmDelete() {
   width: 20px;
   height: 20px;
   flex: 0 0 auto;
+}
+
+@media (min-width: 768px) {
+  .fab-container {
+    bottom: 24px;
+    border-radius: 0 0 24px 24px;
+  }
 }
 </style>

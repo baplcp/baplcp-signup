@@ -1,5 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
+
+const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
 
 const ALLOWED_ORIGINS = ['https://baplcp.github.io', 'http://localhost:5173', 'http://localhost:4173']
 const CORS_PRELIGHT_MAX_AGE_SECONDS = '86400'
@@ -58,6 +61,16 @@ serve(async req => {
     const body = await req.json()
     const action = body?.action
     const supabase = createClient(supabaseUrl, supabaseKey)
+
+    if (action === 'count-past-participations') {
+      const { data, error } = await supabase.rpc('count_past_participations', {
+        p_user_id: profile.userId,
+        p_start_date: PARTICIPATION_COUNT_START_DATE,
+        p_end_date: getTaiwanDateAndHour().date,
+      })
+      if (error) throw error
+      return jsonResponse({ count: Number(data ?? 0) }, 200, origin)
+    }
 
     if (action === 'sync') {
       const { data, error } = await supabase.from('members').select('role, gender, is_season, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()

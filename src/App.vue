@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '~/components/Layout.vue'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 import { keptAlivePageNames } from '~/composables/useSeasonsListCache'
 import { useLiffStore } from '~/stores/liff'
 
@@ -49,28 +50,33 @@ async function confirmGender() {
     </RouterView>
   </Layout>
 
-  <div class="gender-prompt-overlay shared-dialog-overlay" :class="{ 'is-open': showGenderPrompt }" :aria-hidden="String(!showGenderPrompt)" :inert="!showGenderPrompt">
-    <section class="shared-dialog gender-prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="gender-prompt-title">
-      <h2 class="shared-dialog-title" id="gender-prompt-title">請設定你的性別</h2>
-      <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
-      <div class="gender-options">
-        <button
-          v-for="opt in [
-            { value: 'female', label: '女' },
-            { value: 'male', label: '男' },
-          ]"
-          :key="opt.value"
-          class="gender-option-btn"
-          :class="{ 'is-selected': selectedGender === opt.value }"
-          type="button"
-          @click="selectedGender = opt.value"
-        >
-          {{ opt.label }}
-        </button>
-      </div>
-      <button class="shared-dialog-button gender-confirm-btn" type="button" :disabled="!selectedGender || saving" @click="confirmGender">確認</button>
-    </section>
-  </div>
+  <AccessibleDialog
+    :open="showGenderPrompt"
+    title="請設定你的性別"
+    overlay-class="gender-prompt-overlay shared-dialog-overlay"
+    content-class="shared-dialog gender-prompt-dialog"
+    :close-on-outside="false"
+    :close-on-escape="false"
+  >
+    <h2 class="shared-dialog-title">請設定你的性別</h2>
+    <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
+    <div class="gender-options">
+      <button
+        v-for="opt in [
+          { value: 'female', label: '女' },
+          { value: 'male', label: '男' },
+        ]"
+        :key="opt.value"
+        class="gender-option-btn"
+        :class="{ 'is-selected': selectedGender === opt.value }"
+        type="button"
+        @click="selectedGender = opt.value"
+      >
+        {{ opt.label }}
+      </button>
+    </div>
+    <button class="shared-dialog-button gender-confirm-btn" type="button" :disabled="!selectedGender || saving" @click="confirmGender">確認</button>
+  </AccessibleDialog>
 </template>
 
 <style scoped>
@@ -78,7 +84,7 @@ async function confirmGender() {
   position: fixed;
   bottom: 8px;
   left: 8px;
-  z-index: 30000;
+  z-index: var(--layer-development);
   padding: 3px 6px;
   border: 1px solid rgba(199, 144, 81, 0.45);
   border-radius: 4px;
@@ -92,7 +98,7 @@ async function confirmGender() {
 }
 
 .gender-prompt-overlay {
-  z-index: 20000;
+  z-index: var(--layer-profile-dialog);
 }
 
 .gender-prompt-dialog {
@@ -111,9 +117,9 @@ async function confirmGender() {
   min-width: 72px;
   min-height: 44px;
   border-radius: 999px;
-  border: 1.5px solid #d8dae5;
-  background: #fff;
-  color: #474d66;
+  border: 1.5px solid var(--neutral-300);
+  background: var(--neutral-0);
+  color: var(--neutral-700);
   font-size: 16px;
   font-weight: 500;
   transition:
@@ -123,13 +129,13 @@ async function confirmGender() {
 }
 
 .gender-option-btn.is-selected {
-  border-color: #5768ff;
+  border-color: var(--primary-700);
   background: #eef1ff;
-  color: #5768ff;
+  color: var(--primary-700);
 }
 
 .gender-confirm-btn:disabled {
-  background: #d8dae5;
+  background: var(--neutral-300);
   cursor: default;
 }
 </style>

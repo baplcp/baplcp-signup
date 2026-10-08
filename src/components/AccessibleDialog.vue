@@ -20,7 +20,7 @@ const props = defineProps({
     required: true,
   },
   zIndex: {
-    type: Number,
+    type: [Number, String],
     default: null,
   },
   closeOnOutside: {
@@ -30,6 +30,10 @@ const props = defineProps({
   closeOnEscape: {
     type: Boolean,
     default: true,
+  },
+  unmountOnHide: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -63,7 +67,7 @@ function restoreFocus(event) {
 </script>
 
 <template>
-  <DialogRoot :open="open" :unmount-on-hide="false" @update:open="handleOpenChange">
+  <DialogRoot :open="open" :unmount-on-hide="unmountOnHide" @update:open="handleOpenChange">
     <DialogPortal>
       <DialogOverlay as-child>
         <div :class="[overlayClass, { 'is-open': open }]" :style="zIndex == null ? undefined : { zIndex }">

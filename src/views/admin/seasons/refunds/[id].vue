@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { getActivity } from '~/services/activityService'
 import { listSeasonRegistrations } from '~/services/registrationService'
 import { seasonPlanCoversDate } from '~/utils/seasonPlan'
@@ -124,14 +125,11 @@ onMounted(loadRefundDetail)
           </div>
         </div>
       </div>
-      <p v-else class="empty-hint">本季目前沒有成員請假</p>
+      <PageFeedback v-else kind="empty" message="本季目前沒有成員請假" />
     </template>
 
-    <p v-if="isLoading" class="loading-hint">載入中…</p>
-    <div v-else-if="loadError" class="load-error" role="alert">
-      <p class="loading-hint">無法載入退費資料，請確認網路後再試一次。</p>
-      <button class="retry-button" type="button" @click="loadRefundDetail">重新載入</button>
-    </div>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
+    <PageFeedback v-else-if="loadError" kind="error" message="無法載入退費資料，請確認網路後再試一次。" @retry="loadRefundDetail" />
   </main>
 </template>
 
@@ -139,7 +137,7 @@ onMounted(loadRefundDetail)
 .refund-detail-page {
   background: var(--surface);
   min-height: 100%;
-  padding: 31px 16px 40px;
+  padding: 31px var(--page-inline-space) 40px;
 }
 
 .page-header {
@@ -182,7 +180,7 @@ onMounted(loadRefundDetail)
 
 .segment-tab.is-active {
   background: #fff;
-  color: var(--text, #101840);
+  color: var(--text);
   font-weight: 500;
   box-shadow: 0 1px 3px rgba(16, 24, 64, 0.1);
 }
@@ -272,29 +270,5 @@ onMounted(loadRefundDetail)
   font-size: 15px;
   font-weight: 600;
   color: #c79051;
-}
-
-.empty-hint,
-.loading-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
-}
-
-.load-error {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-}
-
-.retry-button {
-  min-height: 40px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: var(--primary, #3366ff);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
 }
 </style>

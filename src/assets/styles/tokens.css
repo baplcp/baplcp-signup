@@ -40,11 +40,30 @@
   --muted-soft: var(--neutral-500);
   --line: var(--neutral-100);
   --line-soft: var(--neutral-250);
+  --border-subtle: rgba(16, 24, 64, 0.06);
   --section: var(--neutral-50);
   --selected: var(--primary-100);
   --success-500: #17acba;
   --danger-500: #d14343;
+  --control-icon: #646a80;
+  --overlay-32: rgba(0, 0, 0, 0.32);
   --overlay-40: rgba(0, 0, 0, 0.4);
+  --page-inline-space: 16px;
+  --radius-card: 16px;
+  --radius-sheet: 18px;
   --nav-height: 60px;
+  --motion-overlay: 0.28s;
+  --motion-sheet: 0.32s;
+  /* 頁面內層級維持在 1–15；以下保留給導覽與跨頁彈窗。 */
+  --layer-form-dialog: 20;
+  --layer-shared-dialog: 60;
+  --layer-navigation: 999;
+  --layer-menu: 1000;
+  --layer-floating: 9999;
+  --layer-dialog: 10000;
+  --layer-detail-dialog: 10002;
+  --layer-plan-dialog: 10003;
+  --layer-profile-dialog: 20000;
+  --layer-development: 30000;
   --brand-purple-filter: brightness(0) saturate(100%) invert(21%) sepia(27%) saturate(1897%) hue-rotate(210deg) brightness(93%) contrast(96%);
 }

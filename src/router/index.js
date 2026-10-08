@@ -85,7 +85,7 @@ const fallbackRoute = {
 }
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [...publicRoutes, ...adminRoutes, fallbackRoute],
 })
 

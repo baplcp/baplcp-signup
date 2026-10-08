@@ -27,6 +27,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   overscroll-behavior: none;
 }
@@ -73,10 +74,14 @@ menu {
 button {
   padding: 0;
   border: 0;
-  outline: none;
   background: none;
   cursor: pointer;
   font: inherit;
+}
+
+:where(button, a, [role='button']):focus-visible {
+  outline: 3px solid var(--primary-700);
+  outline-offset: 3px;
 }
 
 button,
@@ -101,7 +106,7 @@ textarea {
   border-radius: 8px;
   outline: none;
   appearance: none;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   font-size: max(16px, 1em) !important;
   line-height: 1.5;
@@ -124,7 +129,7 @@ textarea:focus,
 
 select {
   padding-right: 36px;
-  background-image: linear-gradient(45deg, transparent 50%, #646a80 50%), linear-gradient(135deg, #646a80 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--control-icon) 50%), linear-gradient(135deg, var(--control-icon) 50%, transparent 50%);
   background-position:
     calc(100% - 18px) 50%,
     calc(100% - 12px) 50%;

@@ -95,7 +95,7 @@ function updateDropdownPosition() {
     position: 'fixed',
     top: `${rect.bottom + 6}px`,
     left: `${rect.left}px`,
-    zIndex: '9999',
+    zIndex: 'var(--layer-floating)',
   }
 }
 
@@ -352,7 +352,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   font-size: 13px;
   line-height: 1.25;
   font-weight: 400;
-  color: #474d66;
+  color: var(--neutral-700);
 }
 
 .summary-vacancy-value {
@@ -377,13 +377,13 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 .summary-session-count {
   font-size: 13px;
   line-height: 1.35;
-  color: #474d66;
+  color: var(--neutral-700);
 }
 
 .summary-view-dates-btn {
   font-size: 13px;
   line-height: 1.35;
-  color: #1bc4bf;
+  color: var(--secondary-500);
   font-weight: 500;
   background: none;
   border: none;
@@ -460,7 +460,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   display: flex;
   align-items: center;
   padding: 4px 2px;
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .ac-chevron {
@@ -478,7 +478,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 <style>
 .ac-dropdown {
   min-width: 110px;
-  background: #fff;
+  background: var(--neutral-0);
   border: 1px solid #e6e8f0;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(16, 24, 67, 0.14);
@@ -492,7 +492,7 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
   text-align: left;
   font-size: 14px;
   line-height: 1.4;
-  color: #474d66;
+  color: var(--neutral-700);
   font-family: inherit;
   border: 0;
   background: none;
@@ -500,16 +500,16 @@ onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 }
 
 .ac-option + .ac-option {
-  border-top: 1px solid #f4f6fa;
+  border-top: 1px solid var(--neutral-100);
 }
 
 .ac-option.is-selected {
-  color: #5768ff;
+  color: var(--primary-700);
   font-weight: 600;
   background: #eef1ff;
 }
 
 .ac-option:active {
-  background: #f4f6fa;
+  background: var(--neutral-100);
 }
 </style>
