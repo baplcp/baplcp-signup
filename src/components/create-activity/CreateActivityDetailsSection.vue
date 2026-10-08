@@ -171,102 +171,12 @@ function getTextFieldError(value, maxLength, requiredMessage, maxLengthMessage) 
 </template>
 
 <style scoped>
-.section,
-.field {
-  display: grid;
-}
-
-.section {
-  gap: 18px;
-}
-
-.section-title {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.36;
-  letter-spacing: 0.36px;
-  font-weight: 600;
-}
-
-.field {
-  gap: 8px;
-  min-width: 0;
-}
-
-.field-label {
-  margin: 0;
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 600;
-}
-
-.control-button {
-  min-height: 41px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border: 1px solid var(--neutral-300);
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.5;
-  text-align: left;
-}
-
-.control-button.has-value {
-  color: var(--text);
-}
-
-.control-button::after {
-  content: '';
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #646a80;
-  border-radius: 2px;
-  flex: 0 0 auto;
-  margin-left: 12px;
-}
-
 .helper-note {
   margin: 0;
   color: var(--secondary-500);
   font-size: 13px;
   line-height: 1.35;
   font-weight: 400;
-}
-
-.field-limit,
-.field-error {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.field-limit {
-  color: var(--muted);
-}
-
-.field-error {
-  color: var(--danger-500);
-}
-
-.time-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
-.inline-text {
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .fee-grid {
@@ -277,11 +187,5 @@ function getTextFieldError(value, maxLength, requiredMessage, maxLengthMessage) 
 
 #date-picker-button {
   font-size: 15px;
-}
-
-input.is-error,
-.control-button.is-error {
-  border-color: var(--danger-500);
-  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
 }
 </style>

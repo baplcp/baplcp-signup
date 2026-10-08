@@ -352,7 +352,7 @@ async function submitActivity() {
       cancel-aria-label="取消移除日期"
       confirm-text="確認儲存"
       tone="danger"
-      :z-index="20"
+      z-index="var(--layer-form-dialog)"
       @cancel="cancelDateRemoval"
       @confirm="confirmDateRemoval"
     />
@@ -374,7 +374,7 @@ async function submitActivity() {
   min-height: 48px;
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 12px var(--page-inline-space);
   background: #fff;
 }
 
@@ -385,7 +385,7 @@ async function submitActivity() {
 }
 
 .page {
-  padding: 24px 16px 0;
+  padding: 24px var(--page-inline-space) 0;
 }
 
 .page-title {
@@ -417,7 +417,7 @@ async function submitActivity() {
   right: 0;
   bottom: 0;
   z-index: 8;
-  padding: 46px 16px 20px;
+  padding: 46px var(--page-inline-space) 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 38%, #fff 100%);
   pointer-events: none;
 }

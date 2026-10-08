@@ -133,7 +133,7 @@ watch(
         </svg>
       </button>
 
-      <AccessibleDialog :open="isMenuOpen" title="選單" overlay-class="menu-overlay phone-container modal-frame" content-class="side-menu" :z-index="1000" @close="closeMenu">
+      <AccessibleDialog :open="isMenuOpen" title="選單" overlay-class="menu-overlay phone-container modal-frame" content-class="side-menu" z-index="var(--layer-menu)" @close="closeMenu">
         <div class="drawer-profile">
           <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
           <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
@@ -282,6 +282,7 @@ watch(
 <style>
 .layout {
   height: 100vh;
+  height: 100dvh;
   box-shadow: 0 24px 60px rgba(71, 82, 163, 0.18);
   background: var(--surface);
   -webkit-overflow-scrolling: touch;
@@ -301,11 +302,11 @@ watch(
   top: 0;
   left: 0;
   right: 0;
-  z-index: 999;
+  z-index: var(--layer-navigation);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 12px var(--page-inline-space);
   min-height: var(--nav-height);
   margin-bottom: calc(var(--nav-height) * -1);
   background: rgba(255, 255, 255, var(--nav-bg-opacity, 0));
@@ -327,7 +328,7 @@ watch(
   align-items: center;
   gap: 6px;
   min-height: 60px;
-  padding: 12px 16px;
+  padding: 12px var(--page-inline-space);
   background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid rgba(16, 24, 64, 0.06);
   backdrop-filter: blur(14px);
@@ -372,7 +373,7 @@ watch(
 .menu-btn svg {
   width: 24px;
   height: 24px;
-  color: #fff;
+  color: var(--neutral-0);
   transition: filter 0.25s ease;
 }
 
@@ -415,7 +416,7 @@ watch(
   width: min(329px, calc(100% - 61px));
   height: 100%;
   padding: 32px 0;
-  background: #fff;
+  background: var(--neutral-0);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -465,7 +466,7 @@ watch(
   font-size: 20px;
   line-height: 1.25;
   font-weight: 500;
-  color: #101840;
+  color: var(--text);
 }
 
 .drawer-role {
@@ -483,7 +484,7 @@ watch(
   white-space: nowrap;
   border: 1px solid rgba(143, 149, 178, 0.3);
   background: rgba(237, 239, 245, 0.4);
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .drawer-role svg {
@@ -502,7 +503,7 @@ watch(
 .drawer-role.is-engineer {
   border-color: rgba(87, 104, 255, 0.25);
   background: rgba(168, 177, 244, 0.15);
-  color: #5768ff;
+  color: var(--primary-700);
 }
 
 .drawer-role.is-guest {
@@ -522,7 +523,7 @@ watch(
   height: 24px;
   display: grid;
   place-items: center;
-  color: #474d66;
+  color: var(--neutral-700);
   align-self: flex-start;
   margin-top: 0;
   flex: 0 0 auto;
@@ -552,7 +553,7 @@ watch(
   font-size: 16px;
   line-height: 1.4;
   font-weight: 400;
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .drawer-list {
@@ -565,7 +566,7 @@ watch(
   align-items: center;
   gap: 16px;
   min-height: 36px;
-  color: #101840;
+  color: var(--text);
   text-decoration: none;
   font-size: 16px;
   line-height: 1.4;
@@ -579,7 +580,7 @@ watch(
   place-items: center;
   flex: 0 0 auto;
   background: #a8b1f4;
-  color: #8f95b2;
+  color: var(--muted-soft);
   overflow: hidden;
 }
 
@@ -623,8 +624,8 @@ watch(
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: #1bc4bf;
-  color: #fff;
+  background: var(--secondary-500);
+  color: var(--neutral-0);
   text-decoration: none;
   font-size: 17px;
   line-height: 1.25;
@@ -636,7 +637,7 @@ watch(
   height: 24px;
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--neutral-0);
   flex: 0 0 auto;
   transition: color 0.25s ease;
 }
@@ -644,12 +645,12 @@ watch(
 .auth-wall {
   position: absolute;
   inset: 0;
-  z-index: 9999;
+  z-index: var(--layer-floating);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--surface, #fff);
+  background: var(--surface);
 }
 
 .auth-wall__card {
@@ -678,14 +679,14 @@ watch(
   font-size: 22px;
   font-weight: 600;
   line-height: 1.3;
-  color: #101840;
+  color: var(--text);
 }
 
 .auth-wall__body {
   margin: 0;
   font-size: 15px;
   line-height: 1.7;
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .auth-wall__button {
@@ -693,7 +694,7 @@ watch(
   min-height: 48px;
   border-radius: 12px;
   background: #06c755;
-  color: #fff;
+  color: var(--neutral-0);
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
@@ -712,6 +713,7 @@ watch(
 @media (min-width: 768px) {
   .layout {
     height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
     border-radius: 24px;
   }
 }

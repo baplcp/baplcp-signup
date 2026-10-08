@@ -78,7 +78,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
 .group-list-page {
   background: var(--surface);
   min-height: 100%;
-  padding: 31px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 31px var(--page-inline-space) calc(20px + env(safe-area-inset-bottom));
 }
 
 .page-header {

@@ -69,7 +69,7 @@ onMounted(loadActivities)
 .season-refund-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 0;
+  padding: 31px var(--page-inline-space) 0;
 }
 
 .page-header {
@@ -102,7 +102,7 @@ onMounted(loadActivities)
   gap: 12px;
   width: 100%;
   padding: 16px 0;
-  border-bottom: 1px solid var(--border-subtle, rgba(16, 24, 64, 0.06));
+  border-bottom: 1px solid var(--border-subtle);
   background: none;
   border-left: none;
   border-right: none;

@@ -129,7 +129,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       :title="dialogs.successDialog.title"
       overlay-class="success-dialog-overlay shared-dialog-overlay"
       content-class="success-dialog shared-dialog"
-      :z-index="10000"
+      z-index="var(--layer-dialog)"
       :close-on-outside="false"
       @close="actions.closeSuccessDialog"
     >
@@ -148,7 +148,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       cancel-aria-label="取消移除"
       confirm-text="確認移除"
       tone="danger"
-      :z-index="10001"
+      z-index="calc(var(--layer-dialog) + 1)"
       :confirm-button-ref="elementRefs.removeConfirmButton"
       @cancel="actions.cancelRemove"
       @confirm="actions.confirmRemove"
@@ -162,7 +162,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
       cancel-aria-label="取消請假"
       confirm-text="確認請假"
       tone="warning"
-      :z-index="10002"
+      z-index="var(--layer-detail-dialog)"
       :confirm-button-ref="elementRefs.leaveConfirmButton"
       @cancel="actions.cancelLeaveConfirm"
       @confirm="actions.confirmLeaveConfirm"
@@ -180,8 +180,8 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
     <AccessibleDialog
       :open="dialogs.seasonCancelOpen"
       :title="`確認取消${dialogs.seasonCancelPlanLabel}報名？`"
-      overlay-class="season-cancel-overlay phone-container modal-frame"
-      content-class="season-cancel-sheet"
+      overlay-class="season-cancel-overlay bottom-sheet-overlay phone-container modal-frame"
+      content-class="season-cancel-sheet bottom-sheet"
       @close="dialogs.seasonCancelOpen = false"
     >
       <p class="season-cancel-title">確認取消{{ dialogs.seasonCancelPlanLabel }}報名？</p>

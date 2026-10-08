@@ -2,7 +2,7 @@
 .shared-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--layer-shared-dialog);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -20,7 +20,7 @@
 .shared-dialog {
   width: min(100%, 318px);
   padding: 28px 22px 22px;
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   box-shadow: 0 22px 52px rgba(16, 24, 64, 0.2);
   text-align: center;
@@ -59,39 +59,79 @@
   line-height: 1.4;
 }
 
-.season-cancel-overlay {
+.sliding-sheet-overlay {
   position: fixed;
-  z-index: 10002;
+  overflow: hidden;
+  left: 0;
+  right: 0;
+  margin: auto;
+  background: var(--overlay-40);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-overlay) ease;
+}
+
+.sliding-sheet-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sliding-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform var(--motion-sheet) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sliding-sheet-overlay.is-open .sliding-sheet {
+  transform: translateY(0);
+}
+
+.bottom-sheet-overlay {
+  position: fixed;
   overflow: hidden;
   margin: auto;
   display: none;
   align-items: flex-end;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay-40);
 }
 
-.season-cancel-overlay.is-open {
+.bottom-sheet-overlay.is-open {
   display: flex;
 }
 
-.season-cancel-sheet {
+.bottom-sheet {
   width: 100%;
-  padding: 28px 20px 24px;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--surface);
+}
+
+.season-cancel-overlay {
+  z-index: var(--layer-detail-dialog);
+}
+
+.season-cancel-sheet {
+  padding: 28px 20px calc(24px + env(safe-area-inset-bottom));
 }
 
 .season-cancel-title {
   margin: 0 0 10px;
   font-size: 18px;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
   line-height: 1.36;
 }
 
 .season-cancel-copy {
   margin: 0 0 24px;
   font-size: 14px;
-  color: #474d66;
+  color: var(--neutral-700);
   line-height: 1.6;
 }
 
@@ -109,13 +149,13 @@
 }
 
 .season-cancel-btn.is-muted {
-  background: #f4f6fa;
-  color: #474d66;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
 }
 
 .season-cancel-btn.is-danger {
-  background: #d14343;
-  color: #fff;
+  background: var(--danger-500);
+  color: var(--neutral-0);
 }
 
 .button-spinner {
@@ -132,11 +172,5 @@
 @keyframes button-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .button-spinner {
-    animation-duration: 1.6s;
   }
 }

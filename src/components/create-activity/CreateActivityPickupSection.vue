@@ -221,52 +221,8 @@ const nextReminderHint = computed(() => {
 </template>
 
 <style scoped>
-.section,
-.field {
-  display: grid;
-}
-
-.section {
-  gap: 18px;
-}
-
-.section-title {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.36;
-  letter-spacing: 0.36px;
-  font-weight: 600;
-}
-
-.field {
-  gap: 8px;
-  min-width: 0;
-}
-
-.field-label {
-  margin: 0;
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 600;
-}
-
-.time-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
 .time-row.is-rule {
   grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-}
-
-.inline-text {
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .select-wrap {
@@ -294,31 +250,6 @@ const nextReminderHint = computed(() => {
 .time-row.is-rule select,
 .choice-rule select {
   font-size: 15px;
-}
-
-select.is-error {
-  border-color: var(--danger-500);
-  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
-}
-
-input.is-error {
-  border-color: var(--danger-500);
-  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
-}
-
-.field-limit,
-.field-error {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.field-limit {
-  color: var(--muted);
-}
-
-.field-error {
-  color: var(--danger-500);
 }
 
 .next-hint {

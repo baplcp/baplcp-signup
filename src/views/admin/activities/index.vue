@@ -207,7 +207,7 @@ async function confirmDelete() {
 .manage-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 96px;
+  padding: 31px var(--page-inline-space) 96px;
 }
 
 .page-header {
@@ -271,7 +271,7 @@ async function confirmDelete() {
 
 .confirm-overlay {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--layer-floating);
   margin: auto;
 }
 

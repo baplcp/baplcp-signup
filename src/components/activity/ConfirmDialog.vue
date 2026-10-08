@@ -35,7 +35,7 @@ defineProps({
     default: 'danger',
   },
   zIndex: {
-    type: Number,
+    type: [Number, String],
     required: true,
   },
   confirmButtonRef: {
@@ -82,11 +82,11 @@ const emit = defineEmits(['cancel', 'confirm'])
   margin: auto;
   padding: 28px 24px 24px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--neutral-0);
 }
 
 .confirm-dialog-title.is-danger {
-  color: #d14343;
+  color: var(--danger-500);
 }
 
 .confirm-dialog-title.is-warning {
@@ -95,7 +95,7 @@ const emit = defineEmits(['cancel', 'confirm'])
 
 .confirm-dialog-copy {
   margin: 10px 0 0;
-  color: #474d66;
+  color: var(--neutral-700);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -115,19 +115,19 @@ const emit = defineEmits(['cancel', 'confirm'])
 }
 
 .confirm-dialog-cancel {
-  border: 1px solid #d8dae5;
-  background: #fff;
-  color: #474d66;
+  border: 1px solid var(--neutral-300);
+  background: var(--neutral-0);
+  color: var(--neutral-700);
   font-weight: 500;
 }
 
 .confirm-dialog-confirm {
-  color: #fff;
+  color: var(--neutral-0);
   font-weight: 600;
 }
 
 .confirm-dialog-confirm.is-danger {
-  background: #d14343;
+  background: var(--danger-500);
 }
 
 .confirm-dialog-confirm.is-warning {

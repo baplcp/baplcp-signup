@@ -1,0 +1,95 @@
+/* 建立球局表單三個區塊共用的欄位與標題規則。 */
+.create-activity-page .section,
+.create-activity-page .field {
+  display: grid;
+}
+
+.create-activity-page .section {
+  gap: 18px;
+}
+
+.create-activity-page .section-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.36;
+  letter-spacing: 0.36px;
+  font-weight: 600;
+}
+
+.create-activity-page .field {
+  gap: 8px;
+  min-width: 0;
+}
+
+.create-activity-page .field-label {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.create-activity-page .control-button {
+  min-height: 41px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--neutral-300);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.create-activity-page .control-button.has-value {
+  color: var(--text);
+}
+
+.create-activity-page .control-button::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--control-icon);
+  border-radius: 2px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
+.create-activity-page .field-limit,
+.create-activity-page .field-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.create-activity-page .field-limit {
+  color: var(--muted);
+}
+
+.create-activity-page .field-error {
+  color: var(--danger-500);
+}
+
+.create-activity-page .time-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.create-activity-page .inline-text {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.create-activity-page :is(input, select, .control-button).is-error {
+  border-color: var(--danger-500);
+  box-shadow: 0 0 0 3px rgba(209, 67, 67, 0.12);
+}

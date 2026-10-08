@@ -20,7 +20,7 @@ const props = defineProps({
     required: true,
   },
   zIndex: {
-    type: Number,
+    type: [Number, String],
     default: null,
   },
   closeOnOutside: {

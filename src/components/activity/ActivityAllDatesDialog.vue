@@ -34,7 +34,13 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-  <AccessibleDialog :open="open" title="所有場次日期" overlay-class="all-dates-overlay phone-container modal-frame" content-class="all-dates-sheet" @close="emit('close')">
+  <AccessibleDialog
+    :open="open"
+    title="所有場次日期"
+    overlay-class="all-dates-overlay bottom-sheet-overlay phone-container modal-frame"
+    content-class="all-dates-sheet bottom-sheet"
+    @close="emit('close')"
+  >
     <div class="all-dates-header">
       <h2 id="all-dates-title" class="all-dates-title">所有場次日期</h2>
       <span v-if="quarterCount > 0 && quarterCount < sessionCount" class="all-dates-count">
@@ -65,26 +71,14 @@ function formatDate(dateStr) {
 
 <style>
 .all-dates-overlay {
-  position: fixed;
-  z-index: 10002;
-  overflow: hidden;
-  margin: auto;
-  display: none;
-  align-items: flex-end;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.all-dates-overlay.is-open {
-  display: flex;
+  z-index: var(--layer-detail-dialog);
 }
 
 .all-dates-sheet {
-  width: 100%;
   max-height: 70vh;
+  max-height: 70dvh;
   display: flex;
   flex-direction: column;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
 }
 
 .all-dates-header {
@@ -101,12 +95,12 @@ function formatDate(dateStr) {
   font-size: 18px;
   line-height: 1.36;
   font-weight: 600;
-  color: #101840;
+  color: var(--text);
 }
 
 .all-dates-count {
   font-size: 14px;
-  color: #8f95b2;
+  color: var(--muted-soft);
   font-weight: 400;
 }
 
@@ -116,12 +110,12 @@ function formatDate(dateStr) {
 }
 
 .count-sep {
-  color: #d8dae5;
+  color: var(--neutral-300);
   margin: 0 2px;
 }
 
 .count-half {
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .all-dates-list {
@@ -137,7 +131,7 @@ function formatDate(dateStr) {
   align-items: center;
   gap: 14px;
   padding: 12px 0;
-  border-bottom: 1px solid #f4f6fa;
+  border-bottom: 1px solid var(--neutral-100);
 }
 
 .all-dates-row:last-child {
@@ -155,16 +149,16 @@ function formatDate(dateStr) {
 
 .all-dates-label {
   font-size: 15px;
-  color: #101840;
+  color: var(--text);
   line-height: 1.4;
 }
 
 .all-dates-row.is-half-year .all-dates-index {
-  color: #8f95b2;
+  color: var(--muted-soft);
 }
 
 .all-dates-row.is-half-year .all-dates-label {
-  color: #696f8c;
+  color: var(--neutral-600);
 }
 
 .all-dates-separator {
@@ -201,8 +195,8 @@ function formatDate(dateStr) {
   width: 100%;
   min-height: 48px;
   border-radius: 10px;
-  background: #f4f6fa;
-  color: #474d66;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
   font-size: 16px;
   font-weight: 500;
 }

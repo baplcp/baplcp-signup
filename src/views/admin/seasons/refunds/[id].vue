@@ -137,7 +137,7 @@ onMounted(loadRefundDetail)
 .refund-detail-page {
   background: var(--surface);
   min-height: 100%;
-  padding: 31px 16px 40px;
+  padding: 31px var(--page-inline-space) 40px;
 }
 
 .page-header {
@@ -180,7 +180,7 @@ onMounted(loadRefundDetail)
 
 .segment-tab.is-active {
   background: #fff;
-  color: var(--text, #101840);
+  color: var(--text);
   font-weight: 500;
   box-shadow: 0 1px 3px rgba(16, 24, 64, 0.1);
 }

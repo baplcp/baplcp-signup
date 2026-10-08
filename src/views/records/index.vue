@@ -103,7 +103,7 @@ onMounted(loadMyRecords)
 .my-records-page {
   background: var(--surface);
   min-height: 100%;
-  padding: 31px 16px 40px;
+  padding: 31px var(--page-inline-space) 40px;
 }
 
 .page-header {

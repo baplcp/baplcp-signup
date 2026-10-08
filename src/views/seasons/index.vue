@@ -68,7 +68,7 @@ onMounted(async () => {
 .season-list-page {
   background: var(--surface);
   height: 100%;
-  padding: 31px 16px 0;
+  padding: 31px var(--page-inline-space) 0;
 }
 
 .page-header {

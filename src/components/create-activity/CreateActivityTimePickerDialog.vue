@@ -121,7 +121,7 @@ function onTimeWheelScroll(event, key, values) {
 </script>
 
 <template>
-  <AccessibleDialog :open="open" title="選擇時間" overlay-class="time-overlay phone-container modal-frame" content-class="time-sheet" @close="emit('close')">
+  <AccessibleDialog :open="open" title="選擇時間" overlay-class="time-overlay bottom-sheet-overlay phone-container modal-frame" content-class="time-sheet bottom-sheet" @close="emit('close')">
     <div class="time-header">
       <h2 id="time-title" class="time-title">選擇時間</h2>
       <button class="time-close" type="button" @click="commitTimePicker">完成</button>
@@ -212,24 +212,12 @@ function onTimeWheelScroll(event, key, values) {
 
 <style>
 .time-overlay {
-  position: fixed;
-  z-index: 20;
-  overflow: hidden;
-  margin: auto;
-  display: none;
-  align-items: flex-end;
-  background: rgba(0, 0, 0, 0.32);
-}
-
-.time-overlay.is-open {
-  display: flex;
+  z-index: var(--layer-form-dialog);
+  background: var(--overlay-32);
 }
 
 .time-sheet {
-  width: 100%;
-  padding: 16px;
-  border-radius: 18px 18px 0 0;
-  background: #fff;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
 .time-header {
@@ -272,13 +260,13 @@ function onTimeWheelScroll(event, key, values) {
 }
 
 .time-action.is-muted {
-  background: #f4f6fa;
+  background: var(--neutral-100);
   color: var(--muted);
 }
 
 .time-action.is-primary {
   background: var(--primary-600);
-  color: #fff;
+  color: var(--neutral-0);
 }
 
 .time-wheels {
@@ -297,7 +285,7 @@ function onTimeWheelScroll(event, key, values) {
   top: 50%;
   height: 44px;
   border-radius: 10px;
-  background: #f4f6fa;
+  background: var(--neutral-100);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -364,7 +352,7 @@ function onTimeWheelScroll(event, key, values) {
 }
 
 .time-wheel-arrow:hover {
-  background: #f4f6fa;
+  background: var(--neutral-100);
   color: var(--text);
 }
 
