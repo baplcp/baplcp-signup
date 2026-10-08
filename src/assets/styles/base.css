@@ -73,10 +73,14 @@ menu {
 button {
   padding: 0;
   border: 0;
-  outline: none;
   background: none;
   cursor: pointer;
   font: inherit;
+}
+
+:where(button, a, [role='button']):focus-visible {
+  outline: 3px solid var(--primary-700);
+  outline-offset: 3px;
 }
 
 button,

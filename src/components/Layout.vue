@@ -2,6 +2,7 @@
 import { ref, computed, nextTick, watch, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLiffStore } from '~/stores/liff'
+import AccessibleDialog from '~/components/AccessibleDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,119 +127,116 @@ watch(
       </button>
       <RouterLink :to="{ name: 'home' }" class="brand" aria-label="回到首頁 BAPLCP"></RouterLink>
       <span id="nav-extra"></span>
-      <button @click="toggleMenu" class="menu-btn" type="button" aria-label="開啟選單">
+      <button @click="toggleMenu" class="menu-btn" type="button" :aria-label="isMenuOpen ? '關閉選單' : '開啟選單'" aria-haspopup="dialog" :aria-expanded="isMenuOpen">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4.5 7H19.5M4.5 12H19.5M4.5 17H19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
       </button>
 
-      <div class="menu-overlay" :class="{ 'is-open': isMenuOpen }" id="menu-overlay" :aria-hidden="String(!isMenuOpen)" :inert="isMenuOpen ? null : ''">
-        <button @click="closeMenu" class="menu-backdrop" type="button" aria-label="關閉選單"></button>
-        <aside class="side-menu" role="dialog" aria-modal="true" aria-labelledby="drawer-user-name">
-          <div class="drawer-profile">
-            <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
-            <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
-            <!-- 未登入：灰色人頭預設圖 -->
-            <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
-              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="32" cy="32" fill="#edeff5" r="31" />
-                <g fill="#c1c7e0">
-                  <path d="m56.877 50.4748a31.0647 31.0647 0 0 0 -49.7651-.0156 30.9669 30.9669 0 0 0 49.7651.0156z" />
-                  <circle cx="32" cy="22" r="12" />
-                </g>
+      <AccessibleDialog :open="isMenuOpen" title="選單" overlay-class="menu-overlay phone-container modal-frame" content-class="side-menu" :z-index="1000" @close="closeMenu">
+        <div class="drawer-profile">
+          <!-- 已登入：顯示 LINE 頭像或 cookie 備用圖 -->
+          <img v-if="liffStore.userId" class="drawer-avatar" :src="liffStore.pictureUrl || defaultAvatar" alt="" />
+          <!-- 未登入：灰色人頭預設圖 -->
+          <span v-else class="drawer-avatar drawer-avatar--guest" aria-hidden="true">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" fill="#edeff5" r="31" />
+              <g fill="#c1c7e0">
+                <path d="m56.877 50.4748a31.0647 31.0647 0 0 0 -49.7651-.0156 30.9669 30.9669 0 0 0 49.7651.0156z" />
+                <circle cx="32" cy="22" r="12" />
+              </g>
+            </svg>
+          </span>
+          <div class="drawer-user-stack">
+            <p class="drawer-user" id="drawer-user-name">{{ liffStore.displayName || '訪客' }}</p>
+            <!-- 未登入：請先登入 badge -->
+            <span v-if="!liffStore.userId" class="drawer-role is-guest">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
+                <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               </svg>
+              <span>請先登入</span>
             </span>
-            <div class="drawer-user-stack">
-              <p class="drawer-user" id="drawer-user-name">{{ liffStore.displayName || '訪客' }}</p>
-              <!-- 未登入：請先登入 badge -->
-              <span v-if="!liffStore.userId" class="drawer-role is-guest">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
-                  <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                </svg>
-                <span>請先登入</span>
-              </span>
-              <!-- 季打身份 badge -->
-              <span v-if="liffStore.isSeason" class="drawer-role is-season">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" />
-                  <path d="M12 4C12 4 9 7 9 12C9 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                  <path d="M12 4C12 4 15 7 15 12C15 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                  <path d="M4 12H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <span>黃金季打</span>
-              </span>
-              <!-- 已登入：顯示對應身份 badge -->
-              <span v-else class="drawer-role" :class="roleConfig.modifier">
-                <!-- organizer: 皇冠 -->
-                <svg v-if="liffStore.role === 'organizer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor" />
-                  <path d="M5.5 17L4 7.5L8.5 11L12 5L15.5 11L20 7.5L18.5 17H5.5Z" fill="currentColor" />
-                </svg>
-                <!-- engineer: 程式碼括號 -->
-                <svg v-else-if="liffStore.role === 'engineer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M8 6L2 12L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M16 6L22 12L16 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                <!-- member: 人像 -->
-                <svg v-else viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
-                  <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                </svg>
-                <span>{{ roleConfig.label }}</span>
-              </span>
-            </div>
-            <button @click="closeMenu" class="drawer-close" type="button" data-menu-close aria-label="關閉選單">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
-                <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <!-- 季打身份 badge -->
+            <span v-if="liffStore.isSeason" class="drawer-role is-season">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" />
+                <path d="M12 4C12 4 9 7 9 12C9 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M12 4C12 4 15 7 15 12C15 17 12 20 12 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M4 12H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
               </svg>
-            </button>
+              <span>黃金季打</span>
+            </span>
+            <!-- 已登入：顯示對應身份 badge -->
+            <span v-else class="drawer-role" :class="roleConfig.modifier">
+              <!-- organizer: 皇冠 -->
+              <svg v-if="liffStore.role === 'organizer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4.5 19H19.5V21H4.5V19Z" fill="currentColor" />
+                <path d="M5.5 17L4 7.5L8.5 11L12 5L15.5 11L20 7.5L18.5 17H5.5Z" fill="currentColor" />
+              </svg>
+              <!-- engineer: 程式碼括號 -->
+              <svg v-else-if="liffStore.role === 'engineer'" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M8 6L2 12L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M16 6L22 12L16 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <!-- member: 人像 -->
+              <svg v-else viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8" />
+                <path d="M4.5 19.5C4.5 16.186 7.686 13.5 12 13.5C16.314 13.5 19.5 16.186 19.5 19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              <span>{{ roleConfig.label }}</span>
+            </span>
           </div>
-          <div class="drawer-content">
-            <section class="drawer-section" aria-labelledby="drawer-common-title">
-              <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
-              <nav class="drawer-list" aria-label="常用功能">
-                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'activities' }">
-                  <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
-                  <span>球局列表</span>
-                </RouterLink>
-                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'seasons' }">
-                  <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
-                  <span>季打報名</span>
-                </RouterLink>
-                <a class="drawer-link" href="https://www.youtube.com/@okayder" target="_blank" rel="noreferrer">
-                  <span class="drawer-icon"><img src="/images/icon-video.png" alt="" /></span>
-                  <span>打球影片</span>
-                </a>
-                <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
-                  <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
-                  <span>贊助胖貓貓</span>
-                </a>
-              </nav>
-            </section>
-            <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
-              <h2 class="drawer-section-title drawer-section-title--admin" id="drawer-admin-title">管理員專區</h2>
-              <nav class="drawer-list" aria-label="管理員專區">
-                <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'admin-season-refunds' }">
-                  <span class="drawer-icon is-refund">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
-                      <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                      <path d="M21 12C21 16.971 16.971 21 12 21C9.515 21 7.255 20.01 5.586 18.414" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                      <path d="M18 2L18.414 5.586L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      <path d="M6 22L5.586 18.414L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      <path d="M9 12H15M12 9V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                  </span>
-                  <span>季打退費</span>
-                </RouterLink>
-              </nav>
-            </section>
-          </div>
-          <div class="drawer-footer">
-            <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" :to="{ name: 'admin-activity-create' }">建立新球局</RouterLink>
-          </div>
-        </aside>
-      </div>
+          <button @click="closeMenu" class="drawer-close" type="button" data-menu-close aria-label="關閉選單">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+              <path d="M7 7L17 17M17 7L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div class="drawer-content">
+          <section class="drawer-section" aria-labelledby="drawer-common-title">
+            <h2 class="drawer-section-title" id="drawer-common-title">常用功能</h2>
+            <nav class="drawer-list" aria-label="常用功能">
+              <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'activities' }">
+                <span class="drawer-icon"><img src="/images/Registration list.png" alt="" /></span>
+                <span>球局列表</span>
+              </RouterLink>
+              <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'seasons' }">
+                <span class="drawer-icon"><img src="/images/ball.png" alt="" /></span>
+                <span>季打報名</span>
+              </RouterLink>
+              <a class="drawer-link" href="https://www.youtube.com/@okayder" target="_blank" rel="noreferrer">
+                <span class="drawer-icon"><img src="/images/icon-video.png" alt="" /></span>
+                <span>打球影片</span>
+              </a>
+              <a class="drawer-link" href="https://store.line.me/stickershop/product/30532466/" target="_blank" rel="noreferrer">
+                <span class="drawer-icon is-warm"><img src="/images/icon-donate.png" alt="" /></span>
+                <span>贊助胖貓貓</span>
+              </a>
+            </nav>
+          </section>
+          <section v-if="isOrganizer" class="drawer-section" aria-labelledby="drawer-admin-title">
+            <h2 class="drawer-section-title drawer-section-title--admin" id="drawer-admin-title">管理員專區</h2>
+            <nav class="drawer-list" aria-label="管理員專區">
+              <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'admin-season-refunds' }">
+                <span class="drawer-icon is-refund">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="20" height="20">
+                    <path d="M3 12C3 7.029 7.029 3 12 3C14.485 3 16.745 3.99 18.414 5.586" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    <path d="M21 12C21 16.971 16.971 21 12 21C9.515 21 7.255 20.01 5.586 18.414" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    <path d="M18 2L18.414 5.586L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M6 22L5.586 18.414L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M9 12H15M12 9V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span>季打退費</span>
+              </RouterLink>
+            </nav>
+          </section>
+        </div>
+        <div class="drawer-footer">
+          <RouterLink v-if="isOrganizer" @click="closeMenu" class="drawer-create-button" :to="{ name: 'admin-activity-create' }">建立新球局</RouterLink>
+        </div>
+      </AccessibleDialog>
     </header>
 
     <div v-if="isAwaitingAuth" class="auth-wall" aria-live="polite">
@@ -398,29 +396,16 @@ watch(
 }
 
 .menu-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  height: 100vh;
+  position: fixed;
+  overflow: hidden;
+  background: transparent;
   pointer-events: none;
+  transition: background 0.28s ease;
 }
 
 .menu-overlay.is-open {
+  background: var(--overlay-40);
   pointer-events: auto;
-}
-
-.menu-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  transition: opacity 0.28s ease;
-}
-
-.menu-overlay.is-open .menu-backdrop {
-  opacity: 1;
 }
 
 .side-menu {
@@ -728,10 +713,6 @@ watch(
   .layout {
     height: calc(100vh - 48px);
     border-radius: 24px;
-  }
-
-  .menu-overlay {
-    height: calc(100vh - 48px);
   }
 }
 </style>

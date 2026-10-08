@@ -85,7 +85,7 @@ const linkAttrs = computed(() => {
 }
 
 .utility-item.warm .utility-icon::before {
-  background: #f2ba78;
+  background: var(--accent-400);
 }
 
 .utility-icon img {

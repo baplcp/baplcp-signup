@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import PageFeedback from '~/components/PageFeedback.vue'
 import { useMyRecords } from '~/composables/useMyRecords'
 
 const INITIAL_ATTENDANCE_COUNT = 5
@@ -34,12 +35,9 @@ onMounted(loadMyRecords)
       <h1 class="page-title">我的紀錄</h1>
     </div>
 
-    <p v-if="isLoading" class="loading-hint">載入中…</p>
-    <div v-else-if="loadError" class="load-error" role="alert">
-      <p class="loading-hint">無法載入紀錄，請確認網路後再試一次。</p>
-      <button class="retry-button" type="button" @click="loadMyRecords">重新載入</button>
-    </div>
-    <p v-else-if="isLoginRequired" class="empty-hint">請先登入 LINE 才能查看紀錄</p>
+    <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
+    <PageFeedback v-else-if="loadError" kind="error" message="無法載入紀錄，請確認網路後再試一次。" @retry="loadMyRecords" />
+    <PageFeedback v-else-if="isLoginRequired" kind="empty" message="請先登入 LINE 才能查看紀錄" />
 
     <template v-else>
       <section v-if="hasSeasonRegistration" class="record-section" aria-labelledby="refund-title">
@@ -71,7 +69,7 @@ onMounted(loadMyRecords)
             </div>
           </template>
         </template>
-        <p v-else class="empty-hint">目前沒有請假紀錄</p>
+        <PageFeedback v-else kind="empty" message="目前沒有請假紀錄" />
       </section>
 
       <section class="record-section" aria-labelledby="attendance-title">
@@ -89,7 +87,7 @@ onMounted(loadMyRecords)
             </RouterLink>
           </li>
         </ul>
-        <p v-else class="empty-hint">目前還沒有出席紀錄</p>
+        <PageFeedback v-else kind="empty" message="目前還沒有出席紀錄" />
         <button v-if="hasMoreAttendance" class="show-more-button" type="button" @click="showAllAttendance = true">
           查看全部
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -252,26 +250,6 @@ onMounted(loadMyRecords)
   font: inherit;
   font-size: 13px;
   color: var(--primary-700);
-  cursor: pointer;
-}
-
-.empty-hint,
-.loading-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
-}
-
-.retry-button {
-  margin-top: 12px;
-  padding: 8px 16px;
-  border: 1px solid var(--line-soft);
-  border-radius: 10px;
-  background: var(--surface);
-  font: inherit;
-  font-size: 14px;
-  color: var(--text);
   cursor: pointer;
 }
 </style>

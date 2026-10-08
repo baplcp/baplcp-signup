@@ -1,5 +1,6 @@
 <script setup>
 import GroupEventRow from './GroupEventRow.vue'
+import PageFeedback from '~/components/PageFeedback.vue'
 
 defineProps({
   title: {
@@ -74,7 +75,7 @@ defineEmits(['more', 'load-more'])
         :framed="rowFramed"
         :inset="rowInset"
       />
-      <p v-if="totalCount === 0" class="empty-hint">{{ emptyText }}</p>
+      <PageFeedback v-if="totalCount === 0" kind="empty" :message="emptyText" />
     </div>
     <button v-if="hasMore" class="load-more-button" type="button" :disabled="isLoadingMore" @click="$emit('load-more')">
       {{ isLoadingMore ? '載入中…' : '載入更多' }}
@@ -141,12 +142,5 @@ defineEmits(['more', 'load-more'])
 .event-list {
   display: grid;
   gap: 0;
-}
-
-.empty-hint {
-  margin: 12px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted-soft);
 }
 </style>
