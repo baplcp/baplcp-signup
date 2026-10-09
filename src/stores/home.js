@@ -35,7 +35,9 @@ export const useHomeStore = defineStore('home', () => {
     if (Object.hasOwn(participationCounts.value, userId)) return participationCounts.value[userId]
     if (participationCountPromises.has(userId)) return participationCountPromises.get(userId)
 
-    const promise = countPastParticipations(liffStore)
+    const promise = liffStore
+      .ensureMemberProfile()
+      .then(() => liffStore.participationCount ?? countPastParticipations(liffStore))
       .then(count => {
         participationCounts.value = { ...participationCounts.value, [userId]: count }
         return count
