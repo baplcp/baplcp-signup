@@ -125,10 +125,14 @@ export function useActiveActivityPage() {
   let realtimeChannel = null
   let registrationRefreshTimer = null
   let registrationRefreshInFlight = false
+  let registrationRefreshPending = false
   let latestPageLoadId = 0
   let stopRouteWatch = null
   async function flushRegistrationChanges() {
-    if (registrationRefreshInFlight) return
+    if (registrationRefreshInFlight) {
+      registrationRefreshPending = true
+      return
+    }
 
     registrationRefreshInFlight = true
     try {
@@ -137,6 +141,10 @@ export function useActiveActivityPage() {
       console.warn('Unable to refresh activity registration', error)
     } finally {
       registrationRefreshInFlight = false
+      if (registrationRefreshPending) {
+        registrationRefreshPending = false
+        scheduleRegistrationRefresh()
+      }
     }
   }
 
@@ -152,6 +160,7 @@ export function useActiveActivityPage() {
     const pageLoadId = ++latestPageLoadId
     if (nowTickInterval) clearInterval(nowTickInterval)
     if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    registrationRefreshPending = false
     removeRegistrationSubscription(realtimeChannel)
     nowTickInterval = null
     registrationRefreshTimer = null
@@ -191,6 +200,7 @@ export function useActiveActivityPage() {
       realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh, {
         includeGuests: !seasonPage,
         seasonOnly: seasonPage,
+        selectedDateId: activityData.value.selected_activity_date_id,
       })
     } catch {
       if (pageLoadId === latestPageLoadId) activityLoadState.value = 'error'
@@ -207,6 +217,7 @@ export function useActiveActivityPage() {
     if (stopRouteWatch) stopRouteWatch()
     if (nowTickInterval) clearInterval(nowTickInterval)
     if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    registrationRefreshPending = false
     removeRegistrationSubscription(realtimeChannel)
   })
 

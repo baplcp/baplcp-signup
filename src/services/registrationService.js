@@ -1,6 +1,7 @@
 import { invokeLineFunction } from '~/services/edgeFunctionClient'
 import { fetchActivityDates, fetchActivityDatesByIds } from '~/services/activityDateService'
 import { supabase } from '~/utils/supabase'
+import { isRelevantRegistrationChange } from '~/utils/registrationRealtime'
 
 const REGISTRATION_FIELDS =
   'id, season_id, activity_date_id, member_id, cancelled_at, created_at, paid_court, paid_ac, season_plan, member:members!registrations_member_id_fkey(user_id, display_name, picture_url, gender)'
@@ -207,15 +208,18 @@ export async function countPastParticipations(liffStore) {
   return Number(data?.count ?? 0)
 }
 
-export function subscribeToRegistrationChanges(activityId, onChange, { includeGuests = true, seasonOnly = false } = {}) {
+export function subscribeToRegistrationChanges(activityId, onChange, { includeGuests = true, seasonOnly = false, selectedDateId = null } = {}) {
   if (!activityId) return null
 
   const channel = supabase.channel(`registrations-live-${activityId}`)
   channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `season_id=eq.${activityId}` }, change => {
-    const registration = change.new?.activity_date_id !== undefined ? change.new : change.old
-    if (!seasonOnly || registration?.activity_date_id == null) onChange(change)
+    if (isRelevantRegistrationChange(change, { selectedDateId, seasonOnly })) onChange(change)
   })
-  if (includeGuests) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `season_id=eq.${activityId}` }, onChange)
+  if (includeGuests) {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'registration_guests', filter: `season_id=eq.${activityId}` }, change => {
+      if (isRelevantRegistrationChange(change, { selectedDateId, guest: true })) onChange(change)
+    })
+  }
   return channel.subscribe()
 }
 
