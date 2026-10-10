@@ -73,6 +73,27 @@ serve(async req => {
     }
 
     if (action === 'sync') {
+      const countPromise =
+        body?.includeParticipationCount === true
+          ? supabase
+              .rpc('count_past_participations', {
+                p_user_id: profile.userId,
+                p_start_date: PARTICIPATION_COUNT_START_DATE,
+                p_end_date: getTaiwanDateAndHour().date,
+              })
+              .then(({ data, error }) => {
+                if (error) {
+                  console.warn('participation count unavailable', error)
+                  return null
+                }
+                return Number(data ?? 0)
+              })
+              .catch(error => {
+                console.warn('participation count unavailable', error)
+                return null
+              })
+          : Promise.resolve(null)
+
       const { data, error } = await supabase.from('members').select('role, gender, is_season, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
@@ -93,7 +114,8 @@ serve(async req => {
         if (profileError) throw profileError
       }
 
-      return jsonResponse({ role, gender, isSeason }, 200, origin)
+      const participationCount = await countPromise
+      return jsonResponse({ role, gender, isSeason, participationCount }, 200, origin)
     }
 
     if (action === 'update-gender') {

@@ -20,6 +20,7 @@ export const useLiffStore = defineStore('liff', () => {
   const role = ref('member')
   const gender = ref(null)
   const isSeason = ref(false)
+  const participationCount = ref(null)
   const memberProfileInitialized = ref(false)
   const pendingRedirect = ref(null)
 
@@ -82,13 +83,25 @@ export const useLiffStore = defineStore('liff', () => {
   }
 
   // 登入時透過 Edge Function 同步 members；production 不信任前端傳入的 LINE 身分。
+  function isHomeEntry() {
+    const liffState = new URLSearchParams(window.location.search).get('liff.state')
+    const route = (liffState ?? window.location.hash).replace(/^#/, '')
+    return !route.startsWith('/') || route === '/' || route.startsWith('/?')
+  }
+
   async function syncMember(uid, name) {
     try {
-      const profile = await syncMemberProfile({ userId: uid, displayName: name, lineAccessToken: lineAccessToken.value })
+      const profile = await syncMemberProfile({
+        userId: uid,
+        displayName: name,
+        lineAccessToken: lineAccessToken.value,
+        includeParticipationCount: isHomeEntry(),
+      })
       if (!profile) return
       role.value = profile.role
       gender.value = profile.gender
       isSeason.value = profile.isSeason
+      participationCount.value = profile.participationCount
     } catch (e) {
       console.warn('syncMember exception', e)
     }
@@ -96,6 +109,7 @@ export const useLiffStore = defineStore('liff', () => {
 
   function startMemberProfileSync(uid, name) {
     memberProfileInitialized.value = false
+    participationCount.value = null
     memberProfilePromise = syncMember(uid, name).finally(() => {
       memberProfileInitialized.value = true
     })
@@ -315,6 +329,7 @@ export const useLiffStore = defineStore('liff', () => {
     role,
     gender,
     isSeason,
+    participationCount,
     memberProfileInitialized,
     pendingRedirect,
     getUserProfile,

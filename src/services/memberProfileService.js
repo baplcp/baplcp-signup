@@ -1,6 +1,6 @@
 import { supabase } from '~/utils/supabase'
 
-export async function syncMemberProfile({ userId, displayName, lineAccessToken }) {
+export async function syncMemberProfile({ userId, displayName, lineAccessToken, includeParticipationCount = false }) {
   if (!userId) return null
 
   if (import.meta.env.DEV) {
@@ -20,7 +20,7 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken }
 
   if (!lineAccessToken) return null
   const { data, error } = await supabase.functions.invoke('member-profile', {
-    body: { action: 'sync' },
+    body: { action: 'sync', includeParticipationCount },
     headers: { 'x-line-access-token': lineAccessToken },
   })
   if (error) throw error
@@ -28,6 +28,7 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken }
     role: data?.role ?? 'member',
     gender: data?.gender ?? null,
     isSeason: data?.isSeason ?? false,
+    participationCount: data?.participationCount ?? null,
   }
 }
 

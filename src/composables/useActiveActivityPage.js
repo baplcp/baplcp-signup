@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
 import { useActiveActivityRegistrations } from '~/composables/useActiveActivityRegistrations'
@@ -125,8 +125,14 @@ export function useActiveActivityPage() {
   let realtimeChannel = null
   let registrationRefreshTimer = null
   let registrationRefreshInFlight = false
+  let registrationRefreshPending = false
+  let latestPageLoadId = 0
+  let stopRouteWatch = null
   async function flushRegistrationChanges() {
-    if (registrationRefreshInFlight) return
+    if (registrationRefreshInFlight) {
+      registrationRefreshPending = true
+      return
+    }
 
     registrationRefreshInFlight = true
     try {
@@ -135,6 +141,10 @@ export function useActiveActivityPage() {
       console.warn('Unable to refresh activity registration', error)
     } finally {
       registrationRefreshInFlight = false
+      if (registrationRefreshPending) {
+        registrationRefreshPending = false
+        scheduleRegistrationRefresh()
+      }
     }
   }
 
@@ -147,19 +157,31 @@ export function useActiveActivityPage() {
   }
 
   async function loadActivityPage() {
+    const pageLoadId = ++latestPageLoadId
+    if (nowTickInterval) clearInterval(nowTickInterval)
+    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    registrationRefreshPending = false
+    removeRegistrationSubscription(realtimeChannel)
+    nowTickInterval = null
+    registrationRefreshTimer = null
+    realtimeChannel = null
     activityLoadState.value = 'loading'
     activityData.value = null
 
     const id = route.params.id
     const requestedActivityDateId = typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null
-    const activityPagePromise = isSeasonSignupPage.value ? getSeasonSignupPage(id) : getActivityPage(id, requestedActivityDateId)
+    const seasonPage = isSeasonSignupPage.value
+    const activityPagePromise = seasonPage ? getSeasonSignupPage(id) : getActivityPage(id, requestedActivityDateId)
     try {
       await liffStore.initialize()
       const activityPage = await activityPagePromise
+      if (pageLoadId !== latestPageLoadId || String(route.params.id) !== String(id) || (route.params.activityDateId ?? null) !== requestedActivityDateId || isSeasonSignupPage.value !== seasonPage)
+        return
       if (!activityPage?.activity) {
         activityLoadState.value = 'not-found'
         return
       }
+      if (String(activityPage.activity.id) !== String(id)) throw new Error('activity_id_mismatch')
 
       activityData.value = activityPage.activity
       acEnabled.value = activityPage.activity.ac_enabled ?? false
@@ -170,24 +192,32 @@ export function useActiveActivityPage() {
         // 球局資料已成功取得時，名單的附屬查詢失敗不應覆蓋整個頁面。
         console.warn('Unable to load activity registrations', error)
       }
+      if (pageLoadId !== latestPageLoadId) return
       activityLoadState.value = 'ready'
       nowTickInterval = setInterval(() => {
         nowTick.value = new Date()
       }, 1000)
       realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh, {
-        includeGuests: !isSeasonSignupPage.value,
-        seasonOnly: isSeasonSignupPage.value,
+        includeGuests: !seasonPage,
+        seasonOnly: seasonPage,
+        selectedDateId: activityData.value.selected_activity_date_id,
       })
     } catch {
-      activityLoadState.value = 'error'
+      if (pageLoadId === latestPageLoadId) activityLoadState.value = 'error'
     }
   }
 
-  onMounted(loadActivityPage)
+  onMounted(() => {
+    loadActivityPage()
+    stopRouteWatch = watch(() => [route.params.id, route.params.activityDateId, isSeasonSignupPage.value], loadActivityPage)
+  })
 
   onUnmounted(() => {
+    latestPageLoadId++
+    if (stopRouteWatch) stopRouteWatch()
     if (nowTickInterval) clearInterval(nowTickInterval)
     if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
+    registrationRefreshPending = false
     removeRegistrationSubscription(realtimeChannel)
   })
 

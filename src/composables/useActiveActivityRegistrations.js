@@ -77,14 +77,13 @@ export function useActiveActivityRegistrations({ activityData, activityType, res
 
     const page = activityPage || (await loadActivityPage(activityId, getSelectedActivityDateId()))
     if (!page?.activity) return null
+    if (fetchId !== latestFetchId || String(getActivityId() || activityData.value?.id) !== String(activityId) || String(page.activity.id) !== String(activityId)) return
 
     activityData.value = page.activity
     const nextState =
       activityType.value === 'season'
         ? getSeasonRegistrationState(page.season_registrations || [])
         : getPickupRegistrationState(page.pickup_registrations, page.season_registrations, page.activity.dates)
-    if (fetchId !== latestFetchId || !nextState) return
-
     registrations.value = nextState.registrations
     cancelledRegistrations.value = nextState.cancelledRegistrations
     seasonRegistrations.value = nextState.seasonRegistrations

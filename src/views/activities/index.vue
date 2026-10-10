@@ -8,10 +8,10 @@ import { useGroupListPage } from '~/composables/useGroupListPage'
 defineOptions({ name: 'ActivitiesListPage' })
 
 const groupListPage = useGroupListPage()
-const { activeSegment, segmentTabs, isLoading, latestActivity } = groupListPage
+const { activeSegment, segmentTabs, isLoading, loadError, latestActivity } = groupListPage
 const { upcomingActivities, endedActivities, visibleUpcomingActivities, visibleEndedActivities } = groupListPage
-const { hasMoreUpcoming, hasMoreEnded, isLoadingUpcomingMore, isLoadingEndedMore } = groupListPage
-const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMoreEnded } = groupListPage
+const { hasMoreUpcoming, hasMoreEnded, isLoadingUpcomingMore, isLoadingEndedMore, upcomingLoadError, endedLoadError } = groupListPage
+const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMoreEnded, refreshActivities } = groupListPage
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
 
     <GroupSegmentTabs :items="segmentTabs" :active-segment="activeSegment" @change="setSegment" />
 
-    <template v-if="!isLoading">
+    <template v-if="!isLoading && !loadError">
       <h2 v-show="isSegmentVisible('latest')" class="section-title" id="latest-section">最新球局</h2>
       <GroupActiveCard
         v-if="latestActivity && isSegmentVisible('latest')"
@@ -47,6 +47,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
         :show-more="isSegmentActive('all')"
         :has-more="isSegmentActive('upcoming') && hasMoreUpcoming"
         :is-loading-more="isLoadingUpcomingMore"
+        :load-error="isSegmentActive('upcoming') && upcomingLoadError"
         row-framed
         @more="setSegment('upcoming')"
         @load-more="loadMoreUpcoming"
@@ -63,6 +64,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
         :show-more="isSegmentActive('all')"
         :has-more="isSegmentActive('ended') && hasMoreEnded"
         :is-loading-more="isLoadingEndedMore"
+        :load-error="isSegmentActive('ended') && endedLoadError"
         row-inset
         history
         @more="setSegment('ended')"
@@ -71,6 +73,7 @@ const { setSegment, isSegmentActive, isSegmentVisible, loadMoreUpcoming, loadMor
     </template>
 
     <PageFeedback v-if="isLoading" kind="loading" message="載入中…" />
+    <PageFeedback v-else-if="loadError" kind="error" message="無法載入球局資料，請確認網路後再試一次。" @retry="refreshActivities" />
   </main>
 </template>
 

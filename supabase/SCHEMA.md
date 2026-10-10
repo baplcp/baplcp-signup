@@ -140,7 +140,8 @@ Database invariants:
   `season_plan_covers_date(season_plan, activity_date, quarter_cutoff)` with the
   cutoff from `activity_season_quarter_cutoff(season_id)`: the quarter plan
   covers the three calendar months from the first date, the late-quarter plan
-  covers the rest, and the half-year plan covers every date. Member lists,
+  covers the rest, and the half-year plan covers every non-null date. A null
+  activity date is never covered by any plan. Member lists,
   per-date capacity, session occupancy, attendance totals and reminders all use
   that rule, so a quarter member does not occupy a later date.
 - `set_season_registration_date_status_v3` also enforces this range before it
@@ -149,6 +150,13 @@ Database invariants:
 - Season capacity is only shared between plans whose ranges overlap
   (`season_plans_overlap`): quarter and late-quarter do not compete for the same
   seats, half-year competes with both.
+
+The frontend imports the pure plan rules from
+`supabase/functions/_shared/season-plan.ts`; the database functions remain the
+final authority. Shared boundary cases are in `tests/season-plan-contract.json`.
+Run `npm run test:season-plan`; set
+`SEASON_PLAN_TEST_DATABASE_URL` to a migrated test database and install `psql`
+to include the database assertions.
 
 Normalized tables:
 
