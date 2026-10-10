@@ -1,7 +1,8 @@
 import { computed, reactive } from 'vue'
 import { addTaiwanDays, formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
 import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
-import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel, seasonPlansOverlap } from '~/utils/seasonPlan'
+import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
+import { getVisibleSeasonPlans, getSeasonTabMembers, getVacancyCount } from '~/utils/activityViewModelRules'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEASON_PLAN_ORDER = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
@@ -65,19 +66,7 @@ export function useActiveActivityViewModels({
   })
   const visibleSeasonPlans = computed(() => {
     const today = getTaiwanDateString(nowTick.value)
-    const quarterStartDate = availableSeasonPlans.value.find(plan => plan.plan === SEASON_PLAN_QUARTER)?.firstDate
-    const isLateQuarterOpen = !!quarterStartDate && quarterStartDate < today
-
-    return availableSeasonPlans.value.map(plan => {
-      const isRegistered = mySeasonPlans.value.includes(plan.plan)
-      const overlapsRegistered = !isRegistered && mySeasonPlans.value.some(registeredPlan => seasonPlansOverlap(registeredPlan, plan.plan))
-      const waitsForFirstHalf = plan.plan === SEASON_PLAN_LATE_QUARTER && !isLateQuarterOpen
-      const notOpenYet = (plan.openAt && nowTick.value < plan.openAt) || waitsForFirstHalf
-      // 已報名或與已報方案重疊的方案，對使用者來說都是不能再報，一律標示已截止。
-      const unselectableReason =
-        isRegistered || overlapsRegistered ? '已截止' : plan.closeAt && nowTick.value >= plan.closeAt ? '已截止' : plan.firstDate && plan.firstDate < today ? '已開打' : notOpenYet ? '尚未開放' : ''
-      return { ...plan, isRegistered, unselectableReason, selectable: !unselectableReason }
-    })
+    return getVisibleSeasonPlans(availableSeasonPlans.value, mySeasonPlans.value, nowTick.value, today)
   })
 
   const selectableSeasonPlans = computed(() => visibleSeasonPlans.value.filter(plan => plan.selectable))
@@ -163,18 +152,14 @@ export function useActiveActivityViewModels({
   // 分頁內重新編號與判斷候補，因為每一段期間的名額是分開計算的。
   const seasonTabMemberList = computed(() => {
     const tab = currentSeasonRangeTab.value
-    if (!tab) return memberList.value
-    const capacity = activityData.value?.single_capacity ?? Infinity
-    return memberList.value.filter(member => seasonPlansOverlap(member.seasonPlan, tab.plan)).map((member, index) => ({ ...member, status: index >= capacity ? '候補' : undefined }))
+    return getSeasonTabMembers(memberList.value, tab?.plan, activityData.value?.single_capacity)
   })
 
   const vacancyCount = computed(() => {
     if (activityType.value === 'season') {
-      const capacity = activityData.value?.season_capacity
-      if (!capacity || capacity === 'unlimited') return '∞'
-      return Math.max(0, Number(capacity) - seasonTabMemberList.value.filter(member => !member.status).length)
+      return getVacancyCount('season', activityData.value?.season_capacity, seasonTabMemberList.value)
     }
-    return Math.max(0, (activityData.value?.single_capacity ?? 0) - memberList.value.filter(member => !member.status).length)
+    return getVacancyCount(activityType.value, activityData.value?.single_capacity, memberList.value)
   })
 
   const filteredMemberList = computed(() => {
