@@ -39,6 +39,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  loadError: {
+    type: Boolean,
+    default: false,
+  },
   rowFramed: {
     type: Boolean,
     default: false,
@@ -75,9 +79,10 @@ defineEmits(['more', 'load-more'])
         :framed="rowFramed"
         :inset="rowInset"
       />
-      <PageFeedback v-if="totalCount === 0" kind="empty" :message="emptyText" />
+      <PageFeedback v-if="totalCount === 0 && !loadError" kind="empty" :message="emptyText" />
     </div>
-    <button v-if="hasMore" class="load-more-button" type="button" :disabled="isLoadingMore" @click="$emit('load-more')">
+    <PageFeedback v-if="loadError" kind="error" message="無法載入更多球局，請確認網路後再試一次。" @retry="$emit('load-more')" />
+    <button v-else-if="hasMore" class="load-more-button" type="button" :disabled="isLoadingMore" @click="$emit('load-more')">
       {{ isLoadingMore ? '載入中…' : '載入更多' }}
     </button>
   </section>

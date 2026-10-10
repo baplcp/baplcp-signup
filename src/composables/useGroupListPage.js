@@ -1,4 +1,4 @@
-import { computed, onActivated, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { listGroupActivitySessions } from '~/services/registrationService'
 import { formatTaiwanTime, getTaiwanWeekday } from '~/utils/taiwanDate'
@@ -66,20 +66,87 @@ function toEndedActivity(session) {
   }
 }
 
+function createSegmentState() {
+  return { sessions: [], hasMore: true, isLoadingMore: false, loadError: false }
+}
+
+export function useGroupListData(listSessions = listGroupActivitySessions) {
+  const state = reactive({ status: 'loading', upcoming: createSegmentState(), ended: createSegmentState() })
+  const isLoading = computed(() => state.status === 'loading')
+  const loadError = computed(() => state.status === 'error')
+  let requestId = 0
+  let now = new Date()
+
+  async function refreshActivities() {
+    const currentRequestId = ++requestId
+    const currentNow = new Date()
+    now = currentNow
+    state.status = 'loading'
+    state.upcoming = createSegmentState()
+    state.ended = createSegmentState()
+
+    try {
+      const [upcoming, ended] = await Promise.all([
+        listSessions('upcoming', { limit: INITIAL_UPCOMING_LIMIT, cursor: null, now: currentNow }),
+        listSessions('ended', { limit: PAGE_SIZE, cursor: null, now: currentNow }),
+      ])
+      if (currentRequestId !== requestId) return false
+      state.upcoming.sessions = upcoming
+      state.upcoming.hasMore = upcoming.length === INITIAL_UPCOMING_LIMIT
+      state.ended.sessions = ended
+      state.ended.hasMore = ended.length === PAGE_SIZE
+      state.status = 'ready'
+      return true
+    } catch (error) {
+      if (currentRequestId !== requestId) return false
+      console.warn('Unable to load group activity sessions', error)
+      state.status = 'error'
+      return false
+    }
+  }
+
+  async function loadMore(segment) {
+    const segmentState = state[segment]
+    if (state.status !== 'ready' || segmentState.isLoadingMore || !segmentState.hasMore) return
+
+    const currentRequestId = requestId
+    const currentNow = now
+    const cursor = segmentState.sessions[segmentState.sessions.length - 1] || null
+    segmentState.isLoadingMore = true
+    segmentState.loadError = false
+    try {
+      const data = await listSessions(segment, { limit: PAGE_SIZE, cursor, now: currentNow })
+      if (currentRequestId !== requestId) return
+      segmentState.sessions = [...segmentState.sessions, ...data]
+      segmentState.hasMore = data.length === PAGE_SIZE
+    } catch (error) {
+      if (currentRequestId !== requestId) return
+      console.warn('Unable to load more group activity sessions', error)
+      segmentState.loadError = true
+    } finally {
+      if (currentRequestId === requestId) segmentState.isLoadingMore = false
+    }
+  }
+
+  return { state, isLoading, loadError, refreshActivities, loadMore }
+}
+
 export function useGroupListPage() {
   const route = useRoute()
   const router = useRouter()
+  const groupListData = useGroupListData()
+  const { state, isLoading, loadError } = groupListData
   const activeSegment = ref(SEGMENT_ALL)
-  const upcomingSessions = ref([])
-  const endedSessions = ref([])
-  const isLoading = ref(true)
-  const isLoadingUpcomingMore = ref(false)
-  const isLoadingEndedMore = ref(false)
-  const hasMoreUpcoming = ref(true)
-  const hasMoreEnded = ref(true)
+  const upcomingSessions = computed(() => state.upcoming.sessions)
+  const endedSessions = computed(() => state.ended.sessions)
+  const isLoadingUpcomingMore = computed(() => state.upcoming.isLoadingMore)
+  const isLoadingEndedMore = computed(() => state.ended.isLoadingMore)
+  const hasMoreUpcoming = computed(() => state.upcoming.hasMore)
+  const hasMoreEnded = computed(() => state.ended.hasMore)
+  const upcomingLoadError = computed(() => state.upcoming.loadError)
+  const endedLoadError = computed(() => state.ended.loadError)
   const hasExpandedUpcoming = ref(false)
   const hasExpandedEnded = ref(false)
-  let now = new Date()
 
   const latestSession = computed(() => upcomingSessions.value[0] || null)
 
@@ -103,30 +170,12 @@ export function useGroupListPage() {
   const visibleUpcomingActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? upcomingActivities.value.slice(0, PAGE_SIZE) : upcomingActivities.value))
   const visibleEndedActivities = computed(() => (activeSegment.value === SEGMENT_ALL ? endedActivities.value.slice(0, PAGE_SIZE) : endedActivities.value))
 
-  async function fetchSessionPage(segment, limit) {
-    const isUpcoming = segment === 'upcoming'
-    const sessions = isUpcoming ? upcomingSessions : endedSessions
-    const isLoadingMore = isUpcoming ? isLoadingUpcomingMore : isLoadingEndedMore
-    const hasMore = isUpcoming ? hasMoreUpcoming : hasMoreEnded
-    if (isLoadingMore.value || !hasMore.value) return
-
-    isLoadingMore.value = true
-    try {
-      const cursor = sessions.value[sessions.value.length - 1] || null
-      const data = await listGroupActivitySessions(segment, { limit, cursor, now })
-      sessions.value = [...sessions.value, ...data]
-      hasMore.value = data.length === limit
-    } finally {
-      isLoadingMore.value = false
-    }
-  }
-
   async function loadMoreUpcoming() {
-    await fetchSessionPage('upcoming', PAGE_SIZE)
+    await groupListData.loadMore('upcoming')
   }
 
   async function loadMoreEnded() {
-    await fetchSessionPage('ended', PAGE_SIZE)
+    await groupListData.loadMore('ended')
   }
 
   function expandSegment(segment) {
@@ -166,22 +215,10 @@ export function useGroupListPage() {
     return activeSegment.value === SEGMENT_ALL || activeSegment.value === segment
   }
 
-  async function fetchActivities() {
-    await Promise.all([fetchSessionPage('upcoming', INITIAL_UPCOMING_LIMIT), fetchSessionPage('ended', PAGE_SIZE)])
-    isLoading.value = false
-    expandSegment(activeSegment.value)
-  }
-
   async function refreshActivities() {
-    upcomingSessions.value = []
-    endedSessions.value = []
-    hasMoreUpcoming.value = true
-    hasMoreEnded.value = true
     hasExpandedUpcoming.value = false
     hasExpandedEnded.value = false
-    now = new Date()
-    isLoading.value = true
-    await fetchActivities()
+    if (await groupListData.refreshActivities()) expandSegment(activeSegment.value)
   }
 
   function consumeRefreshRequest() {
@@ -197,14 +234,14 @@ export function useGroupListPage() {
     segment => {
       const nextSegment = getSegmentFromQuery(segment)
       activeSegment.value = nextSegment
-      if (!isLoading.value) expandSegment(nextSegment)
+      if (state.status === 'ready') expandSegment(nextSegment)
     },
     { immediate: true }
   )
 
   onMounted(() => {
     consumeRefreshRequest()
-    void fetchActivities()
+    void refreshActivities()
   })
 
   onActivated(() => {
@@ -215,6 +252,7 @@ export function useGroupListPage() {
     activeSegment,
     segmentTabs: groupListSegmentTabs,
     isLoading,
+    loadError,
     latestActivity,
     upcomingActivities,
     endedActivities,
@@ -224,7 +262,10 @@ export function useGroupListPage() {
     hasMoreEnded,
     isLoadingUpcomingMore,
     isLoadingEndedMore,
+    upcomingLoadError,
+    endedLoadError,
     setSegment,
+    refreshActivities,
     loadMoreUpcoming,
     loadMoreEnded,
     isSegmentActive,
