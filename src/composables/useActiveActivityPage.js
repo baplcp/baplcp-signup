@@ -47,7 +47,9 @@ export function useActiveActivityPage() {
   const activityType = computed(() => {
     if (isSeasonSignupPage.value) return 'season'
     if (isSessionEnded.value) return 'ended'
-    return route.query.type || 'latest'
+    if (route.query.type) return route.query.type
+    // 外部連結在資料載入前無法判斷場次是否已結束，先用中性樣式，避免閃過最新球局再跳成已結束。
+    return activityData.value ? 'latest' : 'pending'
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
 

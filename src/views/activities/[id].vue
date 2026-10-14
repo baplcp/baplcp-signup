@@ -216,6 +216,10 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
   background: linear-gradient(180deg, #7b82a8 0%, #8b91b8 7%, #9ea4c6 13%, #c9cbd8 20%, #e6e6ef 27%, #fff 35%, #fff 100%);
 }
 
+.active-activity-page.hero-pending {
+  background: linear-gradient(180deg, #b9bdd6 0%, #c6c9df 7%, #d3d5e6 13%, #e4e5ef 20%, #f0f0f6 27%, #fff 35%, #fff 100%);
+}
+
 .active-activity-page.hero-season {
   background: linear-gradient(180deg, #c87416 0%, #d4820f 7%, #e09a3a 13%, #f0bf78 20%, #fae1b8 27%, #fff 35%, #fff 100%);
 }
@@ -264,6 +268,7 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
   margin: 0;
   font-size: 24px;
   line-height: 1.36;
+  min-height: 1.36em;
   font-weight: 700;
   letter-spacing: 0.56px;
 }

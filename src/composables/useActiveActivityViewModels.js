@@ -34,6 +34,7 @@ export function useActiveActivityViewModels({
     if (activityType.value === 'season') return activityData.value?.title || '季打報名'
     if (activityType.value === 'upcoming') return '即將到來的球局'
     if (activityType.value === 'ended') return '已結束的球局'
+    if (activityType.value === 'pending') return ''
     return '最新球局報名'
   })
 
@@ -264,7 +265,8 @@ export function useActiveActivityViewModels({
     }
     return isSeasonLeaveMode.value || hasSubmittedSignup.value ? '管理報名' : '我要報名'
   })
-  const showFooterCta = computed(() => activityType.value !== 'ended' && !adminMode.value)
+  // 載入完成前還不知道場次是否已結束，不能先讓人點開報名。
+  const showFooterCta = computed(() => !isLoading.value && activityType.value !== 'ended' && !adminMode.value)
   const ctaDisabled = computed(() => isSeasonRegistrationClosed.value && !hasSubmittedSignup.value)
   const ctaLabel = computed(() => (isSubmitting.value ? '處理中...' : heroCtaText.value))
 
