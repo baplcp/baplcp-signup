@@ -8,7 +8,9 @@ import { useSignupFlow } from '~/composables/useSignupFlow'
 import { getActivityPage, getSeasonSignupPage } from '~/services/activityService'
 import { removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
-import { getTaiwanDateString } from '~/utils/taiwanDate'
+import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
+
+const SESSION_ENDED_GRACE_MS = 60 * 60 * 1000
 
 export function useActiveActivityPage() {
   const route = useRoute()
@@ -27,13 +29,25 @@ export function useActiveActivityPage() {
   const nowTick = ref(new Date())
 
   const isSeasonSignupPage = computed(() => route.meta.activityPageMode === 'season')
-  const activityType = computed(() => (isSeasonSignupPage.value ? 'season' : route.query.type || 'latest'))
   const resolvedDate = computed(() => {
     if (activityData.value?.selected_activity_date) return activityData.value.selected_activity_date
     if (!activityData.value?.dates) return null
     const today = getTaiwanDateString()
     const sorted = activityData.value.dates.slice().sort()
     return sorted.find(date => date >= today) || sorted[sorted.length - 1] || null
+  })
+  // 與 list_activities 的「已結束」同一組規則：結束時間過後一小時才算結束。
+  // LINE 通知卡片等外部連結不會帶 type，所以不能只靠 query 判斷，否則過期球局仍會顯示報名 CTA。
+  const isSessionEnded = computed(() => {
+    if (isSeasonSignupPage.value || !resolvedDate.value) return false
+    const endTime = activityData.value?.end_time
+    if (!endTime) return resolvedDate.value < getTaiwanDateString(nowTick.value)
+    return nowTick.value.getTime() > parseTaiwanDateTime(resolvedDate.value, endTime).getTime() + SESSION_ENDED_GRACE_MS
+  })
+  const activityType = computed(() => {
+    if (isSeasonSignupPage.value) return 'season'
+    if (isSessionEnded.value) return 'ended'
+    return route.query.type || 'latest'
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
 
