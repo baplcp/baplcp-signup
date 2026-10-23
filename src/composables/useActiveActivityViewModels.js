@@ -2,7 +2,7 @@ import { computed, reactive } from 'vue'
 import { addTaiwanDays, formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
 import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
 import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
-import { getVisibleSeasonPlans, getSeasonTabMembers, getVacancyCount } from '~/utils/activityViewModelRules'
+import { getSeasonTabMembers, getVacancyCount } from '~/utils/activityViewModelRules'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const SEASON_PLAN_ORDER = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
@@ -52,23 +52,14 @@ export function useActiveActivityViewModels({
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
   const activityDates = computed(() => activityData.value?.dates || [])
 
-  const seasonPlans = useSeasonPlanData(activityData)
-  const availableSeasonPlans = computed(() => (activityType.value === 'season' ? seasonPlans.value.filter(plan => plan.available) : []))
-
-  // 每個方案都看得到，不能選的標上原因，使用者才知道它存在、為什麼不能報：
-  // 已經開打的方案報進去會付全額卻只剩幾場；後季是給球季中途加入的人，
-  // 前半季開打前一律不開放，避免有人在新一季開放時就只卡後半季。
-  // 已報名的方案不能重複報；範圍重疊的方案（例如已報一季再報半年）也不能並存，
-  // 一季與後季不重疊，所以已報一季的人可以續報後季。
   const mySeasonPlans = computed(() => {
     if (activityType.value !== 'season') return []
     const plans = new Set((mySeasonRegistrations?.value || []).map(registration => normalizeSeasonPlan(registration.season_plan)))
     return SEASON_PLAN_ORDER.filter(plan => plans.has(plan))
   })
-  const visibleSeasonPlans = computed(() => {
-    const today = getTaiwanDateString(nowTick.value)
-    return getVisibleSeasonPlans(availableSeasonPlans.value, mySeasonPlans.value, nowTick.value, today)
-  })
+  const seasonPlans = useSeasonPlanData(activityData, mySeasonPlans, nowTick)
+  const availableSeasonPlans = computed(() => (activityType.value === 'season' ? seasonPlans.value.filter(plan => plan.available) : []))
+  const visibleSeasonPlans = availableSeasonPlans
 
   const selectableSeasonPlans = computed(() => visibleSeasonPlans.value.filter(plan => plan.selectable))
 

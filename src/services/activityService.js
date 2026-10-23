@@ -8,7 +8,7 @@ const ACTIVITY_FORM_FIELDS =
 
 // 季打頁不會顯示單場臨打資訊，避免沿用 get_activity_page 而取回當日臨打與群外名單。
 const SEASON_SIGNUP_FIELDS =
-  'id, title, location, start_time, end_time, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
+  'id, title, location, start_time, end_time, season_enabled, season_fee_per_session, season_half_year_fee_per_session, ac_fee, single_capacity, season_total_fee, season_half_year_total_fee, season_capacity, season_open_date, season_open_time, season_close_date, season_close_time, season_late_enabled, season_late_total_fee, season_late_open_date, season_late_open_time, season_late_close_date, season_late_close_time, ac_enabled'
 
 async function fetchSeasonSignupDates(activityId) {
   const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId).order('activity_date', { ascending: true })

@@ -113,7 +113,19 @@ async function listRegistrations(query, options) {
 }
 
 export async function invokeRegistrationAction(liffStore, body) {
-  await invokeLineFunction(liffStore, 'registration-action', body)
+  try {
+    await invokeLineFunction(liffStore, 'registration-action', body)
+  } catch (error) {
+    const response = error?.context
+    if (response?.clone) {
+      let result
+      try {
+        result = await response.clone().json()
+      } catch {}
+      if (typeof result?.error === 'string') throw new Error(result.error, { cause: error })
+    }
+    throw error
+  }
 }
 
 export async function getActivityRegistration(registrationId) {

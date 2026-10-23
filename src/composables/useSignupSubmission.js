@@ -6,6 +6,14 @@ function formatRegistrationOpenTime(viewModels) {
   return viewModels.registrationOpenAt.value ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
 }
 
+const SEASON_PLAN_ERROR_COPY = {
+  season_plan_overlap: '你已報名涵蓋相同場次的方案，請先處理既有報名。',
+  registration_closed: '這個方案已截止報名。',
+  season_plan_started: '這個方案已開打，無法再報名。',
+  registration_not_open: '這個方案尚未開放報名。',
+  season_plan_unavailable: '這個方案目前無法報名。',
+}
+
 export function useSignupSubmission({
   liffStore,
   activityData,
@@ -190,8 +198,10 @@ export function useSignupSubmission({
       liffStore.isSeason = true
       const refreshed = await refreshAfterWrite()
       if (!refreshed) setSuccessDialogOpen(true, { title: '報名已送出', copy: '報名已完成，但名單暫時未同步，請稍後重新整理。', buttonText: '確認' })
-    } catch {
-      setSuccessDialogOpen(true, { title: '報名失敗', copy: '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
+    } catch (error) {
+      const knownReason = SEASON_PLAN_ERROR_COPY[error?.message]
+      setSuccessDialogOpen(true, { title: knownReason ? '無法報名此方案' : '報名失敗', copy: knownReason || '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
+      void refreshAfterWrite()
     } finally {
       isSubmitting.value = false
     }
