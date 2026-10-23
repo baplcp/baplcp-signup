@@ -48,7 +48,7 @@ export function useActiveActivityViewModels({
     if (!activityData.value) return '—'
     return `${formatTaiwanTime(activityData.value.start_time)}-${formatTaiwanTime(activityData.value.end_time)}`
   })
-  const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
+  const summaryLocation = computed(() => activityData.value?.location || '—')
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
   const activityDates = computed(() => activityData.value?.dates || [])
 
