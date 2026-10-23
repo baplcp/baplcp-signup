@@ -1,7 +1,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
-import { useActiveActivityRegistrations } from '~/composables/useActiveActivityRegistrations'
+import { useActivityPageSnapshot } from '~/composables/useActivityPageSnapshot'
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { useRegistrationAdminActions } from '~/composables/useRegistrationAdminActions'
 import { useSignupFlow } from '~/composables/useSignupFlow'
@@ -17,25 +17,34 @@ export function useActiveActivityPage() {
   const router = useRouter()
   const liffStore = useLiffStore()
 
-  const activityData = ref(null)
-  const activityLoadState = ref('loading')
+  const snapshot = useActivityPageSnapshot({
+    liffStore,
+    loadPage: (id, dateId, season) => (season ? getSeasonSignupPage(id) : getActivityPage(id, dateId)),
+    subscribe: subscribeToRegistrationChanges,
+    unsubscribe: removeRegistrationSubscription,
+  })
+  const {
+    activityData,
+    activityLoadState,
+    registrations,
+    cancelledRegistrations,
+    seasonRegistrations,
+    myRegistration,
+    mySeasonRegistration,
+    mySeasonRegistrations,
+    memberGenders,
+    acEnabled,
+    acFeePerSession,
+  } = snapshot
   const activityNotFound = computed(() => activityLoadState.value === 'not-found')
   const isLoading = computed(() => activityLoadState.value === 'loading')
-  const acEnabled = ref(false)
-  const acFeePerSession = ref(0)
   const showAllDatesDialog = ref(false)
   const activeSegment = ref('臨打')
   const adminMode = ref(false)
   const nowTick = ref(new Date())
 
   const isSeasonSignupPage = computed(() => route.meta.activityPageMode === 'season')
-  const resolvedDate = computed(() => {
-    if (activityData.value?.selected_activity_date) return activityData.value.selected_activity_date
-    if (!activityData.value?.dates) return null
-    const today = getTaiwanDateString()
-    const sorted = activityData.value.dates.slice().sort()
-    return sorted.find(date => date >= today) || sorted[sorted.length - 1] || null
-  })
+  const resolvedDate = snapshot.resolvedDate
   // 與 list_activities 的「已結束」同一組規則：結束時間過後一小時才算結束。
   // LINE 通知卡片等外部連結不會帶 type，所以不能只靠 query 判斷，否則過期球局仍會顯示報名 CTA。
   const isSessionEnded = computed(() => {
@@ -52,17 +61,6 @@ export function useActiveActivityPage() {
     return activityData.value ? 'latest' : 'pending'
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
-
-  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, mySeasonRegistrations, memberGenders, fetchRegistrations } = useActiveActivityRegistrations(
-    {
-      activityData,
-      activityType,
-      resolvedDate,
-      getActivityId: () => route.params.id,
-      liffStore,
-      loadActivityPage: (activityId, activityDateId) => (isSeasonSignupPage.value ? getSeasonSignupPage(activityId) : getActivityPage(activityId, activityDateId)),
-    }
-  )
 
   const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
     activityData,
@@ -84,7 +82,7 @@ export function useActiveActivityPage() {
     myRegistration,
     mySeasonRegistration,
     mySeasonRegistrations,
-    fetchRegistrations,
+    fetchRegistrations: snapshot.refresh,
     nowTick,
     viewModels: viewModelsRef,
   })
@@ -117,9 +115,9 @@ export function useActiveActivityPage() {
     activityData,
     getActivityId: () => route.params.id,
     registrations,
-    seasonRegistrations,
-    acEnabled,
-    fetchRegistrations,
+    fetchRegistrations: snapshot.refresh,
+    updatePayment: snapshot.updatePayment,
+    applyAcUpdate: snapshot.updateAcEnabled,
     focusElement: signupFlow.focusElement,
     setSuccessDialogOpen: signupFlow.setSuccessDialogOpen,
   })
@@ -138,88 +136,30 @@ export function useActiveActivityPage() {
   }
 
   let nowTickInterval = null
-  let realtimeChannel = null
-  let registrationRefreshTimer = null
-  let registrationRefreshInFlight = false
-  let registrationRefreshPending = false
-  let latestPageLoadId = 0
   let stopRouteWatch = null
-  async function flushRegistrationChanges() {
-    if (registrationRefreshInFlight) {
-      registrationRefreshPending = true
-      return
-    }
-
-    registrationRefreshInFlight = true
-    try {
-      await fetchRegistrations()
-    } catch (error) {
-      console.warn('Unable to refresh activity registration', error)
-    } finally {
-      registrationRefreshInFlight = false
-      if (registrationRefreshPending) {
-        registrationRefreshPending = false
-        scheduleRegistrationRefresh()
-      }
-    }
-  }
-
-  function scheduleRegistrationRefresh() {
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshTimer = setTimeout(() => {
-      registrationRefreshTimer = null
-      flushRegistrationChanges()
-    }, 750)
-  }
-
   async function loadActivityPage() {
-    const pageLoadId = ++latestPageLoadId
     if (nowTickInterval) clearInterval(nowTickInterval)
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshPending = false
-    removeRegistrationSubscription(realtimeChannel)
     nowTickInterval = null
-    registrationRefreshTimer = null
-    realtimeChannel = null
-    activityLoadState.value = 'loading'
-    activityData.value = null
-
-    const id = route.params.id
-    const requestedActivityDateId = typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null
-    const seasonPage = isSeasonSignupPage.value
-    const activityPagePromise = seasonPage ? getSeasonSignupPage(id) : getActivityPage(id, requestedActivityDateId)
     try {
-      await liffStore.initialize()
-      const activityPage = await activityPagePromise
-      if (pageLoadId !== latestPageLoadId || String(route.params.id) !== String(id) || (route.params.activityDateId ?? null) !== requestedActivityDateId || isSeasonSignupPage.value !== seasonPage)
-        return
-      if (!activityPage?.activity) {
-        activityLoadState.value = 'not-found'
-        return
-      }
-      if (String(activityPage.activity.id) !== String(id)) throw new Error('activity_id_mismatch')
-
-      activityData.value = activityPage.activity
-      acEnabled.value = activityPage.activity.ac_enabled ?? false
-      acFeePerSession.value = activityPage.activity.ac_fee ?? 0
-      try {
-        await fetchRegistrations(activityPage)
-      } catch (error) {
-        // 球局資料已成功取得時，名單的附屬查詢失敗不應覆蓋整個頁面。
-        console.warn('Unable to load activity registrations', error)
-      }
-      if (pageLoadId !== latestPageLoadId) return
-      activityLoadState.value = 'ready'
+      const loaded = await snapshot.open({
+        id: route.params.id,
+        dateId: typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null,
+        season: isSeasonSignupPage.value,
+      })
+      if (!loaded) return
       nowTickInterval = setInterval(() => {
         nowTick.value = new Date()
       }, 1000)
-      realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh, {
-        includeGuests: !seasonPage,
-        seasonOnly: seasonPage,
-        selectedDateId: activityData.value.selected_activity_date_id,
-      })
     } catch {
-      if (pageLoadId === latestPageLoadId) activityLoadState.value = 'error'
+      // The snapshot exposes its load error state to the page.
+    }
+  }
+
+  async function retryRefresh() {
+    try {
+      await snapshot.refresh()
+    } catch {
+      // The stale notice remains visible until a refresh succeeds.
     }
   }
 
@@ -229,12 +169,9 @@ export function useActiveActivityPage() {
   })
 
   onUnmounted(() => {
-    latestPageLoadId++
     if (stopRouteWatch) stopRouteWatch()
     if (nowTickInterval) clearInterval(nowTickInterval)
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshPending = false
-    removeRegistrationSubscription(realtimeChannel)
+    snapshot.dispose()
   })
 
   const navigation = { router }
@@ -244,6 +181,7 @@ export function useActiveActivityPage() {
     activityLoadState,
     activityNotFound,
     activityType,
+    isStale: snapshot.isStale,
     pageClasses: computed(() => viewModels.activity.pageClasses),
     showHeroCat: computed(() => viewModels.activity.showHeroCat),
     heroTitle: computed(() => viewModels.activity.heroTitle),
@@ -307,6 +245,7 @@ export function useActiveActivityPage() {
     confirmLeaveConfirm: signupFlow.confirmLeaveConfirm,
     updateAcEnabled: registrationAdminActions.updateAcEnabled,
     loadActivityPage,
+    retryRefresh,
     handleCtaClick: signupFlow.handleCtaClick,
     handleSeasonPlanConfirm: signupFlow.handleSeasonPlanConfirm,
     confirmSeasonCancel: signupFlow.confirmSeasonCancel,

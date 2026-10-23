@@ -30,6 +30,18 @@ export function useSignupSubmission({
   const seasonCancelPlan = ref(null)
   const seasonCancelPlanLabel = computed(() => (seasonCancelPlan.value ? seasonPlanLabel(seasonCancelPlan.value) : '季打'))
 
+  async function refreshAfterWrite() {
+    try {
+      return (await fetchRegistrations()) !== false
+    } catch {
+      return false
+    }
+  }
+
+  function withRefreshNotice(copy, refreshed) {
+    return refreshed ? copy : `${copy} 名單暫時未同步，請稍後重新整理。`
+  }
+
   async function submitSignup() {
     if (isSubmitting.value) return
     isSubmitting.value = true
@@ -82,11 +94,11 @@ export function useSignupSubmission({
           guestCount: guestTotal,
           guests: signupState.guests.slice(0, guestTotal),
         })
-        await fetchRegistrations()
+        const refreshed = await refreshAfterWrite()
         setSignupOpen(false, { restoreFocus: false })
         const title = leaveStatusChanged && guestTotal === 0 ? (newSelf === 0 ? '已請假' : '已取消請假') : '已更新'
         const copy = leaveStatusChanged && guestTotal === 0 ? (newSelf === 0 ? '已為此場次請假，名額將釋出給臨打。' : '已取消請假，你將重新加入此場次名單。') : '出席狀態與群外報名已更新。'
-        setSuccessDialogOpen(true, { title, copy, buttonText: '確認' })
+        setSuccessDialogOpen(true, { title, copy: withRefreshNotice(copy, refreshed), buttonText: '確認' })
       } catch {
         setSuccessDialogOpen(true, { title: '操作失敗', copy: '請稍後再試。', buttonText: '確認' })
       }
@@ -111,11 +123,11 @@ export function useSignupSubmission({
         guestCount: total <= 0 ? 0 : signupState.guest,
         guests: total <= 0 ? [] : signupState.guests.slice(0, signupState.guest),
       })
-      await fetchRegistrations()
+      const refreshed = await refreshAfterWrite()
       setSignupOpen(false, { restoreFocus: false })
       setSuccessDialogOpen(true, {
         title: total <= 0 ? '報名已取消' : isUpdatingExistingSignup ? '報名已更新' : '報名已送出',
-        copy: total <= 0 ? '已取消報名，名單將同步更新。' : `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入`,
+        copy: withRefreshNotice(total <= 0 ? '已取消報名，名單將同步更新。' : `${isUpdatingExistingSignup ? '已更新報名 ' : '已送出報名 '}${total} 位，請稍候確認名單是否成功加入`, refreshed),
         buttonText: '確認',
       })
     } catch {
@@ -176,7 +188,8 @@ export function useSignupSubmission({
     try {
       await invokeRegistrationAction(liffStore, { action: 'direct-season-register', activityId: activityData.value?.id, seasonPlan: selectedSeasonPlan.value })
       liffStore.isSeason = true
-      await fetchRegistrations()
+      const refreshed = await refreshAfterWrite()
+      if (!refreshed) setSuccessDialogOpen(true, { title: '報名已送出', copy: '報名已完成，但名單暫時未同步，請稍後重新整理。', buttonText: '確認' })
     } catch {
       setSuccessDialogOpen(true, { title: '報名失敗', copy: '送出時發生錯誤，請稍後再試。', buttonText: '確認' })
     } finally {
@@ -198,10 +211,12 @@ export function useSignupSubmission({
   async function confirmSeasonCancel() {
     seasonCancelOpen.value = false
     if (!myRegistration.value) return
+    const remainingPlans = (mySeasonRegistrations?.value || []).filter(registration => seasonCancelPlan.value && normalizeSeasonPlan(registration.season_plan) !== seasonCancelPlan.value)
     try {
       await invokeRegistrationAction(liffStore, { action: 'season-cancel', activityId: activityData.value?.id, ...(seasonCancelPlan.value ? { seasonPlan: seasonCancelPlan.value } : {}) })
-      await fetchRegistrations()
-      liffStore.isSeason = (mySeasonRegistrations?.value?.length ?? 0) > 0
+      const refreshed = await refreshAfterWrite()
+      liffStore.isSeason = refreshed ? (mySeasonRegistrations?.value?.length ?? 0) > 0 : remainingPlans.length > 0
+      if (!refreshed) setSuccessDialogOpen(true, { title: '報名已取消', copy: '取消已完成，但名單暫時未同步，請稍後重新整理。', buttonText: '確認' })
     } catch {
       setSuccessDialogOpen(true, { title: '取消失敗', copy: '請稍後再試。', buttonText: '確認' })
     }
