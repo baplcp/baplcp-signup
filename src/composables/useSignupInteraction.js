@@ -3,8 +3,8 @@ import { useSeasonPlanData } from './useSeasonPlanData.js'
 import { useSignupDialogs } from './useSignupDialogs.js'
 import { useSignupFormState } from './useSignupFormState.js'
 import { useSignupSubmission } from './useSignupSubmission.js'
-import { addTaiwanDays, parseTaiwanDateTime } from '../utils/taiwanDate.js'
-import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER } from '../utils/seasonPlan.js'
+import { addTaiwanDays, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER } from '~/utils/seasonPlan'
 
 const SEASON_PLAN_ORDER = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
 

@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict'
+import { registerHooks } from 'node:module'
 import test from 'node:test'
 import { ref } from 'vue'
-import { useSignupInteraction } from './useSignupInteraction.js'
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (!specifier.startsWith('~/')) return nextResolve(specifier, context)
+    const path = specifier.slice(2)
+    return nextResolve(new URL(`../${path}${path.endsWith('.js') ? '' : '.js'}`, import.meta.url).href, context)
+  },
+})
+
+const { useSignupInteraction } = await import('./useSignupInteraction.js')
 
 test('a pickup signup writes once, refreshes the snapshot, and reports the result', async () => {
   const calls = []

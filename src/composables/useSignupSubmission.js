@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { normalizeSeasonPlan, seasonPlanLabel } from '../utils/seasonPlan.js'
+import { normalizeSeasonPlan, seasonPlanLabel } from '~/utils/seasonPlan'
 
 function formatRegistrationOpenTime(decisions) {
   return decisions.registrationOpenAt.value ? decisions.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'

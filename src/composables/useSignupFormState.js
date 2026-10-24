@@ -1,5 +1,5 @@
 import { computed, reactive, ref, watch } from 'vue'
-import { memberGuestLimit } from '../utils/pickupPriority.js'
+import { memberGuestLimit } from '~/utils/pickupPriority'
 
 function toGuestForm(guests = []) {
   return guests.filter(guest => !guest.cancelled_at).map(guest => ({ id: guest.id, name: guest.name || '', gender: guest.gender || '' }))
