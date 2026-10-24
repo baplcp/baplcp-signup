@@ -1,9 +1,8 @@
 import { computed, ref } from 'vue'
-import { invokeRegistrationAction } from '~/services/registrationService'
-import { normalizeSeasonPlan, seasonPlanLabel } from '~/utils/seasonPlan'
+import { normalizeSeasonPlan, seasonPlanLabel } from '../utils/seasonPlan.js'
 
-function formatRegistrationOpenTime(viewModels) {
-  return viewModels.registrationOpenAt.value ? viewModels.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
+function formatRegistrationOpenTime(decisions) {
+  return decisions.registrationOpenAt.value ? decisions.registrationOpenAt.value.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' }) : '—'
 }
 
 const SEASON_PLAN_ERROR_COPY = {
@@ -15,15 +14,16 @@ const SEASON_PLAN_ERROR_COPY = {
 }
 
 export function useSignupSubmission({
-  liffStore,
+  identity,
   activityData,
   activityType,
   resolvedDate,
   myRegistration,
   mySeasonRegistration,
   mySeasonRegistrations,
-  fetchRegistrations,
-  viewModels,
+  refreshSnapshot,
+  decisions,
+  writeRegistration,
   signupState,
   showGuestValidation,
   selectedSeasonPlan,
@@ -40,7 +40,7 @@ export function useSignupSubmission({
 
   async function refreshAfterWrite() {
     try {
-      return (await fetchRegistrations()) !== false
+      return (await refreshSnapshot()) !== false
     } catch {
       return false
     }
@@ -61,21 +61,20 @@ export function useSignupSubmission({
   }
 
   async function doSubmitSignup() {
-    await liffStore.initialize()
-    if (!liffStore.userId) {
+    await identity.initialize()
+    if (!identity.userId) {
       setSuccessDialogOpen(true, {
         title: '請先登入',
         copy: '需要以 LINE 帳號登入才能送出報名，點擊下方按鈕前往 LINE 登入。',
         buttonText: '以 LINE 登入',
-        onButtonClick: () => liffStore.login(),
+        onButtonClick: () => identity.login(),
       })
       return
     }
 
-    const currentViewModels = viewModels.value
-    const isPureSeasonLeave = currentViewModels.isSeasonLeaveMode.value && signupState.guest === 0
-    if (!currentViewModels.isRegistrationOpen.value && !isPureSeasonLeave) {
-      const openTime = formatRegistrationOpenTime(currentViewModels)
+    const isPureSeasonLeave = decisions.isSeasonLeaveMode.value && signupState.guest === 0
+    if (!decisions.isRegistrationOpen.value && !isPureSeasonLeave) {
+      const openTime = formatRegistrationOpenTime(decisions)
       setSuccessDialogOpen(true, { title: '報名尚未開放', copy: `報名將於 ${openTime} 開放，你可以先填好資料，時間到再送出。`, buttonText: '知道了' })
       return
     }
@@ -87,14 +86,14 @@ export function useSignupSubmission({
       return
     }
 
-    if (currentViewModels.isSeasonLeaveMode.value) {
+    if (decisions.isSeasonLeaveMode.value) {
       const seasonRegistration = mySeasonRegistration.value
       const isCurrentlyOnLeave = (seasonRegistration?.leave_dates || []).includes(resolvedDate.value)
       const newSelf = signupState.self
       const leaveStatusChanged = (newSelf === 0) !== isCurrentlyOnLeave
       const guestTotal = signupState.guest
       try {
-        await invokeRegistrationAction(liffStore, {
+        await writeRegistration({
           action: 'season-leave',
           activityId: activityData.value?.id,
           activityDate: resolvedDate.value,
@@ -114,8 +113,8 @@ export function useSignupSubmission({
     }
 
     if (!isSignupChanged.value) return
-    const total = currentViewModels.signupTotal.value
-    const previousTotal = currentViewModels.submittedTotal.value
+    const total = decisions.signupTotal.value
+    const previousTotal = decisions.submittedTotal.value
     const isUpdatingExistingSignup = previousTotal > 0
     if (total <= 0 && previousTotal <= 0) {
       setSuccessDialogOpen(true, { title: '還沒有選擇人數', copy: '目前沒有任何人被加入報名，請先選擇「我」或「群外」人數後再送出。', buttonText: '回去選人' })
@@ -123,7 +122,7 @@ export function useSignupSubmission({
     }
 
     try {
-      await invokeRegistrationAction(liffStore, {
+      await writeRegistration({
         action: 'save-registration',
         activityId: activityData.value?.id,
         activityDate: activityType.value === 'season' ? null : resolvedDate.value,
@@ -144,15 +143,14 @@ export function useSignupSubmission({
   }
 
   async function handleCtaClick() {
-    const currentViewModels = viewModels.value
     if (activityType.value !== 'season') {
       setSignupOpen(true)
       return
     }
-    if (currentViewModels.isSeasonRegistrationClosed.value && !currentViewModels.hasSubmittedSignup.value) return
-    if (currentViewModels.hasSubmittedSignup.value) {
+    if (decisions.isSeasonRegistrationClosed.value && !decisions.hasSubmittedSignup.value) return
+    if (decisions.hasSubmittedSignup.value) {
       // 還能加報其他方案時（例如已報一季續報後季）開啟方案選單，選單內不提供取消。
-      if (currentViewModels.selectableSeasonPlans.value.length) {
+      if (decisions.selectableSeasonPlans.value.length) {
         seasonPlanOpen.value = true
         return
       }
@@ -166,8 +164,8 @@ export function useSignupSubmission({
     }
     // 還沒開放時先說明開放時間，不要開啟一張都不能選的方案選單；
     // 若是全部方案都已開打或已截止，就讓方案選單自己說明原因。
-    if (!currentViewModels.selectableSeasonPlans.value.length && currentViewModels.registrationOpenAt.value) {
-      const openTime = formatRegistrationOpenTime(currentViewModels)
+    if (!decisions.selectableSeasonPlans.value.length && decisions.registrationOpenAt.value) {
+      const openTime = formatRegistrationOpenTime(decisions)
       setSuccessDialogOpen(true, { title: '報名尚未開放', copy: `季打報名將於 ${openTime} 開放。`, buttonText: '知道了' })
       return
     }
@@ -181,21 +179,21 @@ export function useSignupSubmission({
   }
 
   async function directSeasonRegister() {
-    await liffStore.initialize()
-    if (!liffStore.userId) {
-      liffStore.login()
+    await identity.initialize()
+    if (!identity.userId) {
+      identity.login()
       return
     }
-    if (!viewModels.value.isRegistrationOpen.value) {
-      const openTime = formatRegistrationOpenTime(viewModels.value)
+    if (!decisions.isRegistrationOpen.value) {
+      const openTime = formatRegistrationOpenTime(decisions)
       setSuccessDialogOpen(true, { title: '報名尚未開放', copy: `季打報名將於 ${openTime} 開放。`, buttonText: '知道了' })
       return
     }
     if (isSubmitting.value) return
     isSubmitting.value = true
     try {
-      await invokeRegistrationAction(liffStore, { action: 'direct-season-register', activityId: activityData.value?.id, seasonPlan: selectedSeasonPlan.value })
-      liffStore.isSeason = true
+      await writeRegistration({ action: 'direct-season-register', activityId: activityData.value?.id, seasonPlan: selectedSeasonPlan.value })
+      identity.isSeason = true
       const refreshed = await refreshAfterWrite()
       if (!refreshed) setSuccessDialogOpen(true, { title: '報名已送出', copy: '報名已完成，但名單暫時未同步，請稍後重新整理。', buttonText: '確認' })
     } catch (error) {
@@ -208,7 +206,7 @@ export function useSignupSubmission({
   }
 
   function requestSeasonCancel(plan) {
-    if (viewModels.value.isSeasonRegistrationClosed.value) {
+    if (decisions.isSeasonRegistrationClosed.value) {
       seasonPlanOpen.value = false
       setSuccessDialogOpen(true, { title: '已超過截止時間', copy: '若需取消季打報名，請直接聯繫主揪處理。', buttonText: '知道了' })
       return
@@ -223,9 +221,9 @@ export function useSignupSubmission({
     if (!myRegistration.value) return
     const remainingPlans = (mySeasonRegistrations?.value || []).filter(registration => seasonCancelPlan.value && normalizeSeasonPlan(registration.season_plan) !== seasonCancelPlan.value)
     try {
-      await invokeRegistrationAction(liffStore, { action: 'season-cancel', activityId: activityData.value?.id, ...(seasonCancelPlan.value ? { seasonPlan: seasonCancelPlan.value } : {}) })
+      await writeRegistration({ action: 'season-cancel', activityId: activityData.value?.id, ...(seasonCancelPlan.value ? { seasonPlan: seasonCancelPlan.value } : {}) })
       const refreshed = await refreshAfterWrite()
-      liffStore.isSeason = refreshed ? (mySeasonRegistrations?.value?.length ?? 0) > 0 : remainingPlans.length > 0
+      identity.isSeason = refreshed ? (mySeasonRegistrations?.value?.length ?? 0) > 0 : remainingPlans.length > 0
       if (!refreshed) setSuccessDialogOpen(true, { title: '報名已取消', copy: '取消已完成，但名單暫時未同步，請稍後重新整理。', buttonText: '確認' })
     } catch {
       setSuccessDialogOpen(true, { title: '取消失敗', copy: '請稍後再試。', buttonText: '確認' })

@@ -1,4 +1,4 @@
-import { addTaiwanDays, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
+import { addTaiwanDays, getTaiwanWeekday, parseTaiwanDateTime } from './taiwanDate.js'
 
 // 與 Edge Function _shared/pickup-priority.ts 相同的規則：
 // 臨打開放報名後的前 2 小時內報名的人，群內成員排在群外朋友前面；

@@ -1,12 +1,13 @@
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
 import { useActivityPageSnapshot } from '~/composables/useActivityPageSnapshot'
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { useRegistrationAdminActions } from '~/composables/useRegistrationAdminActions'
-import { useSignupFlow } from '~/composables/useSignupFlow'
+import { useSignupInteraction } from '~/composables/useSignupInteraction'
+import { usePageFeedback } from '~/composables/usePageFeedback'
 import { getActivityPage, getSeasonSignupPage } from '~/services/activityService'
-import { removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
+import { invokeRegistrationAction, removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
@@ -72,26 +73,24 @@ export function useActiveActivityPage() {
     memberGenders,
   })
 
-  const viewModelsRef = shallowRef(null)
-  const signupFlow = useSignupFlow({
-    liffStore,
-    activityData,
+  const feedback = usePageFeedback()
+  const signupInteraction = useSignupInteraction({
+    identity: liffStore,
+    snapshot,
     activityType,
-    resolvedDate,
     isAdmin,
-    myRegistration,
-    mySeasonRegistration,
-    mySeasonRegistrations,
-    fetchRegistrations: snapshot.refresh,
     nowTick,
-    viewModels: viewModelsRef,
+    isLoading,
+    adminMode,
+    feedback,
+    writeRegistration: body => invokeRegistrationAction(liffStore, body),
   })
 
   const viewModels = useActiveActivityViewModels({
     activityData,
     activityType,
     resolvedDate,
-    signupOpen: signupFlow.signupOpen,
+    signupInteraction,
     acEnabled,
     acFeePerSession,
     nowTick,
@@ -103,12 +102,7 @@ export function useActiveActivityPage() {
     mySeasonRegistrations,
     activeSegment,
     isLoading,
-    isSubmitting: signupFlow.isSubmitting,
-    adminMode,
-    signupState: signupFlow.signupState,
-    selectedSeasonPlan: signupFlow.selectedSeasonPlan,
   })
-  viewModelsRef.value = viewModels
 
   const registrationAdminActions = useRegistrationAdminActions({
     liffStore,
@@ -118,8 +112,11 @@ export function useActiveActivityPage() {
     fetchRegistrations: snapshot.refresh,
     updatePayment: snapshot.updatePayment,
     applyAcUpdate: snapshot.updateAcEnabled,
-    focusElement: signupFlow.focusElement,
-    setSuccessDialogOpen: signupFlow.setSuccessDialogOpen,
+    focusElement: feedback.focusElement,
+    setSuccessDialogOpen: (isOpen, options) => {
+      if (isOpen) feedback.show(options, () => feedback.focusElement(signupInteraction.heroCtaButton))
+      else feedback.close()
+    },
   })
 
   function setSegmentTab(tab) {
@@ -127,12 +124,12 @@ export function useActiveActivityPage() {
   }
 
   function handleEscape() {
-    if (signupFlow.seasonPlanOpen.value) signupFlow.seasonPlanOpen.value = false
-    else if (signupFlow.seasonCancelOpen.value) signupFlow.seasonCancelOpen.value = false
+    if (signupInteraction.seasonPlanOpen.value) signupInteraction.seasonPlanOpen.value = false
+    else if (signupInteraction.seasonCancelOpen.value) signupInteraction.seasonCancelOpen.value = false
     else if (registrationAdminActions.removeDialog.open) registrationAdminActions.cancelRemove()
-    else if (signupFlow.leaveConfirmOpen.value) signupFlow.cancelLeaveConfirm()
-    else if (signupFlow.successDialog.open) signupFlow.setSuccessDialogOpen(false)
-    else if (signupFlow.signupOpen.value) signupFlow.setSignupOpen(false)
+    else if (signupInteraction.leaveConfirmOpen.value) signupInteraction.cancelLeaveConfirm()
+    else if (feedback.dialog.open) feedback.close()
+    else if (signupInteraction.signupOpen.value) signupInteraction.setSignupOpen(false)
   }
 
   let nowTickInterval = null
@@ -189,31 +186,31 @@ export function useActiveActivityPage() {
   })
 
   const signup = reactive({
-    signupOpen: signupFlow.signupOpen,
-    isSubmitting: signupFlow.isSubmitting,
-    showGuestValidation: signupFlow.showGuestValidation,
-    signupState: signupFlow.signupState,
-    guestLimit: signupFlow.guestLimit,
-    signupTotal: computed(() => viewModels.signup.signupTotal),
-    isSignupChanged: signupFlow.isSignupChanged,
-    isRegistrationOpen: computed(() => viewModels.signup.isRegistrationOpen),
-    registrationCountdown: computed(() => viewModels.signup.registrationCountdown),
-    isSeasonLeaveMode: computed(() => viewModels.signup.isSeasonLeaveMode),
-    showFooterCta: computed(() => viewModels.signup.showFooterCta),
-    ctaDisabled: computed(() => viewModels.signup.ctaDisabled),
-    ctaLabel: computed(() => viewModels.signup.ctaLabel),
+    signupOpen: signupInteraction.signupOpen,
+    isSubmitting: signupInteraction.isSubmitting,
+    showGuestValidation: signupInteraction.showGuestValidation,
+    signupState: signupInteraction.signupState,
+    guestLimit: signupInteraction.guestLimit,
+    signupTotal: signupInteraction.signupTotal,
+    isSignupChanged: signupInteraction.isSignupChanged,
+    isRegistrationOpen: signupInteraction.isRegistrationOpen,
+    registrationCountdown: signupInteraction.registrationCountdown,
+    isSeasonLeaveMode: signupInteraction.isSeasonLeaveMode,
+    showFooterCta: signupInteraction.showFooterCta,
+    ctaDisabled: signupInteraction.ctaDisabled,
+    ctaLabel: signupInteraction.ctaLabel,
   })
 
   const dialogs = reactive({
     showAllDatesDialog,
-    successDialog: signupFlow.successDialog,
+    successDialog: feedback.dialog,
     removeDialog: registrationAdminActions.removeDialog,
-    leaveConfirmOpen: signupFlow.leaveConfirmOpen,
-    seasonCancelOpen: signupFlow.seasonCancelOpen,
-    seasonCancelPlanLabel: signupFlow.seasonCancelPlanLabel,
-    seasonPlanOpen: signupFlow.seasonPlanOpen,
-    seasonPlanOptions: viewModels.seasonPlanOptions,
-    isSeasonPlanManageMode: computed(() => viewModels.hasSubmittedSignup.value),
+    leaveConfirmOpen: signupInteraction.leaveConfirmOpen,
+    seasonCancelOpen: signupInteraction.seasonCancelOpen,
+    seasonCancelPlanLabel: signupInteraction.seasonCancelPlanLabel,
+    seasonPlanOpen: signupInteraction.seasonPlanOpen,
+    seasonPlanOptions: signupInteraction.availableSeasonPlans,
+    isSeasonPlanManageMode: signupInteraction.hasSubmittedSignup,
   })
 
   const admin = reactive({
@@ -224,32 +221,32 @@ export function useActiveActivityPage() {
   })
 
   const elementRefs = {
-    heroCtaButton: signupFlow.heroCtaButton,
-    signupSheetRef: signupFlow.signupSheetRef,
-    successDialogButton: signupFlow.successDialogButton,
+    heroCtaButton: signupInteraction.heroCtaButton,
+    signupSheetRef: signupInteraction.signupSheetRef,
+    successDialogButton: feedback.buttonRef,
     removeConfirmButton: registrationAdminActions.removeConfirmButton,
-    leaveConfirmButton: signupFlow.leaveConfirmButton,
+    leaveConfirmButton: signupInteraction.leaveConfirmButton,
   }
 
   const actions = {
-    setSignupOpen: signupFlow.setSignupOpen,
-    handleDialogButtonClick: signupFlow.handleDialogButtonClick,
+    setSignupOpen: signupInteraction.setSignupOpen,
+    handleDialogButtonClick: feedback.handleButtonClick,
     setSegmentTab,
-    adjustSignupCount: signupFlow.adjustSignupCount,
-    submitSignup: signupFlow.submitSignup,
+    adjustSignupCount: signupInteraction.adjustSignupCount,
+    submitSignup: signupInteraction.submitSignup,
     togglePayment: registrationAdminActions.togglePayment,
     handleRemoveRequest: registrationAdminActions.handleRemoveRequest,
     cancelRemove: registrationAdminActions.cancelRemove,
     confirmRemove: registrationAdminActions.confirmRemove,
-    cancelLeaveConfirm: signupFlow.cancelLeaveConfirm,
-    confirmLeaveConfirm: signupFlow.confirmLeaveConfirm,
+    cancelLeaveConfirm: signupInteraction.cancelLeaveConfirm,
+    confirmLeaveConfirm: signupInteraction.confirmLeaveConfirm,
     updateAcEnabled: registrationAdminActions.updateAcEnabled,
     loadActivityPage,
     retryRefresh,
-    handleCtaClick: signupFlow.handleCtaClick,
-    handleSeasonPlanConfirm: signupFlow.handleSeasonPlanConfirm,
-    confirmSeasonCancel: signupFlow.confirmSeasonCancel,
-    closeSuccessDialog: () => signupFlow.setSuccessDialogOpen(false),
+    handleCtaClick: signupInteraction.handleCtaClick,
+    handleSeasonPlanConfirm: signupInteraction.handleSeasonPlanConfirm,
+    confirmSeasonCancel: signupInteraction.confirmSeasonCancel,
+    closeSuccessDialog: feedback.close,
     handleEscape,
   }
 

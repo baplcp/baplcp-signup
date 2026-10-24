@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { evaluateSeasonPlans } from '../../supabase/functions/_shared/season-plan-eligibility.ts'
-import { SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel, seasonPlanMonthRange } from '~/utils/seasonPlan'
+import { SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel, seasonPlanMonthRange } from '../utils/seasonPlan.js'
 
 const REASON_LABELS = {
   already_registered: '已報名',
