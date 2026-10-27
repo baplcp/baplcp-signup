@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { fetchLeaveSessionPage, hasActivePickupSelf, isNextUpcomingActivityDate, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
+import { sessionVacancy } from '../_shared/activity-vacancy.ts'
+import { fetchLeaveSessionPage, hasActivePickupSelf, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
 
 test('only the nearest upcoming activity date qualifies for a leave reminder', async () => {
   const now = new Date('2026-10-27T08:00:00.000Z')

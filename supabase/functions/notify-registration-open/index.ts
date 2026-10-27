@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildOpenLeaveReminder, listOpenedPickupSessions } from './openLeaveReminder.ts'
 
 function formatTime(time: string | null): string {
   return time?.slice(0, 5) ?? ''
@@ -183,7 +184,33 @@ serve(async _req => {
       console.log(`Notified: activity ${n.id} (${n.type}, ${n.activityDate})`)
     }
 
-    return new Response(JSON.stringify({ notified: notifications.length }), {
+    let leaveNotified = 0
+    try {
+      const opened = await listOpenedPickupSessions(supabase, now)
+      if (opened.length) {
+        const notifyToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
+        const notifyGroupId = Deno.env.get('LINE_GROUP_ID_NOTIFY')
+        if (!notifyToken || !notifyGroupId) throw new Error('Missing LINE env vars: LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
+        for (const opening of opened) {
+          try {
+            const { data: page, error: pageError } = await supabase.rpc('get_activity_page', {
+              p_activity_id: opening.seasonId,
+              p_activity_date_id: opening.activityDateId,
+            })
+            if (pageError) throw pageError
+            const message = buildOpenLeaveReminder(opening, page)
+            await sendLineMessage(notifyToken, notifyGroupId, message)
+            leaveNotified++
+          } catch (error) {
+            console.error(`Open leave reminder failed: activity ${opening.seasonId} (${opening.activityDate})`, error)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Open leave reminder lookup failed', error)
+    }
+
+    return new Response(JSON.stringify({ notified: notifications.length, leaveNotified }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })

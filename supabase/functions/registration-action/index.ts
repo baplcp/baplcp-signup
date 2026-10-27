@@ -1,9 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
+import { sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
 import { errorMessage } from './errorMessage.ts'
-import { fetchLeaveSessionPage, isNextUpcomingActivityDate, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
+import { fetchLeaveSessionPage, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
 
 const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',

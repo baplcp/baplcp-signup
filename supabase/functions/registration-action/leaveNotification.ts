@@ -1,5 +1,3 @@
-import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
-
 export type LeaveNotification = { kind: 'season' | 'pickup'; activityDateId: number; activityDate: string }
 
 export async function isNextUpcomingActivityDate(supabase: any, activityDate: string, now: Date): Promise<boolean> {
@@ -24,21 +22,6 @@ export async function fetchLeaveSessionPage(supabase: any, activityId: string | 
 
 export function hasActivePickupSelf(page: any, userId: string): boolean {
   return page.pickup_registrations.some((registration: any) => registration.user_id === userId && registration.is_self_registration && !registration.cancelled_at)
-}
-
-export function sessionVacancy(page: any): number {
-  const { activity } = page
-  const date = activity.selected_activity_date
-  const pickupCount = page.pickup_registrations.reduce(
-    (count: number, registration: any) =>
-      count + (registration.is_self_registration && !registration.cancelled_at ? 1 : 0) + (registration.guests || []).filter((guest: any) => !guest.cancelled_at).length,
-    0
-  )
-  const seasonCount = page.season_registrations.filter(
-    (registration: any) =>
-      !registration.cancelled_at && registration.is_self_registration && seasonPlanCoversDate(registration.season_plan, date, activity.dates) && !(registration.leave_dates || []).includes(date)
-  ).length
-  return Math.max(0, activity.single_capacity - pickupCount - seasonCount)
 }
 
 export async function sendLeaveNotification(
