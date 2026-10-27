@@ -2,6 +2,19 @@ import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
 export type LeaveNotification = { kind: 'season' | 'pickup'; activityDateId: number; activityDate: string }
 
+export async function isNextUpcomingActivityDate(supabase: any, activityDate: string, now: Date): Promise<boolean> {
+  const { data, error } = await supabase.rpc('list_activities', {
+    p_segment: 'upcoming',
+    p_limit: 1,
+    p_now: now.toISOString(),
+    p_cursor_activity_date: null,
+    p_cursor_created_at: null,
+    p_cursor_activity_date_id: null,
+  })
+  if (error) throw error
+  return data?.[0]?.activity_date === activityDate
+}
+
 export async function fetchLeaveSessionPage(supabase: any, activityId: string | number, activityDateId: number, activityDate: string) {
   const { data, error } = await supabase.rpc('get_activity_page', { p_activity_id: activityId, p_activity_date_id: activityDateId })
   if (error) throw error

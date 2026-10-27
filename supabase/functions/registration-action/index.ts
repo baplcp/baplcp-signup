@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
 import { errorMessage } from './errorMessage.ts'
-import { fetchLeaveSessionPage, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
+import { fetchLeaveSessionPage, isNextUpcomingActivityDate, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
 
 const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',
@@ -50,13 +50,14 @@ serve(async req => {
         submitTime: new Date().toISOString(),
         now: new Date(),
         notifyLeave: async event => {
-          const token = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
-          const groupId = Deno.env.get('LINE_GROUP_ID_NOTIFY')
-          if (!token || !groupId) {
-            console.error('Leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
-            return
-          }
           try {
+            if (!(await isNextUpcomingActivityDate(supabase, event.activityDate, new Date()))) return
+            const token = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
+            const groupId = Deno.env.get('LINE_GROUP_ID_NOTIFY')
+            if (!token || !groupId) {
+              console.error('Leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
+              return
+            }
             const page = await fetchLeaveSessionPage(supabase, activityId, event.activityDateId, event.activityDate)
             await sendLeaveNotification(token, groupId, profile.displayName, event.kind, page.activity.title, event.activityDate, sessionVacancy(page))
           } catch (error) {

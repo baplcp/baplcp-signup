@@ -1,6 +1,32 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { fetchLeaveSessionPage, hasActivePickupSelf, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
+import { fetchLeaveSessionPage, hasActivePickupSelf, isNextUpcomingActivityDate, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
+
+test('only the nearest upcoming activity date qualifies for a leave reminder', async () => {
+  const now = new Date('2026-10-27T08:00:00.000Z')
+  const supabase = {
+    rpc: async (name, args) => {
+      assert.equal(name, 'list_activities')
+      assert.deepEqual(args, {
+        p_segment: 'upcoming',
+        p_limit: 1,
+        p_now: now.toISOString(),
+        p_cursor_activity_date: null,
+        p_cursor_created_at: null,
+        p_cursor_activity_date_id: null,
+      })
+      return { data: [{ season_id: 7, activity_date_id: 42, activity_date: '2026-11-08' }], error: null }
+    },
+  }
+
+  assert.equal(await isNextUpcomingActivityDate(supabase, '2026-11-08', now), true)
+  assert.equal(await isNextUpcomingActivityDate(supabase, '2026-11-15', now), false)
+})
+
+test('no leave reminder qualifies when there is no upcoming session', async () => {
+  const supabase = { rpc: async () => ({ data: [], error: null }) }
+  assert.equal(await isNextUpcomingActivityDate(supabase, '2026-11-08', new Date('2026-10-27T08:00:00.000Z')), false)
+})
 
 test('sends a season leave reminder to the notification group', async () => {
   const originalFetch = globalThis.fetch
