@@ -34,6 +34,10 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
   </div>
 
   <main v-else class="active-activity-page" :class="activity.pageClasses" @keydown.esc="actions.handleEscape">
+    <div v-if="activity.isStale" class="activity-stale-notice" role="status">
+      名單暫時未同步，畫面顯示最近一次資料。
+      <button type="button" @click="actions.retryRefresh">重新整理</button>
+    </div>
     <Teleport v-if="admin.isAdmin" to="#nav-extra">
       <button class="admin-mode-toggle" :class="{ 'is-active': admin.adminMode }" type="button" :aria-pressed="String(admin.adminMode)" @click="admin.adminMode = !admin.adminMode">
         <span class="admin-mode-dot"></span>
@@ -206,6 +210,21 @@ const heroCatImage = import.meta.env.BASE_URL + 'images/cat-hide.png'
 .active-activity-page {
   height: 100%;
   background: linear-gradient(180deg, #5768ff 0%, #6373ff 7%, #7d8af9 13%, #c1c6f1 20%, #e8e9f5 27%, #fff 35%, #fff 100%);
+}
+
+.activity-stale-notice {
+  padding: 0.75rem 1rem;
+  background: #fff7df;
+  color: #644a13;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.activity-stale-notice button {
+  margin-left: 0.5rem;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .active-activity-page.hero-upcoming {

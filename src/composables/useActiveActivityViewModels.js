@@ -1,17 +1,15 @@
 import { computed, reactive } from 'vue'
-import { addTaiwanDays, formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday, parseTaiwanDateTime } from '~/utils/taiwanDate'
-import { useSeasonPlanData } from '~/composables/useSeasonPlanData'
-import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
-import { getVisibleSeasonPlans, getSeasonTabMembers, getVacancyCount } from '~/utils/activityViewModelRules'
+import { formatTaiwanTime, getTaiwanDateString, getTaiwanWeekday } from '~/utils/taiwanDate'
+import { SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanLabel } from '~/utils/seasonPlan'
+import { getSeasonTabMembers, getVacancyCount } from '~/utils/activityViewModelRules'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
-const SEASON_PLAN_ORDER = [SEASON_PLAN_QUARTER, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_HALF_YEAR]
 
 export function useActiveActivityViewModels({
   activityData,
   activityType,
   resolvedDate,
-  signupOpen,
+  signupInteraction,
   acEnabled,
   acFeePerSession,
   nowTick,
@@ -23,11 +21,9 @@ export function useActiveActivityViewModels({
   mySeasonRegistrations,
   activeSegment,
   isLoading,
-  isSubmitting,
-  adminMode,
-  signupState,
-  selectedSeasonPlan,
 }) {
+  const { signupOpen, selectedSeasonPlan, mySeasonPlans, seasonPlans, availableSeasonPlans, selectableSeasonPlans, isSeasonLeaveMode, isRegistrationOpen, submittedTotal, hasSubmittedSignup } =
+    signupInteraction
   const pageClasses = computed(() => [{ 'signup-open': signupOpen.value }, `hero-${activityType.value}`])
   const showHeroCat = computed(() => activityType.value === 'latest' || activityType.value === 'pickup' || activityType.value === 'season')
   const heroTitle = computed(() => {
@@ -48,29 +44,9 @@ export function useActiveActivityViewModels({
     if (!activityData.value) return '—'
     return `${formatTaiwanTime(activityData.value.start_time)}-${formatTaiwanTime(activityData.value.end_time)}`
   })
-  const summaryLocation = computed(() => activityData.value?.location || '板橋柏吉倫排球場')
+  const summaryLocation = computed(() => activityData.value?.location || '—')
   const activitySessionCount = computed(() => activityData.value?.dates?.length ?? 0)
   const activityDates = computed(() => activityData.value?.dates || [])
-
-  const seasonPlans = useSeasonPlanData(activityData)
-  const availableSeasonPlans = computed(() => (activityType.value === 'season' ? seasonPlans.value.filter(plan => plan.available) : []))
-
-  // 每個方案都看得到，不能選的標上原因，使用者才知道它存在、為什麼不能報：
-  // 已經開打的方案報進去會付全額卻只剩幾場；後季是給球季中途加入的人，
-  // 前半季開打前一律不開放，避免有人在新一季開放時就只卡後半季。
-  // 已報名的方案不能重複報；範圍重疊的方案（例如已報一季再報半年）也不能並存，
-  // 一季與後季不重疊，所以已報一季的人可以續報後季。
-  const mySeasonPlans = computed(() => {
-    if (activityType.value !== 'season') return []
-    const plans = new Set((mySeasonRegistrations?.value || []).map(registration => normalizeSeasonPlan(registration.season_plan)))
-    return SEASON_PLAN_ORDER.filter(plan => plans.has(plan))
-  })
-  const visibleSeasonPlans = computed(() => {
-    const today = getTaiwanDateString(nowTick.value)
-    return getVisibleSeasonPlans(availableSeasonPlans.value, mySeasonPlans.value, nowTick.value, today)
-  })
-
-  const selectableSeasonPlans = computed(() => visibleSeasonPlans.value.filter(plan => plan.selectable))
 
   const selectedSeasonPlanDetail = computed(() => {
     const candidates = selectableSeasonPlans.value.length ? selectableSeasonPlans.value : availableSeasonPlans.value
@@ -94,38 +70,6 @@ export function useActiveActivityViewModels({
     }
     const base = activityData.value.pickup_fee_per_session || activityData.value.season_fee_per_session || 0
     return acEnabled.value ? base + acFeePerSession.value : base
-  })
-
-  const registrationOpenAt = computed(() => {
-    const activity = activityData.value
-    if (!activity) return null
-    if (activityType.value === 'season') {
-      if (selectableSeasonPlans.value.length) return null
-      const pendingOpenTimes = availableSeasonPlans.value.map(plan => plan.openAt).filter(openAt => openAt && nowTick.value < openAt)
-      return pendingOpenTimes.length ? new Date(Math.min(...pendingOpenTimes.map(openAt => openAt.getTime()))) : null
-    }
-    if (!resolvedDate.value || activity.pickup_open_days_before == null || !activity.pickup_open_time) return null
-    return parseTaiwanDateTime(addTaiwanDays(resolvedDate.value, -activity.pickup_open_days_before), activity.pickup_open_time)
-  })
-
-  // 只有每個方案都截止才算季打報名結束。
-  const registrationCloseAt = computed(() => {
-    if (activityType.value !== 'season') return null
-    const closeTimes = availableSeasonPlans.value.map(plan => plan.closeAt)
-    if (!closeTimes.length || closeTimes.some(closeAt => !closeAt)) return null
-    return new Date(Math.max(...closeTimes.map(closeAt => closeAt.getTime())))
-  })
-
-  const isSeasonRegistrationClosed = computed(() => (registrationCloseAt.value ? nowTick.value >= registrationCloseAt.value : false))
-  const isSeasonLeaveMode = computed(() => activityType.value !== 'season' && !!mySeasonRegistration.value)
-  const isRegistrationOpen = computed(() => (registrationOpenAt.value ? nowTick.value >= registrationOpenAt.value : true))
-  const registrationCountdown = computed(() => {
-    if (isRegistrationOpen.value || !registrationOpenAt.value) return null
-    const diff = registrationOpenAt.value.getTime() - nowTick.value.getTime()
-    const hours = Math.floor(diff / 3600000)
-    const minutes = Math.floor((diff % 3600000) / 60000)
-    const seconds = Math.floor((diff % 60000) / 1000)
-    return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} 後開放` : `${minutes}:${String(seconds).padStart(2, '0')} 後開放`
   })
 
   // 季打跨過一季分界點時，名單依期間分成兩頁（例如 7-9月、10-12月）；
@@ -191,17 +135,6 @@ export function useActiveActivityViewModels({
   const cancelledMemberListLabel = computed(() => (activityType.value === 'season' ? '已取消季打' : '已取消報名'))
   const showLeaveMemberList = computed(() => leaveMemberList.value.length > 0 && activeSegment.value === '季打')
 
-  const submittedTotal = computed(() => {
-    if (!myRegistration.value) return 0
-    return (myRegistration.value.is_self_registration && !myRegistration.value.cancelled_at ? 1 : 0) + (myRegistration.value.guests || []).filter(guest => !guest.cancelled_at).length
-  })
-  const hasSubmittedSignup = computed(() => {
-    if (activityType.value === 'season') return submittedTotal.value > 0
-    if (submittedTotal.value > 0) return true
-    if (!isSeasonLeaveMode.value) return false
-    return !(mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
-  })
-  const signupTotal = computed(() => signupState.self + signupState.guest)
   const summaryFee = computed(() => submittedTotal.value * summaryFeeAmount.value)
   const myFullyPaid = computed(() => {
     if (!hasSubmittedSignup.value || !myRegistration.value) return false
@@ -258,29 +191,8 @@ export function useActiveActivityViewModels({
     vacancyTone: activityType.value === 'season' ? 'orange' : 'teal',
   }))
 
-  const heroCtaText = computed(() => {
-    if (activityType.value === 'season') {
-      if (isSeasonRegistrationClosed.value && !hasSubmittedSignup.value) return '已截止報名'
-      return submittedTotal.value > 0 ? '管理報名' : '我要報名'
-    }
-    return isSeasonLeaveMode.value || hasSubmittedSignup.value ? '管理報名' : '我要報名'
-  })
-  // 載入完成前還不知道場次是否已結束，不能先讓人點開報名。
-  const showFooterCta = computed(() => !isLoading.value && activityType.value !== 'ended' && !adminMode.value)
-  const ctaDisabled = computed(() => isSeasonRegistrationClosed.value && !hasSubmittedSignup.value)
-  const ctaLabel = computed(() => (isSubmitting.value ? '處理中...' : heroCtaText.value))
-
   return {
     resolvedDate,
-    registrationOpenAt,
-    seasonPlanOptions: visibleSeasonPlans,
-    selectableSeasonPlans,
-    submittedTotal,
-    signupTotal,
-    hasSubmittedSignup,
-    isSeasonRegistrationClosed,
-    isSeasonLeaveMode,
-    isRegistrationOpen,
     activity: reactive({
       activityData,
       pageClasses,
@@ -304,7 +216,6 @@ export function useActiveActivityViewModels({
       summaryStatusText,
       summaryFeeLabel,
       summaryCardProps,
-      isSeasonRegistrationClosed,
     }),
     members: reactive({
       activeSegment: currentSegment,
@@ -318,15 +229,6 @@ export function useActiveActivityViewModels({
       showCancelledMemberList,
       cancelledMemberListLabel,
       showLeaveMemberList,
-    }),
-    signup: reactive({
-      signupTotal,
-      isRegistrationOpen,
-      registrationCountdown,
-      isSeasonLeaveMode,
-      showFooterCta,
-      ctaDisabled,
-      ctaLabel,
     }),
   }
 }

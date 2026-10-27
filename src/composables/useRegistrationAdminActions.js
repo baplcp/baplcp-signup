@@ -1,14 +1,14 @@
 import { reactive, ref } from 'vue'
 import { invokeRegistrationAction } from '~/services/registrationService'
 
-export function useRegistrationAdminActions({ liffStore, activityData, getActivityId, registrations, seasonRegistrations, acEnabled, fetchRegistrations, focusElement, setSuccessDialogOpen }) {
+export function useRegistrationAdminActions({ liffStore, activityData, getActivityId, registrations, fetchRegistrations, updatePayment, applyAcUpdate, focusElement, setSuccessDialogOpen }) {
   const removeDialog = reactive({ open: false, member: null })
   const removeConfirmButton = ref(null)
 
   async function togglePayment(member, field) {
-    if (member._memberType === 'guest') {
-      try {
-        await invokeRegistrationAction(liffStore, {
+    try {
+      await updatePayment(member, field, () => {
+        return invokeRegistrationAction(liffStore, {
           action: 'admin-toggle-payment',
           activityId: activityData.value?.id,
           registrationId: member._regId || null,
@@ -16,28 +16,9 @@ export function useRegistrationAdminActions({ liffStore, activityData, getActivi
           guestId: member._guestId,
           field,
         })
-      } finally {
-        await fetchRegistrations()
-      }
-      return
-    }
-    const targetList = member._memberType === 'season_self' ? seasonRegistrations : registrations
-    const registrationIndex = targetList.value.findIndex(registration => registration.id === member._regId)
-    if (registrationIndex === -1) return
-    const registration = targetList.value[registrationIndex]
-    const updatedRegistration = { ...registration, [field]: !(registration[field] ?? false) }
-    targetList.value = targetList.value.map((currentRegistration, index) => (index === registrationIndex ? updatedRegistration : currentRegistration))
-
-    try {
-      await invokeRegistrationAction(liffStore, {
-        action: 'admin-toggle-payment',
-        activityId: activityData.value?.id,
-        registrationId: registration.id,
-        memberType: member._memberType,
-        field,
       })
-    } finally {
-      await fetchRegistrations()
+    } catch {
+      setSuccessDialogOpen(true, { title: '繳費狀態更新失敗', copy: '請稍後再試。', buttonText: '確認' })
     }
   }
 
@@ -66,24 +47,22 @@ export function useRegistrationAdminActions({ liffStore, activityData, getActivi
         memberType: member._memberType,
         guestId: member._guestId,
       })
-      await fetchRegistrations()
+      try {
+        await fetchRegistrations()
+      } catch {
+        /* The snapshot marks itself stale. */
+      }
     } catch {
       // Keep the current list when remove fails.
     }
   }
 
   async function updateAcEnabled(enabled) {
-    const previousEnabled = acEnabled.value
-    acEnabled.value = enabled
     const activityId = getActivityId() || activityData.value?.id
-    if (!activityId) {
-      acEnabled.value = previousEnabled
-      return
-    }
+    if (!activityId) return
     try {
-      await invokeRegistrationAction(liffStore, { action: 'admin-update-ac', activityId, enabled })
+      await applyAcUpdate(enabled, () => invokeRegistrationAction(liffStore, { action: 'admin-update-ac', activityId, enabled }))
     } catch {
-      acEnabled.value = previousEnabled
       setSuccessDialogOpen(true, {
         title: '冷氣設定更新失敗',
         copy: '設定尚未變更，請稍後再試。',

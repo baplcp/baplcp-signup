@@ -1,25 +1,14 @@
-import { nextTick, reactive, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 
-export function useSignupDialogs({ liffStore, resetSignupState, signupState }) {
+export function useSignupDialogs({ identity, resetSignupState, signupState, feedback }) {
   const signupOpen = ref(false)
   const seasonCancelOpen = ref(false)
   const seasonPlanOpen = ref(false)
   const leaveConfirmOpen = ref(false)
   const heroCtaButton = ref(null)
   const signupSheetRef = ref(null)
-  const successDialogButton = ref(null)
   const leaveConfirmButton = ref(null)
-  const successDialog = reactive({
-    open: false,
-    title: '報名已送出',
-    copy: '已送出報名 0 位，請稍候確認名單是否成功加入',
-    buttonText: '確認',
-    onButtonClick: null,
-  })
-
-  function focusElement(target) {
-    nextTick(() => target.value?.focus?.({ preventScroll: true }))
-  }
+  const focusElement = feedback.focusElement
 
   function focusSignupClose() {
     nextTick(() => signupSheetRef.value?.focusClose?.())
@@ -30,26 +19,17 @@ export function useSignupDialogs({ liffStore, resetSignupState, signupState }) {
   }
 
   function setSuccessDialogOpen(isOpen, options = {}) {
-    if (options.title) successDialog.title = options.title
-    if (options.copy) successDialog.copy = options.copy
-    if (options.buttonText) successDialog.buttonText = options.buttonText
-    successDialog.onButtonClick = options.onButtonClick ?? null
-    successDialog.open = isOpen
-
-    if (isOpen) focusElement(successDialogButton)
-    else if (signupOpen.value) focusSignupConfirm()
-    else focusElement(heroCtaButton)
-  }
-
-  function handleDialogButtonClick() {
-    const callback = successDialog.onButtonClick
-    setSuccessDialogOpen(false)
-    if (callback) callback()
+    if (isOpen)
+      feedback.show(options, () => {
+        if (signupOpen.value) focusSignupConfirm()
+        else focusElement(heroCtaButton)
+      })
+    else feedback.close()
   }
 
   function setSignupOpen(isOpen, options = {}) {
-    if (isOpen && !liffStore.userId) {
-      liffStore.login()
+    if (isOpen && !identity.userId) {
+      identity.login()
       return
     }
 
@@ -86,12 +66,9 @@ export function useSignupDialogs({ liffStore, resetSignupState, signupState }) {
     leaveConfirmOpen,
     heroCtaButton,
     signupSheetRef,
-    successDialogButton,
     leaveConfirmButton,
-    successDialog,
     focusElement,
     setSuccessDialogOpen,
-    handleDialogButtonClick,
     setSignupOpen,
     openLeaveConfirm,
     cancelLeaveConfirm,

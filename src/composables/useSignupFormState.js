@@ -14,7 +14,7 @@ function syncGuestLength(signupState, count) {
   signupState.guests.splice(count)
 }
 
-export function useSignupFormState({ isAdmin, activityData, myRegistration, mySeasonRegistration, resolvedDate, nowTick, viewModels }) {
+export function useSignupFormState({ isAdmin, activityData, myRegistration, mySeasonRegistration, resolvedDate, nowTick, isSeasonLeaveMode }) {
   const signupState = reactive({ self: 0, guest: 0, guests: [] })
   const showGuestValidation = ref(false)
   const selectedSeasonPlan = ref('quarter')
@@ -28,10 +28,7 @@ export function useSignupFormState({ isAdmin, activityData, myRegistration, mySe
   )
 
   const isSignupChanged = computed(() => {
-    const currentViewModels = viewModels.value
-    if (!currentViewModels) return false
-
-    if (currentViewModels.isSeasonLeaveMode.value) {
+    if (isSeasonLeaveMode.value) {
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       if ((signupState.self === 0) !== isOnLeave) return true
     } else if (signupState.self !== (hasActiveSelfRegistration(myRegistration.value) ? 1 : 0)) {
@@ -50,7 +47,7 @@ export function useSignupFormState({ isAdmin, activityData, myRegistration, mySe
 
   function resetSignupState() {
     showGuestValidation.value = false
-    if (viewModels.value.isSeasonLeaveMode.value) {
+    if (isSeasonLeaveMode.value) {
       const isOnLeave = (mySeasonRegistration.value?.leave_dates || []).includes(resolvedDate.value)
       signupState.self = isOnLeave ? 0 : 1
       signupState.guest = toGuestForm(myRegistration.value?.guests).length

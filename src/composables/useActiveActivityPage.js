@@ -1,12 +1,13 @@
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityMemberLists } from '~/composables/useActivityMemberLists'
-import { useActiveActivityRegistrations } from '~/composables/useActiveActivityRegistrations'
+import { useActivityPageSnapshot } from '~/composables/useActivityPageSnapshot'
 import { useActiveActivityViewModels } from '~/composables/useActiveActivityViewModels'
 import { useRegistrationAdminActions } from '~/composables/useRegistrationAdminActions'
-import { useSignupFlow } from '~/composables/useSignupFlow'
+import { useSignupInteraction } from '~/composables/useSignupInteraction'
+import { usePageFeedback } from '~/composables/usePageFeedback'
 import { getActivityPage, getSeasonSignupPage } from '~/services/activityService'
-import { removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
+import { invokeRegistrationAction, removeRegistrationSubscription, subscribeToRegistrationChanges } from '~/services/registrationService'
 import { useLiffStore } from '~/stores/liff'
 import { getTaiwanDateString, parseTaiwanDateTime } from '~/utils/taiwanDate'
 
@@ -17,25 +18,34 @@ export function useActiveActivityPage() {
   const router = useRouter()
   const liffStore = useLiffStore()
 
-  const activityData = ref(null)
-  const activityLoadState = ref('loading')
+  const snapshot = useActivityPageSnapshot({
+    liffStore,
+    loadPage: (id, dateId, season) => (season ? getSeasonSignupPage(id) : getActivityPage(id, dateId)),
+    subscribe: subscribeToRegistrationChanges,
+    unsubscribe: removeRegistrationSubscription,
+  })
+  const {
+    activityData,
+    activityLoadState,
+    registrations,
+    cancelledRegistrations,
+    seasonRegistrations,
+    myRegistration,
+    mySeasonRegistration,
+    mySeasonRegistrations,
+    memberGenders,
+    acEnabled,
+    acFeePerSession,
+  } = snapshot
   const activityNotFound = computed(() => activityLoadState.value === 'not-found')
   const isLoading = computed(() => activityLoadState.value === 'loading')
-  const acEnabled = ref(false)
-  const acFeePerSession = ref(0)
   const showAllDatesDialog = ref(false)
   const activeSegment = ref('臨打')
   const adminMode = ref(false)
   const nowTick = ref(new Date())
 
   const isSeasonSignupPage = computed(() => route.meta.activityPageMode === 'season')
-  const resolvedDate = computed(() => {
-    if (activityData.value?.selected_activity_date) return activityData.value.selected_activity_date
-    if (!activityData.value?.dates) return null
-    const today = getTaiwanDateString()
-    const sorted = activityData.value.dates.slice().sort()
-    return sorted.find(date => date >= today) || sorted[sorted.length - 1] || null
-  })
+  const resolvedDate = snapshot.resolvedDate
   // 與 list_activities 的「已結束」同一組規則：結束時間過後一小時才算結束。
   // LINE 通知卡片等外部連結不會帶 type，所以不能只靠 query 判斷，否則過期球局仍會顯示報名 CTA。
   const isSessionEnded = computed(() => {
@@ -53,17 +63,6 @@ export function useActiveActivityPage() {
   })
   const isAdmin = computed(() => liffStore.role === 'organizer')
 
-  const { registrations, cancelledRegistrations, seasonRegistrations, myRegistration, mySeasonRegistration, mySeasonRegistrations, memberGenders, fetchRegistrations } = useActiveActivityRegistrations(
-    {
-      activityData,
-      activityType,
-      resolvedDate,
-      getActivityId: () => route.params.id,
-      liffStore,
-      loadActivityPage: (activityId, activityDateId) => (isSeasonSignupPage.value ? getSeasonSignupPage(activityId) : getActivityPage(activityId, activityDateId)),
-    }
-  )
-
   const { memberList, cancelledMemberList, leaveMemberList } = useActivityMemberLists({
     activityData,
     activityType,
@@ -74,26 +73,24 @@ export function useActiveActivityPage() {
     memberGenders,
   })
 
-  const viewModelsRef = shallowRef(null)
-  const signupFlow = useSignupFlow({
-    liffStore,
-    activityData,
+  const feedback = usePageFeedback()
+  const signupInteraction = useSignupInteraction({
+    identity: liffStore,
+    snapshot,
     activityType,
-    resolvedDate,
     isAdmin,
-    myRegistration,
-    mySeasonRegistration,
-    mySeasonRegistrations,
-    fetchRegistrations,
     nowTick,
-    viewModels: viewModelsRef,
+    isLoading,
+    adminMode,
+    feedback,
+    writeRegistration: body => invokeRegistrationAction(liffStore, body),
   })
 
   const viewModels = useActiveActivityViewModels({
     activityData,
     activityType,
     resolvedDate,
-    signupOpen: signupFlow.signupOpen,
+    signupInteraction,
     acEnabled,
     acFeePerSession,
     nowTick,
@@ -105,23 +102,21 @@ export function useActiveActivityPage() {
     mySeasonRegistrations,
     activeSegment,
     isLoading,
-    isSubmitting: signupFlow.isSubmitting,
-    adminMode,
-    signupState: signupFlow.signupState,
-    selectedSeasonPlan: signupFlow.selectedSeasonPlan,
   })
-  viewModelsRef.value = viewModels
 
   const registrationAdminActions = useRegistrationAdminActions({
     liffStore,
     activityData,
     getActivityId: () => route.params.id,
     registrations,
-    seasonRegistrations,
-    acEnabled,
-    fetchRegistrations,
-    focusElement: signupFlow.focusElement,
-    setSuccessDialogOpen: signupFlow.setSuccessDialogOpen,
+    fetchRegistrations: snapshot.refresh,
+    updatePayment: snapshot.updatePayment,
+    applyAcUpdate: snapshot.updateAcEnabled,
+    focusElement: feedback.focusElement,
+    setSuccessDialogOpen: (isOpen, options) => {
+      if (isOpen) feedback.show(options, () => feedback.focusElement(signupInteraction.heroCtaButton))
+      else feedback.close()
+    },
   })
 
   function setSegmentTab(tab) {
@@ -129,97 +124,39 @@ export function useActiveActivityPage() {
   }
 
   function handleEscape() {
-    if (signupFlow.seasonPlanOpen.value) signupFlow.seasonPlanOpen.value = false
-    else if (signupFlow.seasonCancelOpen.value) signupFlow.seasonCancelOpen.value = false
+    if (signupInteraction.seasonPlanOpen.value) signupInteraction.seasonPlanOpen.value = false
+    else if (signupInteraction.seasonCancelOpen.value) signupInteraction.seasonCancelOpen.value = false
     else if (registrationAdminActions.removeDialog.open) registrationAdminActions.cancelRemove()
-    else if (signupFlow.leaveConfirmOpen.value) signupFlow.cancelLeaveConfirm()
-    else if (signupFlow.successDialog.open) signupFlow.setSuccessDialogOpen(false)
-    else if (signupFlow.signupOpen.value) signupFlow.setSignupOpen(false)
+    else if (signupInteraction.leaveConfirmOpen.value) signupInteraction.cancelLeaveConfirm()
+    else if (feedback.dialog.open) feedback.close()
+    else if (signupInteraction.signupOpen.value) signupInteraction.setSignupOpen(false)
   }
 
   let nowTickInterval = null
-  let realtimeChannel = null
-  let registrationRefreshTimer = null
-  let registrationRefreshInFlight = false
-  let registrationRefreshPending = false
-  let latestPageLoadId = 0
   let stopRouteWatch = null
-  async function flushRegistrationChanges() {
-    if (registrationRefreshInFlight) {
-      registrationRefreshPending = true
-      return
-    }
-
-    registrationRefreshInFlight = true
-    try {
-      await fetchRegistrations()
-    } catch (error) {
-      console.warn('Unable to refresh activity registration', error)
-    } finally {
-      registrationRefreshInFlight = false
-      if (registrationRefreshPending) {
-        registrationRefreshPending = false
-        scheduleRegistrationRefresh()
-      }
-    }
-  }
-
-  function scheduleRegistrationRefresh() {
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshTimer = setTimeout(() => {
-      registrationRefreshTimer = null
-      flushRegistrationChanges()
-    }, 750)
-  }
-
   async function loadActivityPage() {
-    const pageLoadId = ++latestPageLoadId
     if (nowTickInterval) clearInterval(nowTickInterval)
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshPending = false
-    removeRegistrationSubscription(realtimeChannel)
     nowTickInterval = null
-    registrationRefreshTimer = null
-    realtimeChannel = null
-    activityLoadState.value = 'loading'
-    activityData.value = null
-
-    const id = route.params.id
-    const requestedActivityDateId = typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null
-    const seasonPage = isSeasonSignupPage.value
-    const activityPagePromise = seasonPage ? getSeasonSignupPage(id) : getActivityPage(id, requestedActivityDateId)
     try {
-      await liffStore.initialize()
-      const activityPage = await activityPagePromise
-      if (pageLoadId !== latestPageLoadId || String(route.params.id) !== String(id) || (route.params.activityDateId ?? null) !== requestedActivityDateId || isSeasonSignupPage.value !== seasonPage)
-        return
-      if (!activityPage?.activity) {
-        activityLoadState.value = 'not-found'
-        return
-      }
-      if (String(activityPage.activity.id) !== String(id)) throw new Error('activity_id_mismatch')
-
-      activityData.value = activityPage.activity
-      acEnabled.value = activityPage.activity.ac_enabled ?? false
-      acFeePerSession.value = activityPage.activity.ac_fee ?? 0
-      try {
-        await fetchRegistrations(activityPage)
-      } catch (error) {
-        // 球局資料已成功取得時，名單的附屬查詢失敗不應覆蓋整個頁面。
-        console.warn('Unable to load activity registrations', error)
-      }
-      if (pageLoadId !== latestPageLoadId) return
-      activityLoadState.value = 'ready'
+      const loaded = await snapshot.open({
+        id: route.params.id,
+        dateId: typeof route.params.activityDateId === 'string' ? route.params.activityDateId : null,
+        season: isSeasonSignupPage.value,
+      })
+      if (!loaded) return
       nowTickInterval = setInterval(() => {
         nowTick.value = new Date()
       }, 1000)
-      realtimeChannel = subscribeToRegistrationChanges(activityData.value.id, scheduleRegistrationRefresh, {
-        includeGuests: !seasonPage,
-        seasonOnly: seasonPage,
-        selectedDateId: activityData.value.selected_activity_date_id,
-      })
     } catch {
-      if (pageLoadId === latestPageLoadId) activityLoadState.value = 'error'
+      // The snapshot exposes its load error state to the page.
+    }
+  }
+
+  async function retryRefresh() {
+    try {
+      await snapshot.refresh()
+    } catch {
+      // The stale notice remains visible until a refresh succeeds.
     }
   }
 
@@ -229,12 +166,9 @@ export function useActiveActivityPage() {
   })
 
   onUnmounted(() => {
-    latestPageLoadId++
     if (stopRouteWatch) stopRouteWatch()
     if (nowTickInterval) clearInterval(nowTickInterval)
-    if (registrationRefreshTimer) clearTimeout(registrationRefreshTimer)
-    registrationRefreshPending = false
-    removeRegistrationSubscription(realtimeChannel)
+    snapshot.dispose()
   })
 
   const navigation = { router }
@@ -244,6 +178,7 @@ export function useActiveActivityPage() {
     activityLoadState,
     activityNotFound,
     activityType,
+    isStale: snapshot.isStale,
     pageClasses: computed(() => viewModels.activity.pageClasses),
     showHeroCat: computed(() => viewModels.activity.showHeroCat),
     heroTitle: computed(() => viewModels.activity.heroTitle),
@@ -251,31 +186,31 @@ export function useActiveActivityPage() {
   })
 
   const signup = reactive({
-    signupOpen: signupFlow.signupOpen,
-    isSubmitting: signupFlow.isSubmitting,
-    showGuestValidation: signupFlow.showGuestValidation,
-    signupState: signupFlow.signupState,
-    guestLimit: signupFlow.guestLimit,
-    signupTotal: computed(() => viewModels.signup.signupTotal),
-    isSignupChanged: signupFlow.isSignupChanged,
-    isRegistrationOpen: computed(() => viewModels.signup.isRegistrationOpen),
-    registrationCountdown: computed(() => viewModels.signup.registrationCountdown),
-    isSeasonLeaveMode: computed(() => viewModels.signup.isSeasonLeaveMode),
-    showFooterCta: computed(() => viewModels.signup.showFooterCta),
-    ctaDisabled: computed(() => viewModels.signup.ctaDisabled),
-    ctaLabel: computed(() => viewModels.signup.ctaLabel),
+    signupOpen: signupInteraction.signupOpen,
+    isSubmitting: signupInteraction.isSubmitting,
+    showGuestValidation: signupInteraction.showGuestValidation,
+    signupState: signupInteraction.signupState,
+    guestLimit: signupInteraction.guestLimit,
+    signupTotal: signupInteraction.signupTotal,
+    isSignupChanged: signupInteraction.isSignupChanged,
+    isRegistrationOpen: signupInteraction.isRegistrationOpen,
+    registrationCountdown: signupInteraction.registrationCountdown,
+    isSeasonLeaveMode: signupInteraction.isSeasonLeaveMode,
+    showFooterCta: signupInteraction.showFooterCta,
+    ctaDisabled: signupInteraction.ctaDisabled,
+    ctaLabel: signupInteraction.ctaLabel,
   })
 
   const dialogs = reactive({
     showAllDatesDialog,
-    successDialog: signupFlow.successDialog,
+    successDialog: feedback.dialog,
     removeDialog: registrationAdminActions.removeDialog,
-    leaveConfirmOpen: signupFlow.leaveConfirmOpen,
-    seasonCancelOpen: signupFlow.seasonCancelOpen,
-    seasonCancelPlanLabel: signupFlow.seasonCancelPlanLabel,
-    seasonPlanOpen: signupFlow.seasonPlanOpen,
-    seasonPlanOptions: viewModels.seasonPlanOptions,
-    isSeasonPlanManageMode: computed(() => viewModels.hasSubmittedSignup.value),
+    leaveConfirmOpen: signupInteraction.leaveConfirmOpen,
+    seasonCancelOpen: signupInteraction.seasonCancelOpen,
+    seasonCancelPlanLabel: signupInteraction.seasonCancelPlanLabel,
+    seasonPlanOpen: signupInteraction.seasonPlanOpen,
+    seasonPlanOptions: signupInteraction.availableSeasonPlans,
+    isSeasonPlanManageMode: signupInteraction.hasSubmittedSignup,
   })
 
   const admin = reactive({
@@ -286,31 +221,32 @@ export function useActiveActivityPage() {
   })
 
   const elementRefs = {
-    heroCtaButton: signupFlow.heroCtaButton,
-    signupSheetRef: signupFlow.signupSheetRef,
-    successDialogButton: signupFlow.successDialogButton,
+    heroCtaButton: signupInteraction.heroCtaButton,
+    signupSheetRef: signupInteraction.signupSheetRef,
+    successDialogButton: feedback.buttonRef,
     removeConfirmButton: registrationAdminActions.removeConfirmButton,
-    leaveConfirmButton: signupFlow.leaveConfirmButton,
+    leaveConfirmButton: signupInteraction.leaveConfirmButton,
   }
 
   const actions = {
-    setSignupOpen: signupFlow.setSignupOpen,
-    handleDialogButtonClick: signupFlow.handleDialogButtonClick,
+    setSignupOpen: signupInteraction.setSignupOpen,
+    handleDialogButtonClick: feedback.handleButtonClick,
     setSegmentTab,
-    adjustSignupCount: signupFlow.adjustSignupCount,
-    submitSignup: signupFlow.submitSignup,
+    adjustSignupCount: signupInteraction.adjustSignupCount,
+    submitSignup: signupInteraction.submitSignup,
     togglePayment: registrationAdminActions.togglePayment,
     handleRemoveRequest: registrationAdminActions.handleRemoveRequest,
     cancelRemove: registrationAdminActions.cancelRemove,
     confirmRemove: registrationAdminActions.confirmRemove,
-    cancelLeaveConfirm: signupFlow.cancelLeaveConfirm,
-    confirmLeaveConfirm: signupFlow.confirmLeaveConfirm,
+    cancelLeaveConfirm: signupInteraction.cancelLeaveConfirm,
+    confirmLeaveConfirm: signupInteraction.confirmLeaveConfirm,
     updateAcEnabled: registrationAdminActions.updateAcEnabled,
     loadActivityPage,
-    handleCtaClick: signupFlow.handleCtaClick,
-    handleSeasonPlanConfirm: signupFlow.handleSeasonPlanConfirm,
-    confirmSeasonCancel: signupFlow.confirmSeasonCancel,
-    closeSuccessDialog: () => signupFlow.setSuccessDialogOpen(false),
+    retryRefresh,
+    handleCtaClick: signupInteraction.handleCtaClick,
+    handleSeasonPlanConfirm: signupInteraction.handleSeasonPlanConfirm,
+    confirmSeasonCancel: signupInteraction.confirmSeasonCancel,
+    closeSuccessDialog: feedback.close,
     handleEscape,
   }
 

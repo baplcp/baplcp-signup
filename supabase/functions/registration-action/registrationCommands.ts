@@ -1,17 +1,9 @@
 import { fetchActivityDateId, fetchSeasonRegistrationDateStatuses } from '../_shared/normalized-collection-data.ts'
-import { addTaiwanDays, getTaiwanDateAndHour, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
+import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
 import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
 import { pickupSecondGuestCutoff } from '../_shared/pickup-priority.ts'
-import {
-  normalizeSeasonPlan,
-  SEASON_PLAN_HALF_YEAR,
-  SEASON_PLAN_LATE_QUARTER,
-  SEASON_PLAN_QUARTER,
-  seasonPlanCoversDate,
-  seasonPlanDates,
-  seasonPlansOverlap,
-  type SeasonPlan,
-} from '../_shared/season-plan.ts'
+import { evaluateSeasonPlans } from '../_shared/season-plan-eligibility.ts'
+import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanCoversDate } from '../_shared/season-plan.ts'
 import {
   findActiveSeasonRegistrations,
   getActivityForRegistration,
@@ -57,42 +49,10 @@ function assertSeasonEnabled(activity: Registration) {
   if (!activity.season_enabled) throw new Error('season_disabled')
 }
 
-// 後季有自己的一組報名開放與截止時間，其餘方案沿用季打的時間。
-function assertSeasonRegistrationWindow(activity: Registration, seasonPlan: SeasonPlan, now: Date) {
-  assertSeasonEnabled(activity)
-
-  const isLateQuarter = seasonPlan === SEASON_PLAN_LATE_QUARTER
-  if (isLateQuarter && !activity.season_late_enabled) throw new Error('late_quarter_disabled')
-
-  const openDate = isLateQuarter ? activity.season_late_open_date : activity.season_open_date
-  const openTime = isLateQuarter ? activity.season_late_open_time : activity.season_open_time
-  const closeDate = isLateQuarter ? activity.season_late_close_date : activity.season_close_date
-  const closeTime = isLateQuarter ? activity.season_late_close_time : activity.season_close_time
-
-  if (openDate && openTime && now < parseTaiwanDateTime(openDate, openTime)) throw new Error('registration_not_open')
-  if (closeDate && closeTime && now >= parseTaiwanDateTime(closeDate, closeTime)) throw new Error('registration_closed')
-}
-
 async function fetchActivityDates(supabase: any, activityId: string | number): Promise<string[]> {
   const { data, error } = await supabase.from('activity_dates').select('activity_date').eq('season_id', activityId)
   if (error) throw error
   return (data || []).map((row: { activity_date: string }) => row.activity_date)
-}
-
-// 前端會把不能選的方案標示成不可選，這裡是同一組規則的伺服器端把關：
-// 方案第一場已開打就不能再報（會付全額卻只剩幾場），而後季要等前半季開打後
-// 才開放，避免有人在新一季開放報名時就只卡後半季。
-async function assertSeasonPlanSelectable(supabase: any, activityId: string | number, seasonPlan: SeasonPlan, now: Date) {
-  const activityDates = await fetchActivityDates(supabase, activityId)
-  const today = getTaiwanDateAndHour(now).date
-  const planDates = seasonPlanDates(seasonPlan, activityDates)
-  if (!planDates.length) throw new Error('season_plan_unavailable')
-  if (planDates[0] < today) throw new Error('season_plan_started')
-
-  if (seasonPlan === SEASON_PLAN_LATE_QUARTER) {
-    const quarterDates = seasonPlanDates(SEASON_PLAN_QUARTER, activityDates)
-    if (!quarterDates.length || quarterDates[0] >= today) throw new Error('registration_not_open')
-  }
 }
 
 function assertRegistrationWindow(activity: Registration, activityDate: string, now: Date, isAdmin = false) {
@@ -133,13 +93,13 @@ export async function directSeasonRegister(context: Omit<RegistrationCommandCont
   const { supabase, memberId, activityId, now } = context
   const activity = await getActivityForRegistration(supabase, activityId)
   const seasonPlan = normalizeSeasonPlan(body?.seasonPlan)
-  assertSeasonRegistrationWindow(activity, seasonPlan, now)
-  await assertSeasonPlanSelectable(supabase, activityId, seasonPlan, now)
-  // 已報一季的人可以續報後季；範圍重疊的方案（例如已報一季再報半年）不能並存，
-  // 要先取消原本的報名。資料庫 trigger 也會擋，這裡先回傳明確的錯誤。
-  const activeRegistrations = await findActiveSeasonRegistrations(supabase, { activityId, memberId })
-  if (activeRegistrations.some(registration => normalizeSeasonPlan(registration.season_plan) !== seasonPlan && seasonPlansOverlap(registration.season_plan, seasonPlan))) {
-    return { error: 'season_plan_overlap', status: 409 }
+  const [activityDates, activeRegistrations] = await Promise.all([fetchActivityDates(supabase, activityId), findActiveSeasonRegistrations(supabase, { activityId, memberId })])
+  // 畫面不再提供已報方案，但在可報名期間容許同方案重送。
+  const otherPlans = activeRegistrations.map(registration => normalizeSeasonPlan(registration.season_plan)).filter(plan => plan !== seasonPlan)
+  const evaluation = evaluateSeasonPlans(activity, activityDates, otherPlans, now).find(plan => plan.plan === seasonPlan)
+  if (evaluation?.reason) {
+    const status = evaluation.reason === 'season_plan_overlap' ? 409 : evaluation.reason === 'registration_closed' || evaluation.reason === 'registration_not_open' ? 403 : 400
+    return { error: evaluation.reason, status }
   }
   const findActiveSelf = async () => (await findActiveSeasonRegistrations(supabase, { activityId, memberId })).find(registration => normalizeSeasonPlan(registration.season_plan) === seasonPlan)
   await writeRegistrationWithRetry(supabase, {
