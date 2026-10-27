@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
 import { errorMessage } from './errorMessage.ts'
-import { sendSeasonLeaveNotification } from './seasonLeaveNotification.ts'
+import { fetchLeaveSessionPage, sendLeaveNotification, sessionVacancy } from './leaveNotification.ts'
 
 const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',
@@ -40,26 +40,28 @@ serve(async req => {
     const body = await req.json()
     const activityId = normalizeId(body?.activityId)
     if (!activityId) return jsonResponse({ error: 'invalid_activity_id' }, 400, origin)
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     const result = await handleRegistrationAction(
       {
-        supabase: createClient(supabaseUrl, supabaseKey),
+        supabase,
         profile,
         activityId,
         submitTime: new Date().toISOString(),
         now: new Date(),
-        notifySeasonLeave: async (activityTitle, activityDate) => {
+        notifyLeave: async event => {
           const token = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
           const groupId = Deno.env.get('LINE_GROUP_ID_NOTIFY')
           if (!token || !groupId) {
-            console.error('Season leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
+            console.error('Leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
             return
           }
           try {
-            await sendSeasonLeaveNotification(token, groupId, profile.displayName, activityTitle, activityDate)
+            const page = await fetchLeaveSessionPage(supabase, activityId, event.activityDateId, event.activityDate)
+            await sendLeaveNotification(token, groupId, profile.displayName, event.kind, page.activity.title, event.activityDate, sessionVacancy(page))
           } catch (error) {
             // The leave has already been saved; a LINE failure must not make the client retry it.
-            console.error('Season leave notification failed', error)
+            console.error('Leave notification failed', error)
           }
         },
       },
