@@ -21,6 +21,7 @@ export type RegistrationCommandContext = {
   submitTime: string
   now: Date
   isAdmin: boolean
+  notifySeasonLeave?: (activityTitle: string, activityDate: string) => Promise<void>
 }
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
@@ -84,7 +85,10 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   if (!seasonRegistration) return { error: 'season_plan_not_covering_date', status: 400 }
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
   const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
-  if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
+  if ((selfCount === 0) !== isCurrentlyOnLeave) {
+    await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
+    if (selfCount === 0) await context.notifySeasonLeave?.(activity.title, activityDate)
+  }
   await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin ? null : memberGuestLimit(activity, activityDate, now)))
   return { ok: true }
 }
