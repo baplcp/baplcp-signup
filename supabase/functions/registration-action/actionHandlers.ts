@@ -1,7 +1,9 @@
 import { isOrganizer, normalizeId, requireOrganizer, type LineProfile } from '../_shared/function-utils.ts'
 import { parseSaveRegistrationInput } from '../_shared/input-validation.ts'
+import { fetchActivityDateId } from '../_shared/normalized-collection-data.ts'
 import { cancelSeasonRegistration, directSeasonRegister, updateSeasonLeave, type RegistrationCommandContext, type RegistrationCommandResult } from './registrationCommands.ts'
 import { findRegistrationById, saveRegistrationAction, syncRegistrationMember, updateRegistrationGuest, writeRegistration } from './registrationRepository.ts'
+import { fetchLeaveSessionPage, hasActivePickupSelf } from './leaveNotification.ts'
 
 export type AdminLineProfile = LineProfile & {
   isDevAdmin?: boolean
@@ -42,9 +44,22 @@ export async function handleRegistrationAction(context: RegistrationActionContex
   const { supabase, profile, activityId } = context
 
   if (action === 'save-registration') {
-    // The RPC owns the member/role lookup and all attendance mutations so
-    // regular signup requires one database round trip and one transaction.
+    // The RPC owns the member/role lookup and all attendance mutations in one transaction.
+    // A pickup cancellation also reads the prior self registration to avoid duplicate notices.
     const input = parseSaveRegistrationInput(body, Number.MAX_SAFE_INTEGER)
+    let pickupLeaveDateId: number | null = null
+    let hadPickupSelf = false
+    if (input.activityDate && input.selfCount === 0) {
+      try {
+        pickupLeaveDateId = await fetchActivityDateId(supabase, activityId, input.activityDate)
+        if (pickupLeaveDateId !== null) {
+          const page = await fetchLeaveSessionPage(supabase, activityId, pickupLeaveDateId, input.activityDate)
+          hadPickupSelf = hasActivePickupSelf(page, profile.userId)
+        }
+      } catch (error) {
+        console.error('Pickup leave notification lookup failed', error)
+      }
+    }
     await saveRegistrationAction(supabase, {
       profile,
       activityId,
@@ -54,6 +69,9 @@ export async function handleRegistrationAction(context: RegistrationActionContex
       guests: input.guests.slice(0, input.guestCount),
       submitTime: context.submitTime,
     })
+    if (hadPickupSelf && pickupLeaveDateId !== null && input.activityDate) {
+      await context.notifyLeave?.({ kind: 'pickup', activityDateId: pickupLeaveDateId, activityDate: input.activityDate })
+    }
     return { body: { ok: true }, status: 200 }
   }
 

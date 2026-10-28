@@ -4,6 +4,7 @@ import { parseSeasonLeaveInput } from '../_shared/input-validation.ts'
 import { pickupSecondGuestCutoff } from '../_shared/pickup-priority.ts'
 import { evaluateSeasonPlans } from '../_shared/season-plan-eligibility.ts'
 import { normalizeSeasonPlan, SEASON_PLAN_HALF_YEAR, SEASON_PLAN_LATE_QUARTER, SEASON_PLAN_QUARTER, seasonPlanCoversDate } from '../_shared/season-plan.ts'
+import type { LeaveNotification } from './leaveNotification.ts'
 import {
   findActiveSeasonRegistrations,
   getActivityForRegistration,
@@ -21,6 +22,7 @@ export type RegistrationCommandContext = {
   submitTime: string
   now: Date
   isAdmin: boolean
+  notifyLeave?: (event: LeaveNotification) => Promise<void>
 }
 
 export type RegistrationCommandResult = { ok: true } | { error: string; status: number }
@@ -84,8 +86,15 @@ export async function updateSeasonLeave(context: RegistrationCommandContext, bod
   if (!seasonRegistration) return { error: 'season_plan_not_covering_date', status: 400 }
   const dateStatus = await fetchSeasonRegistrationDateStatuses(supabase, [seasonRegistration.id], activityDateId)
   const isCurrentlyOnLeave = dateStatus.get(seasonRegistration.id)?.is_on_leave ?? false
-  if ((selfCount === 0) !== isCurrentlyOnLeave) await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
-  await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin ? null : memberGuestLimit(activity, activityDate, now)))
+  const leaveStatusChanged = (selfCount === 0) !== isCurrentlyOnLeave
+  if (leaveStatusChanged) {
+    await setSeasonRegistrationDateStatus(supabase, seasonRegistration.id, activityDateId, selfCount === 0, submitTime)
+  }
+  try {
+    await writeRegistrationGuests(supabase, guestPayload(activityId, activityDateId, memberId, normalizedGuests, isAdmin ? null : memberGuestLimit(activity, activityDate, now)))
+  } finally {
+    if (leaveStatusChanged && selfCount === 0) await context.notifyLeave?.({ kind: 'season', activityDateId, activityDate })
+  }
   return { ok: true }
 }
 
