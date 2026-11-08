@@ -146,7 +146,9 @@ if ($WithMigrations) {
     Write-Host ''
     Write-Host "以下是這次會套用到 $TargetLabel 資料庫的 migration："
     Write-Host ''
-    Invoke-Supabase db push --dry-run
+    # Supabase CLI v3 defaults database commands to the local stack, even after `link`.
+    # Select the linked hosted project explicitly so deploys do not depend on Docker.
+    Invoke-Supabase db push --dry-run --remote
     if ($LASTEXITCODE -ne 0) {
         Fail '檢查 migration 失敗，已停止，沒有套用任何資料庫變更。'
     }
@@ -155,7 +157,7 @@ if ($WithMigrations) {
     $confirmPush = Read-Host "確定要套用到 $TargetLabel 資料庫嗎？輸入 y 繼續，其他鍵跳過"
     if ($confirmPush -eq 'y') {
         Write-Host ''
-        Invoke-Supabase db push
+        Invoke-Supabase db push --remote --yes
         if ($LASTEXITCODE -ne 0) {
             Fail '套用 migration 失敗，已停止，不會繼續部署雲端功能。'
         }
@@ -171,7 +173,7 @@ Write-Host ''
 $failed = @()
 foreach ($functionName in $functions) {
     Write-Host "正在部署 $functionName..."
-    Invoke-Supabase functions deploy $functionName --project-ref $projectRef --no-verify-jwt
+    Invoke-Supabase functions deploy $functionName "--remote=$projectRef" --no-verify-jwt --yes
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✓ $functionName 部署成功"
     }
