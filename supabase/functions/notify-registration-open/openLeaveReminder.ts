@@ -10,9 +10,10 @@ type PickupOpening = {
 }
 
 export async function listOpenedPickupSessions(supabase: any, now: Date): Promise<PickupOpening[]> {
+  const openingTime = new Date(now.getTime() - 2 * 60 * 60 * 1000)
   const { data, error } = await supabase.rpc('list_registration_open_notification_candidates', {
-    p_window_start: new Date(now.getTime() - 60 * 1000).toISOString(),
-    p_window_end: now.toISOString(),
+    p_window_start: new Date(openingTime.getTime() - 60 * 1000).toISOString(),
+    p_window_end: openingTime.toISOString(),
   })
   if (error) throw error
   return (data || [])

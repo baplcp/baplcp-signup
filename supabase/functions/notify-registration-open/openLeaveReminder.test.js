@@ -4,12 +4,12 @@ import { buildOpenLeaveReminder, listOpenedPickupSessions } from './openLeaveRem
 
 const opening = { seasonId: 7, activityDateId: 42, activityDate: '2026-11-08', title: '週日排球', pickupLabel: '週日臨打' }
 
-test('finds only pickup sessions whose registration opened in the last minute', async () => {
+test('finds only pickup sessions whose registration opened two hours ago', async () => {
   const now = new Date('2026-11-01T12:00:00.000Z')
   const supabase = {
     rpc: async (name, args) => {
       assert.equal(name, 'list_registration_open_notification_candidates')
-      assert.deepEqual(args, { p_window_start: '2026-11-01T11:59:00.000Z', p_window_end: now.toISOString() })
+      assert.deepEqual(args, { p_window_start: '2026-11-01T09:59:00.000Z', p_window_end: '2026-11-01T10:00:00.000Z' })
       return {
         data: [
           { season_id: 7, activity_date_id: 42, activity_date: '2026-11-08', title: '週日排球', pickup_label: '週日臨打', notification_type: 'pickup' },
