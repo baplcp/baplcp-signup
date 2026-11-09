@@ -4,7 +4,7 @@ import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, norm
 import { sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
 import { errorMessage } from './errorMessage.ts'
-import { fetchLeaveSessionPage, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
+import { fetchLeaveSessionPage, isLeaveNotificationOpen, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
 
 const DEV_PROFILE: AdminLineProfile = {
   userId: 'dev-user-001',
@@ -52,14 +52,16 @@ serve(async req => {
         now: new Date(),
         notifyLeave: async event => {
           try {
-            if (!(await isNextUpcomingActivityDate(supabase, event.activityDate, new Date()))) return
+            const now = new Date()
+            if (!(await isNextUpcomingActivityDate(supabase, event.activityDate, now))) return
+            const page = await fetchLeaveSessionPage(supabase, activityId, event.activityDateId, event.activityDate)
+            if (!isLeaveNotificationOpen(page.activity, event.activityDate, now)) return
             const token = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN_SUB')
             const groupId = Deno.env.get('LINE_GROUP_ID_NOTIFY')
             if (!token || !groupId) {
               console.error('Leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
               return
             }
-            const page = await fetchLeaveSessionPage(supabase, activityId, event.activityDateId, event.activityDate)
             await sendLeaveNotification(token, groupId, profile.displayName, event.kind, page.activity.title, event.activityDate, sessionVacancy(page))
           } catch (error) {
             // The leave has already been saved; a LINE failure must not make the client retry it.

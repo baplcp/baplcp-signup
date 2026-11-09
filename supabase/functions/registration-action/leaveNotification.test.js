@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { sessionVacancy } from '../_shared/activity-vacancy.ts'
-import { fetchLeaveSessionPage, hasActivePickupSelf, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
+import { fetchLeaveSessionPage, hasActivePickupSelf, isLeaveNotificationOpen, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
+
+test('leave reminders start two hours after pickup registration opens in Taiwan time', () => {
+  const activity = { pickup_open_days_before: 7, pickup_open_time: '20:00:00' }
+  const activityDate = '2026-11-08'
+
+  assert.equal(isLeaveNotificationOpen(activity, activityDate, new Date('2026-11-01T13:59:59.000Z')), false)
+  assert.equal(isLeaveNotificationOpen(activity, activityDate, new Date('2026-11-01T14:00:00.000Z')), true)
+  assert.equal(isLeaveNotificationOpen({ pickup_open_days_before: null, pickup_open_time: null }, activityDate, new Date('2026-11-01T14:00:00.000Z')), false)
+})
+
+test('leave reminder threshold can cross into the next Taiwan day', () => {
+  const activity = { pickup_open_days_before: 1, pickup_open_time: '23:30' }
+  assert.equal(isLeaveNotificationOpen(activity, '2026-11-08', new Date('2026-11-07T17:29:59.000Z')), false)
+  assert.equal(isLeaveNotificationOpen(activity, '2026-11-08', new Date('2026-11-07T17:30:00.000Z')), true)
+})
 
 test('only the nearest upcoming activity date qualifies for a leave reminder', async () => {
   const now = new Date('2026-10-27T08:00:00.000Z')

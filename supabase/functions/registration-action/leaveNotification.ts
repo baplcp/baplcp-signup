@@ -1,4 +1,13 @@
+import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
+
 export type LeaveNotification = { kind: 'season' | 'pickup'; activityDateId: number; activityDate: string }
+
+export function isLeaveNotificationOpen(activity: any, activityDate: string, now: Date): boolean {
+  if (activity.pickup_open_days_before == null || !activity.pickup_open_time) return false
+  const openDate = addTaiwanDays(activityDate, -Number(activity.pickup_open_days_before))
+  const openTime = parseTaiwanDateTime(openDate, activity.pickup_open_time)
+  return now.getTime() >= openTime.getTime() + 2 * 60 * 60 * 1000
+}
 
 export async function isNextUpcomingActivityDate(supabase: any, activityDate: string, now: Date): Promise<boolean> {
   const { data, error } = await supabase.rpc('list_activities', {
