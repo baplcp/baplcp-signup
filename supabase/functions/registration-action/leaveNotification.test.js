@@ -44,7 +44,7 @@ test('no leave reminder qualifies when there is no upcoming session', async () =
   assert.equal(await isNextUpcomingActivityDate(supabase, '2026-11-08', new Date('2026-10-27T08:00:00.000Z')), false)
 })
 
-test('sends a season leave reminder to the notification group', async () => {
+test('sends only the latest confirmed replacement in a season leave reminder', async () => {
   const originalFetch = globalThis.fetch
   let request
   globalThis.fetch = async (url, options) => {
@@ -53,12 +53,12 @@ test('sends a season leave reminder to the notification group', async () => {
   }
 
   try {
-    await sendLeaveNotification('sub-token', 'notify-group', '小明', 'season', '週五排球', '2026-10-30', 3, ['小華', '阿美'])
+    await sendLeaveNotification('sub-token', 'notify-group', '小明', 'season', '週五排球', '2026-10-30', 0, ['小華', '阿美'])
     assert.equal(request.url, 'https://api.line.me/v2/bot/message/push')
     assert.equal(request.options.headers.Authorization, 'Bearer sub-token')
     assert.deepEqual(JSON.parse(request.options.body), {
       to: 'notify-group',
-      messages: [{ type: 'text', text: '【季打請假提醒】\n小明 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：小華、阿美\n目前缺 3 人' }],
+      messages: [{ type: 'text', text: '【季打請假提醒】\n小明 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：阿美\n目前缺 0 人' }],
     })
   } finally {
     globalThis.fetch = originalFetch
@@ -134,6 +134,22 @@ test('pickup leave message includes the current vacancy', async () => {
   try {
     await sendLeaveNotification('sub-token', 'notify-group', '小華', 'pickup', '週五排球', '2026-10-30', 2, [])
     assert.equal(message, '【臨打請假提醒】\n小華 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：無\n目前缺 2 人')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('shows no new replacement when a leave creates a vacancy despite earlier replacements', async () => {
+  const originalFetch = globalThis.fetch
+  let message
+  globalThis.fetch = async (_url, options) => {
+    message = JSON.parse(options.body).messages[0].text
+    return { ok: true }
+  }
+
+  try {
+    await sendLeaveNotification('sub-token', 'notify-group', '請假者', 'season', '週五排球', '2026-10-30', 5, ['AA', 'BB', 'CC'])
+    assert.equal(message, '【季打請假提醒】\n請假者 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：無\n目前缺 5 人')
   } finally {
     globalThis.fetch = originalFetch
   }

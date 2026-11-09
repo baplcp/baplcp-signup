@@ -51,7 +51,7 @@ export async function sendLeaveNotification(
       messages: [
         {
           type: 'text',
-          text: `【${kind === 'season' ? '季打' : '臨打'}請假提醒】\n${displayName} 已請假\n球局：${activityTitle}\n日期：${activityDate}\n已補位：${replacementNames.join('、') || '無'}\n目前缺 ${vacancy} 人`,
+          text: `【${kind === 'season' ? '季打' : '臨打'}請假提醒】\n${displayName} 已請假\n球局：${activityTitle}\n日期：${activityDate}\n已補位：${vacancy === 0 ? replacementNames.at(-1) || '無' : '無'}\n目前缺 ${vacancy} 人`,
         },
       ],
     }),
