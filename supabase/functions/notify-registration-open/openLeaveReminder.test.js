@@ -37,17 +37,31 @@ test('announces members currently on leave when pickup registration opens', () =
 
   assert.deepEqual(buildOpenLeaveReminder(opening, page), {
     type: 'text',
-    text: '【臨打報名已開放】\n週日臨打\n日期：2026-11-08\n目前請假 2 人\n季打：小明、小華\n目前缺 7 人',
+    text: '【臨打報名已開放】\n週日臨打\n日期：2026-11-08\n目前請假 2 人\n季打：小明、小華\n臨打：無\n已補位：無\n目前缺 7 人',
   })
 })
 
-test('ignores pickup cancellations when announcing season leave', () => {
+test('lists pickup cancellations and confirmed replacements, excluding waitlisted guests', () => {
   const page = {
-    activity: { selected_activity_date_id: 42, selected_activity_date: '2026-11-08', dates: ['2026-11-08'], single_capacity: 6 },
-    season_registrations: [],
-    pickup_registrations: [{ user_id: 'pickup-1', display_name: '小李', is_self_registration: true, cancelled_at: '2026-10-20', guests: [{ name: '阿美', cancelled_at: '2026-10-20' }] }],
+    activity: { selected_activity_date_id: 42, selected_activity_date: '2026-11-08', dates: ['2026-11-08'], single_capacity: 2 },
+    season_registrations: [{ display_name: '季打在場', season_plan: 'half-year', is_self_registration: true, cancelled_at: null, leave_dates: [], created_at: '2026-08-01T00:00:00Z' }],
+    pickup_registrations: [
+      { display_name: '小李', is_self_registration: true, cancelled_at: '2026-11-07T00:00:00Z', guests: [{ name: '阿美', cancelled_at: '2026-11-07T00:00:00Z' }] },
+      { display_name: '小華', is_self_registration: true, cancelled_at: null, created_at: '2026-11-07T01:00:00Z', guests: [{ name: '阿芳', created_at: '2026-11-07T02:00:00Z', cancelled_at: null }] },
+    ],
   }
-  assert.equal(buildOpenLeaveReminder(opening, page).text, '【臨打報名已開放】\n週日臨打\n日期：2026-11-08\n目前請假 0 人\n季打：無\n目前缺 6 人')
+  assert.equal(buildOpenLeaveReminder(opening, page).text, '【臨打報名已開放】\n週日臨打\n日期：2026-11-08\n目前請假 2 人\n季打：無\n臨打：小李、阿美\n已補位：小華\n目前缺 0 人')
+})
+
+test('lists a guest-only registration as a replacement', () => {
+  const page = {
+    activity: { selected_activity_date_id: 42, selected_activity_date: '2026-11-08', dates: ['2026-11-08'], single_capacity: 1 },
+    season_registrations: [],
+    pickup_registrations: [
+      { display_name: '小李', is_self_registration: false, cancelled_at: null, created_at: '2026-11-07T01:00:00Z', guests: [{ name: '阿美', created_at: '2026-11-07T01:00:00Z', cancelled_at: null }] },
+    ],
+  }
+  assert.match(buildOpenLeaveReminder(opening, page).text, /已補位：阿美\n目前缺 0 人$/)
 })
 
 test('rejects a page for a different activity date', () => {
