@@ -1,5 +1,4 @@
-import { sessionVacancy } from '../_shared/activity-vacancy.ts'
-import { pickupGuestPriorityCutoff, sortPickupParticipants } from '../_shared/pickup-priority.ts'
+import { confirmedPickupNames, sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
 type PickupOpening = {
@@ -45,36 +44,10 @@ export function buildOpenLeaveReminder(opening: PickupOpening, page: any): Recor
     ...(registration.guests || []).filter((guest: any) => guest.cancelled_at).map((guest: any) => guest.name || '群外'),
   ])
 
-  const participants = [
-    ...(page.season_registrations || [])
-      .filter(
-        (registration: any) =>
-          !registration.cancelled_at &&
-          registration.is_self_registration &&
-          seasonPlanCoversDate(registration.season_plan, opening.activityDate, activity.dates) &&
-          !(registration.leave_dates || []).includes(opening.activityDate)
-      )
-      .map((registration: any) => ({
-        name: registration.display_name || '未提供姓名',
-        ts: registration.rejoin_times?.[opening.activityDate] || registration.created_at,
-        isGuest: false,
-        isPickup: false,
-      })),
-    ...(page.pickup_registrations || []).flatMap((registration: any) => [
-      ...(registration.is_self_registration && !registration.cancelled_at ? [{ name: registration.display_name || '未提供姓名', ts: registration.created_at, isGuest: false, isPickup: true }] : []),
-      ...(registration.guests || [])
-        .filter((guest: any) => !guest.cancelled_at)
-        .map((guest: any) => ({ name: guest.name || '群外', ts: guest.created_at || registration.created_at, isGuest: true, isPickup: true })),
-    ]),
-  ]
-  const cutoff = pickupGuestPriorityCutoff(opening.activityDate, activity.pickup_open_days_before, activity.pickup_open_time)
-  const replacementNames = sortPickupParticipants(participants, cutoff)
-    .slice(0, activity.single_capacity)
-    .filter(participant => participant.isPickup)
-    .map(participant => participant.name)
+  const replacementNames = confirmedPickupNames(page)
   const title = opening.pickupLabel || opening.title
   return {
     type: 'text',
-    text: `【臨打報名已開放】\n${title}\n日期：${opening.activityDate}\n目前請假 ${seasonNames.length + pickupLeaves.length} 人\n季打：${seasonNames.join('、') || '無'}\n臨打：${pickupLeaves.join('、') || '無'}\n已補位：${replacementNames.join('、') || '無'}\n目前缺 ${sessionVacancy(page)} 人`,
+    text: `【臨打報名狀況】\n${title}\n日期：${opening.activityDate}\n目前請假 ${seasonNames.length + pickupLeaves.length} 人\n季打：${seasonNames.join('、') || '無'}\n臨打：${pickupLeaves.join('、') || '無'}\n已補位：${replacementNames.join('、') || '無'}\n目前缺 ${sessionVacancy(page)} 人`,
   }
 }

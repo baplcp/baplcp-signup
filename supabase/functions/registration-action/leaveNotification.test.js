@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { sessionVacancy } from '../_shared/activity-vacancy.ts'
+import { confirmedPickupNames, sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { fetchLeaveSessionPage, hasActivePickupSelf, isLeaveNotificationOpen, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
 
 test('leave reminders start two hours after pickup registration opens in Taiwan time', () => {
@@ -53,12 +53,12 @@ test('sends a season leave reminder to the notification group', async () => {
   }
 
   try {
-    await sendLeaveNotification('sub-token', 'notify-group', '小明', 'season', '週五排球', '2026-10-30', 3)
+    await sendLeaveNotification('sub-token', 'notify-group', '小明', 'season', '週五排球', '2026-10-30', 3, ['小華', '阿美'])
     assert.equal(request.url, 'https://api.line.me/v2/bot/message/push')
     assert.equal(request.options.headers.Authorization, 'Bearer sub-token')
     assert.deepEqual(JSON.parse(request.options.body), {
       to: 'notify-group',
-      messages: [{ type: 'text', text: '【季打請假提醒】\n小明 已請假\n球局：週五排球\n日期：2026-10-30\n目前缺 3 人' }],
+      messages: [{ type: 'text', text: '【季打請假提醒】\n小明 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：小華、阿美\n目前缺 3 人' }],
     })
   } finally {
     globalThis.fetch = originalFetch
@@ -70,7 +70,7 @@ test('reports a failed LINE push', async () => {
   globalThis.fetch = async () => ({ ok: false, text: async () => 'invalid group' })
 
   try {
-    await assert.rejects(sendLeaveNotification('sub-token', 'notify-group', '小明', 'pickup', '週五排球', '2026-10-30', 2), /LINE push failed: invalid group/)
+    await assert.rejects(sendLeaveNotification('sub-token', 'notify-group', '小明', 'pickup', '週五排球', '2026-10-30', 2, []), /LINE push failed: invalid group/)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -97,6 +97,18 @@ test('counts only active people on the selected date, including guest-only signu
   assert.equal(sessionVacancy(page), 2)
 })
 
+test('lists only confirmed pickup participants after a leave', () => {
+  const page = {
+    activity: { single_capacity: 2, selected_activity_date: '2026-11-08', dates: ['2026-11-08'] },
+    season_registrations: [{ display_name: '季打在場', season_plan: 'half-year', is_self_registration: true, cancelled_at: null, leave_dates: [], created_at: '2026-08-01T00:00:00Z' }],
+    pickup_registrations: [
+      { display_name: '已請假', is_self_registration: true, cancelled_at: '2026-11-07T00:00:00Z', created_at: '2026-11-06T00:00:00Z', guests: [] },
+      { display_name: '小華', is_self_registration: true, cancelled_at: null, created_at: '2026-11-07T01:00:00Z', guests: [{ name: '阿美', created_at: '2026-11-07T02:00:00Z', cancelled_at: null }] },
+    ],
+  }
+  assert.deepEqual(confirmedPickupNames(page), ['小華'])
+})
+
 test('reads the requested session for the post-leave vacancy', async () => {
   const page = { activity: { selected_activity_date_id: 42, selected_activity_date: '2026-10-30' } }
   const supabase = {
@@ -120,8 +132,8 @@ test('pickup leave message includes the current vacancy', async () => {
   }
 
   try {
-    await sendLeaveNotification('sub-token', 'notify-group', '小華', 'pickup', '週五排球', '2026-10-30', 2)
-    assert.equal(message, '【臨打請假提醒】\n小華 已請假\n球局：週五排球\n日期：2026-10-30\n目前缺 2 人')
+    await sendLeaveNotification('sub-token', 'notify-group', '小華', 'pickup', '週五排球', '2026-10-30', 2, [])
+    assert.equal(message, '【臨打請假提醒】\n小華 已請假\n球局：週五排球\n日期：2026-10-30\n已補位：無\n目前缺 2 人')
   } finally {
     globalThis.fetch = originalFetch
   }

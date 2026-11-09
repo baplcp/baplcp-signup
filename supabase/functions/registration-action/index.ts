@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, getLineProfile, isLocalDevAdminRequest, jsonResponse, normalizeId } from '../_shared/function-utils.ts'
-import { sessionVacancy } from '../_shared/activity-vacancy.ts'
+import { confirmedPickupNames, sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { handleRegistrationAction, type AdminLineProfile } from './actionHandlers.ts'
 import { errorMessage } from './errorMessage.ts'
 import { fetchLeaveSessionPage, isLeaveNotificationOpen, isNextUpcomingActivityDate, sendLeaveNotification } from './leaveNotification.ts'
@@ -62,7 +62,7 @@ serve(async req => {
               console.error('Leave notification missing LINE_CHANNEL_ACCESS_TOKEN_SUB or LINE_GROUP_ID_NOTIFY')
               return
             }
-            await sendLeaveNotification(token, groupId, profile.displayName, event.kind, page.activity.title, event.activityDate, sessionVacancy(page))
+            await sendLeaveNotification(token, groupId, profile.displayName, event.kind, page.activity.title, event.activityDate, sessionVacancy(page), confirmedPickupNames(page))
           } catch (error) {
             // The leave has already been saved; a LINE failure must not make the client retry it.
             console.error('Leave notification failed', error)
