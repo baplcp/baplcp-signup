@@ -317,7 +317,7 @@ watch(isApprovalPending, async pending => {
       <slot />
     </div>
 
-    <div v-if="isApprovalPending" ref="approvalNotice" class="approval-overlay phone-container" role="alertdialog" aria-modal="true" aria-labelledby="approval-title" tabindex="-1">
+    <div v-if="isApprovalPending" ref="approvalNotice" class="approval-overlay phone-container modal-frame" role="alertdialog" aria-modal="true" aria-labelledby="approval-title" tabindex="-1">
       <div class="approval-card">
         <span class="approval-icon" aria-hidden="true">✓</span>
         <h1 id="approval-title">申請已成功送出，請等待管理員審核</h1>
@@ -354,15 +354,11 @@ watch(isApprovalPending, async pending => {
 
 .approval-overlay {
   position: fixed;
-  inset: 0;
   z-index: var(--layer-dialog);
-  margin: auto;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(244, 246, 250, 0.66);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--overlay-40);
   touch-action: none;
   outline: none;
 }
