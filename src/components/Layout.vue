@@ -13,9 +13,8 @@ const activityListScrollPositions = new Map()
 
 const isIndexPage = computed(() => route.name === 'home')
 const isMenuOpen = ref(false)
-const isAwaitingAuth = computed(() => !liffStore.initialized)
+const isAwaitingAuth = computed(() => !liffStore.initialized || (liffStore.userId && !liffStore.memberProfileInitialized))
 const isLoginRequired = computed(() => liffStore.initialized && !liffStore.userId)
-const isProfileLoading = computed(() => liffStore.userId && !liffStore.memberProfileInitialized)
 const isProfileError = computed(() => liffStore.userId && liffStore.memberProfileInitialized && liffStore.memberProfileError)
 const isApprovalPending = computed(() => liffStore.userId && liffStore.memberProfileInitialized && !liffStore.memberProfileError && liffStore.gender !== null && !liffStore.approvedAt)
 
@@ -295,13 +294,6 @@ watch(isApprovalPending, async pending => {
           並完成報名與名單確認
         </p>
         <button class="auth-wall__button" type="button" @click="requestLineLogin">以 LINE 登入</button>
-      </div>
-    </div>
-
-    <div v-else-if="isProfileLoading" class="auth-wall" role="status">
-      <div class="auth-wall__card">
-        <h1 class="auth-wall__title">正在確認會員資格</h1>
-        <p class="auth-wall__body">請稍候</p>
       </div>
     </div>
 
