@@ -10,8 +10,30 @@ const loading = ref(true)
 const loadError = ref(false)
 const savingId = ref(null)
 const actionError = ref('')
+const defaultAvatar = import.meta.env.BASE_URL + 'images/cookie.png'
+const createdAtFormatter = new Intl.DateTimeFormat('zh-TW', {
+  timeZone: 'Asia/Taipei',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
 const pendingMembers = computed(() => members.value.filter(member => !member.approved_at))
 const approvedMembers = computed(() => members.value.filter(member => member.approved_at))
+
+function formatCreatedAt(value) {
+  if (!value) return '建立時間未知'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '建立時間未知' : `建立於 ${createdAtFormatter.format(date)}`
+}
+
+function onAvatarError(event) {
+  if (event.target.src !== new URL(defaultAvatar, window.location.href).href) {
+    event.target.src = defaultAvatar
+  }
+}
 
 async function loadMembers() {
   loading.value = true
@@ -57,7 +79,7 @@ onMounted(loadMembers)
         <h2 id="pending-heading" class="section-title">待審核（{{ pendingMembers.length }}）</h2>
         <p v-if="!pendingMembers.length" class="empty-copy">目前沒有待審核會員。</p>
         <div v-for="member in pendingMembers" :key="member.id" class="member-row">
-          <img v-if="member.picture_url" class="member-avatar" :src="member.picture_url" alt="" />
+          <img class="member-avatar" :src="member.picture_url || defaultAvatar" alt="" @error="onAvatarError" />
           <div class="member-info">
             <strong>{{ member.display_name || '未命名會員' }}</strong>
             <span>{{ member.gender === 'female' ? '女' : member.gender === 'male' ? '男' : '未填性別' }}</span>
@@ -68,10 +90,10 @@ onMounted(loadMembers)
       <section aria-labelledby="approved-heading">
         <h2 id="approved-heading" class="section-title">已核准（{{ approvedMembers.length }}）</h2>
         <div v-for="member in approvedMembers" :key="member.id" class="member-row">
-          <img v-if="member.picture_url" class="member-avatar" :src="member.picture_url" alt="" />
+          <img class="member-avatar" :src="member.picture_url || defaultAvatar" alt="" @error="onAvatarError" />
           <div class="member-info">
-            <strong>{{ member.display_name || '未命名會員' }}</strong
-            ><span>{{ member.role === 'organizer' ? '管理員' : member.role === 'engineer' ? '工程師' : '一般會員' }}</span>
+            <strong>{{ member.display_name || '未命名會員' }}</strong>
+            <span>{{ formatCreatedAt(member.created_at) }}</span>
           </div>
         </div>
       </section>
@@ -114,6 +136,7 @@ onMounted(loadMembers)
 .member-avatar {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -138,9 +161,12 @@ onMounted(loadMembers)
   min-width: 60px;
   min-height: 40px;
   padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--primary-700);
-  color: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--primary-700);
+  font-size: 14px;
+  font-weight: 500;
 }
 .member-row button:disabled {
   opacity: 0.5;
