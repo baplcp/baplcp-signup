@@ -94,12 +94,12 @@ serve(async req => {
               })
           : Promise.resolve(null)
 
-      const { data, error } = await supabase.from('members').select('role, gender, is_season, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
+      const { data, error } = await supabase.from('members').select('id, role, gender, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
       let role = data?.role ?? 'member'
       let gender = data?.gender ?? null
-      let isSeason = data?.is_season ?? false
+      let isSeason = false
 
       if (!data) {
         const { error: insertError } = await supabase.from('members').insert({
@@ -112,6 +112,19 @@ serve(async req => {
       } else if (data.display_name !== profile.displayName || data.picture_url !== profile.pictureUrl) {
         const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
         if (profileError) throw profileError
+      }
+
+      if (data) {
+        const { data: seasonRegistration, error: registrationError } = await supabase
+          .from('registrations')
+          .select('id')
+          .eq('member_id', data.id)
+          .is('activity_date_id', null)
+          .is('cancelled_at', null)
+          .limit(1)
+          .maybeSingle()
+        if (registrationError) throw registrationError
+        isSeason = !!seasonRegistration
       }
 
       const participationCount = await countPromise

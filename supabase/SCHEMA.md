@@ -185,7 +185,6 @@ Fields used by the app:
 - `display_name text`
 - `picture_url text`
 - `gender text`
-- `is_season boolean`
 - `created_at timestamptz`
 - `updated_at timestamptz`
 

@@ -4,13 +4,22 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   if (!userId) return null
 
   if (import.meta.env.DEV) {
-    const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', userId).maybeSingle()
+    const { data, error } = await supabase.from('members').select('id, role, gender').eq('user_id', userId).maybeSingle()
     if (error) return null
     if (data) {
+      const { data: seasonRegistration, error: registrationError } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('member_id', data.id)
+        .is('activity_date_id', null)
+        .is('cancelled_at', null)
+        .limit(1)
+        .maybeSingle()
+      if (registrationError) return null
       return {
         role: data.role,
         gender: data.gender || null,
-        isSeason: data.is_season ?? false,
+        isSeason: !!seasonRegistration,
       }
     }
 
