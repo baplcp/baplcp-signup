@@ -360,7 +360,7 @@ watch(isApprovalPending, async pending => {
   padding: 32px 24px;
   border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   box-shadow: 0 20px 48px rgba(16, 24, 64, 0.14);
   text-align: center;
 }
