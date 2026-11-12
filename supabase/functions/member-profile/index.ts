@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getTaiwanDateAndHour } from '../_shared/taiwan-date.ts'
+import { isLocalDevAdminRequest, requireOrganizer } from '../_shared/function-utils.ts'
 
 const PARTICIPATION_COUNT_START_DATE = '2026-07-03'
 
@@ -50,17 +51,52 @@ serve(async req => {
   }
 
   try {
+    const body = await req.json()
+    const action = body?.action
+    const isDevAdmin = !req.headers.get('x-line-access-token') && isLocalDevAdminRequest(origin) && (action === 'list-members' || action === 'approve-member')
     const lineAccessToken = req.headers.get('x-line-access-token')
-    if (!lineAccessToken) return jsonResponse({ error: 'missing_line_token' }, 401, origin)
+    if (!lineAccessToken && !isDevAdmin) return jsonResponse({ error: 'missing_line_token' }, 401, origin)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !supabaseKey) return jsonResponse({ error: 'server_misconfigured' }, 500, origin)
 
-    const profile = await getLineProfile(lineAccessToken)
-    const body = await req.json()
-    const action = body?.action
+    const profile = isDevAdmin ? { userId: 'dev-user-001', displayName: 'Dev Admin', pictureUrl: null } : await getLineProfile(lineAccessToken!)
     const supabase = createClient(supabaseUrl, supabaseKey)
+
+    if (action === 'list-members' || action === 'approve-member') {
+      if (!isDevAdmin) await requireOrganizer(supabase, profile.userId)
+      if (action === 'list-members') {
+        const members = []
+        const pageSize = 500
+        for (let offset = 0; ; offset += pageSize) {
+          const { data, error } = await supabase
+            .from('members')
+            .select('id, display_name, picture_url, gender, role, approved_at, created_at')
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(offset, offset + pageSize - 1)
+          if (error) throw error
+          members.push(...(data ?? []))
+          if (!data || data.length < pageSize) break
+        }
+        return jsonResponse({ members }, 200, origin)
+      }
+
+      const memberId = body?.memberId
+      if (typeof memberId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(memberId)) {
+        return jsonResponse({ error: 'invalid_approval' }, 400, origin)
+      }
+      const { data: target, error: targetError } = await supabase.from('members').select('id, role, gender, user_id').eq('id', memberId).maybeSingle()
+      if (targetError) throw targetError
+      if (!target) return jsonResponse({ error: 'member_not_found' }, 404, origin)
+      if (target.role !== 'member' || target.user_id === profile.userId) return jsonResponse({ error: 'forbidden' }, 403, origin)
+      if (!['male', 'female'].includes(target.gender)) return jsonResponse({ error: 'gender_required' }, 400, origin)
+      const { data, error } = await supabase.from('members').update({ approved_at: new Date().toISOString() }).eq('id', memberId).is('approved_at', null).select('approved_at').maybeSingle()
+      if (error) throw error
+      if (!data) return jsonResponse({ error: 'already_approved' }, 409, origin)
+      return jsonResponse({ approvedAt: data.approved_at }, 200, origin)
+    }
 
     if (action === 'count-past-participations') {
       const { data, error } = await supabase.rpc('count_past_participations', {
@@ -94,7 +130,7 @@ serve(async req => {
               })
           : Promise.resolve(null)
 
-      const { data, error } = await supabase.from('members').select('id, role, gender, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
+      const { data, error } = await supabase.from('members').select('id, role, gender, approved_at, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
       let role = data?.role ?? 'member'
@@ -128,7 +164,7 @@ serve(async req => {
       }
 
       const participationCount = await countPromise
-      return jsonResponse({ role, gender, isSeason, participationCount }, 200, origin)
+      return jsonResponse({ role, gender, approvedAt: data?.approved_at ?? null, isSeason, participationCount }, 200, origin)
     }
 
     if (action === 'update-gender') {
@@ -142,7 +178,7 @@ serve(async req => {
     return jsonResponse({ error: 'unknown_action' }, 400, origin)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'internal_error'
-    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message) ? 401 : 400
+    const status = ['invalid_line_token', 'invalid_line_profile'].includes(message) ? 401 : message === 'forbidden' ? 403 : 400
     console.error('member-profile error', message)
     return jsonResponse({ error: message }, status, origin)
   }

@@ -43,6 +43,12 @@ serve(async req => {
     if (!activityId) return jsonResponse({ error: 'invalid_activity_id' }, 400, origin)
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    if (!profile.isDevAdmin && !String(body?.action ?? '').startsWith('admin-')) {
+      const { data: member, error: memberError } = await supabase.from('members').select('approved_at').eq('user_id', profile.userId).maybeSingle()
+      if (memberError) throw memberError
+      if (!member?.approved_at) return jsonResponse({ error: 'member_approval_required' }, 403, origin)
+    }
+
     const result = await handleRegistrationAction(
       {
         supabase,

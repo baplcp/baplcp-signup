@@ -24,7 +24,7 @@ watch(
 const selectedGender = ref('')
 const saving = ref(false)
 
-const showGenderPrompt = computed(() => liffStore.initialized && liffStore.memberProfileInitialized && !!liffStore.userId && liffStore.gender === null)
+const showGenderPrompt = computed(() => liffStore.initialized && liffStore.memberProfileInitialized && !liffStore.memberProfileError && !!liffStore.userId && liffStore.gender === null)
 
 // 每次 prompt 出現時重置選擇
 watch(showGenderPrompt, val => {
@@ -59,7 +59,7 @@ async function confirmGender() {
     :close-on-escape="false"
   >
     <h2 class="shared-dialog-title">請設定你的性別</h2>
-    <p class="shared-dialog-copy">性別資訊僅用於統計男女比</p>
+    <p class="shared-dialog-copy">性別資訊僅用於統計男女比。送出後需等待管理員審核，核准後才能加入。</p>
     <div class="gender-options">
       <button
         v-for="opt in [

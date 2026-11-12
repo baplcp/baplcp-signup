@@ -8,12 +8,16 @@ const route = useRoute()
 const router = useRouter()
 const liffStore = useLiffStore()
 const scrollBox = useTemplateRef('scrollBox')
+const approvalNotice = useTemplateRef('approvalNotice')
 const activityListScrollPositions = new Map()
 
 const isIndexPage = computed(() => route.name === 'home')
 const isMenuOpen = ref(false)
 const isAwaitingAuth = computed(() => !liffStore.initialized)
 const isLoginRequired = computed(() => liffStore.initialized && !liffStore.userId)
+const isProfileLoading = computed(() => liffStore.userId && !liffStore.memberProfileInitialized)
+const isProfileError = computed(() => liffStore.userId && liffStore.memberProfileInitialized && liffStore.memberProfileError)
+const isApprovalPending = computed(() => liffStore.userId && liffStore.memberProfileInitialized && !liffStore.memberProfileError && liffStore.gender !== null && !liffStore.approvedAt)
 
 const ROLE_CONFIG = {
   organizer: { label: '偉大的主揪', modifier: 'is-organizer' },
@@ -107,11 +111,18 @@ watch(
     setNavScrollProgress(scrollTop / NAV_FADE_DISTANCE)
   }
 )
+
+watch(isApprovalPending, async pending => {
+  if (!pending) return
+  closeMenu()
+  await nextTick()
+  approvalNotice.value?.focus()
+})
 </script>
 
 <template>
-  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container">
-    <header v-if="isShowSimpleHeader" class="simple-header">
+  <div ref="scrollBox" @scroll.passive="handleScroll" class="layout phone-container" :class="{ 'is-approval-pending': isApprovalPending }">
+    <header v-if="isShowSimpleHeader" class="simple-header" :inert="isApprovalPending">
       <button @click="goBack" class="icon-button" id="back-button" type="button" aria-label="返回上一頁">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -119,7 +130,7 @@ watch(
       </button>
       <RouterLink v-if="isOrganizer && route.name === 'activities'" class="manage-link" :to="{ name: 'admin-activities' }">管理</RouterLink>
     </header>
-    <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle">
+    <header v-else-if="isShowHeader" class="nav" :class="{ 'is-scrolled': isNavScrolled }" :style="navStyle" :inert="isApprovalPending">
       <button v-if="!isIndexPage" class="back-btn" type="button" aria-label="返回上一頁" @click="goBack">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
@@ -238,6 +249,10 @@ watch(
                 </span>
                 <span>季打退費</span>
               </RouterLink>
+              <RouterLink @click="closeMenu" class="drawer-link" :to="{ name: 'admin-members' }">
+                <span class="drawer-icon is-refund" aria-hidden="true">✓</span>
+                <span>會員審核</span>
+              </RouterLink>
             </nav>
           </section>
         </div>
@@ -283,7 +298,31 @@ watch(
       </div>
     </div>
 
-    <slot v-else />
+    <div v-else-if="isProfileLoading" class="auth-wall" role="status">
+      <div class="auth-wall__card">
+        <h1 class="auth-wall__title">正在確認會員資格</h1>
+        <p class="auth-wall__body">請稍候</p>
+      </div>
+    </div>
+
+    <div v-else-if="isProfileError" class="auth-wall" role="alert">
+      <div class="auth-wall__card">
+        <h1 class="auth-wall__title">無法確認會員資格</h1>
+        <p class="auth-wall__body">請確認網路後再試一次。</p>
+        <button class="auth-wall__button" type="button" @click="liffStore.refreshMemberProfile()">重新確認</button>
+      </div>
+    </div>
+
+    <div v-else class="app-page" :inert="isApprovalPending">
+      <slot />
+    </div>
+
+    <div v-if="isApprovalPending" ref="approvalNotice" class="approval-overlay phone-container" role="alertdialog" aria-modal="true" aria-labelledby="approval-title" tabindex="-1">
+      <div class="approval-card">
+        <span class="approval-icon" aria-hidden="true">✓</span>
+        <h1 id="approval-title">申請已成功送出，請等待管理員審核</h1>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -303,6 +342,60 @@ watch(
 
 .layout::-webkit-scrollbar {
   display: none;
+}
+
+.layout.is-approval-pending {
+  overflow: hidden;
+}
+
+.app-page {
+  height: 100%;
+}
+
+.approval-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-dialog);
+  margin: auto;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(244, 246, 250, 0.66);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  touch-action: none;
+  outline: none;
+}
+
+.approval-card {
+  width: min(100%, 310px);
+  padding: 32px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 20px 48px rgba(16, 24, 64, 0.14);
+  text-align: center;
+}
+
+.approval-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.approval-card h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .nav {

@@ -4,7 +4,7 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   if (!userId) return null
 
   if (import.meta.env.DEV) {
-    const { data, error } = await supabase.from('members').select('id, role, gender').eq('user_id', userId).maybeSingle()
+    const { data, error } = await supabase.from('members').select('id, role, gender, approved_at').eq('user_id', userId).maybeSingle()
     if (error) return null
     if (data) {
       const { data: seasonRegistration, error: registrationError } = await supabase
@@ -19,12 +19,14 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
       return {
         role: data.role,
         gender: data.gender || null,
+        approvedAt: data.approved_at,
         isSeason: !!seasonRegistration,
       }
     }
 
-    await supabase.from('members').insert({ user_id: userId, display_name: displayName, role: 'member' })
-    return { role: 'member', gender: null, isSeason: false }
+    const { error: insertError } = await supabase.from('members').insert({ user_id: userId, display_name: displayName, role: 'member' })
+    if (insertError) throw insertError
+    return { role: 'member', gender: null, approvedAt: null, isSeason: false }
   }
 
   if (!lineAccessToken) return null
@@ -36,6 +38,7 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   return {
     role: data?.role ?? 'member',
     gender: data?.gender ?? null,
+    approvedAt: data?.approvedAt ?? null,
     isSeason: data?.isSeason ?? false,
     participationCount: data?.participationCount ?? null,
   }

@@ -19,6 +19,8 @@ export const useLiffStore = defineStore('liff', () => {
   const lineAccessToken = ref(null)
   const role = ref('member')
   const gender = ref(null)
+  const approvedAt = ref(null)
+  const memberProfileError = ref(false)
   const isSeason = ref(false)
   const participationCount = ref(null)
   const memberProfileInitialized = ref(false)
@@ -97,18 +99,24 @@ export const useLiffStore = defineStore('liff', () => {
         lineAccessToken: lineAccessToken.value,
         includeParticipationCount: isHomeEntry(),
       })
-      if (!profile) return
+      if (!profile) {
+        memberProfileError.value = true
+        return
+      }
       role.value = profile.role
       gender.value = profile.gender
+      approvedAt.value = profile.approvedAt
       isSeason.value = profile.isSeason
       participationCount.value = profile.participationCount
     } catch (e) {
       console.warn('syncMember exception', e)
+      memberProfileError.value = true
     }
   }
 
   function startMemberProfileSync(uid, name) {
     memberProfileInitialized.value = false
+    memberProfileError.value = false
     participationCount.value = null
     memberProfilePromise = syncMember(uid, name).finally(() => {
       memberProfileInitialized.value = true
@@ -119,6 +127,11 @@ export const useLiffStore = defineStore('liff', () => {
   async function ensureMemberProfile() {
     await initialize()
     await memberProfilePromise
+  }
+
+  async function refreshMemberProfile() {
+    if (!userId.value) return
+    await startMemberProfileSync(userId.value, displayName.value)
   }
 
   async function getLiffProfile() {
@@ -328,6 +341,8 @@ export const useLiffStore = defineStore('liff', () => {
     lineAccessToken,
     role,
     gender,
+    approvedAt,
+    memberProfileError,
     isSeason,
     participationCount,
     memberProfileInitialized,
@@ -335,6 +350,7 @@ export const useLiffStore = defineStore('liff', () => {
     getUserProfile,
     initialize,
     ensureMemberProfile,
+    refreshMemberProfile,
     getLineAccessToken,
     login,
     updateGender,
