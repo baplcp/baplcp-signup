@@ -109,6 +109,7 @@ async function confirmGender() {
 
 .gender-options {
   display: flex;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 20px;
 }
