@@ -1,4 +1,4 @@
-import { sessionVacancy } from '../_shared/activity-vacancy.ts'
+import { confirmedPickupNames, sessionVacancy } from '../_shared/activity-vacancy.ts'
 import { seasonPlanCoversDate } from '../_shared/season-plan.ts'
 
 type PickupOpening = {
@@ -39,9 +39,15 @@ export function buildOpenLeaveReminder(opening: PickupOpening, page: any): Recor
       (registration.leave_dates || []).includes(opening.activityDate)
   )
   const seasonNames = seasonLeaves.map((registration: any) => registration.display_name || '未提供姓名')
+  const pickupLeaves = (page.pickup_registrations || []).flatMap((registration: any) => [
+    ...(registration.is_self_registration && registration.cancelled_at ? [registration.display_name || '未提供姓名'] : []),
+    ...(registration.guests || []).filter((guest: any) => guest.cancelled_at).map((guest: any) => guest.name || '群外'),
+  ])
+
+  const replacementNames = confirmedPickupNames(page)
   const title = opening.pickupLabel || opening.title
   return {
     type: 'text',
-    text: `【臨打報名已開放】\n${title}\n日期：${opening.activityDate}\n目前請假 ${seasonNames.length} 人\n季打：${seasonNames.join('、') || '無'}\n目前缺 ${sessionVacancy(page)} 人`,
+    text: `【臨打報名狀況】\n${title}\n日期：${opening.activityDate}\n目前請假 ${seasonNames.length + pickupLeaves.length} 人\n季打：${seasonNames.join('、') || '無'}\n臨打：${pickupLeaves.join('、') || '無'}\n已補位：${replacementNames.join('、') || '無'}\n目前缺 ${sessionVacancy(page)} 人`,
   }
 }

@@ -48,6 +48,12 @@ const publicRoutes = [
 
 const adminRoutes = [
   {
+    path: '/admin/members',
+    name: 'admin-members',
+    component: () => import('~/views/admin/members/index.vue'),
+    meta: { requiresOrganizer: true, header: 'simple' },
+  },
+  {
     path: '/admin/activities',
     name: 'admin-activities',
     component: () => import('~/views/admin/activities/index.vue'),

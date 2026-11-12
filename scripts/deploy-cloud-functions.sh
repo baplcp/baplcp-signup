@@ -157,7 +157,7 @@ FAILED=()
 
 for FUNCTION_NAME in "${FUNCTIONS[@]}"; do
   echo "正在部署 $FUNCTION_NAME..."
-  if supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_REF" --no-verify-jwt; then
+  if supabase functions deploy "$FUNCTION_NAME" --remote="$PROJECT_REF" --no-verify-jwt --yes; then
     echo "✓ $FUNCTION_NAME 部署成功"
   else
     echo "✗ $FUNCTION_NAME 部署失敗"

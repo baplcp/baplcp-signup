@@ -14,6 +14,10 @@ under `supabase/migrations/`.
   - `registration-action`: LINE-verified registration changes and organizer
     registration administration.
   - `member-profile`: LINE-verified member sync and profile updates.
+- New members receive `approved_at = null`; `registration-action` rejects their
+  registration changes until an organizer approves them through `member-profile`.
+  The organizer list and approval actions verify the LINE identity and role on
+  every request.
 - `count_past_participations` is callable only by the service role. The browser
   requests its own count through `member-profile`, which derives the member ID
   from the verified LINE access token.
@@ -185,7 +189,7 @@ Fields used by the app:
 - `display_name text`
 - `picture_url text`
 - `gender text`
-- `is_season boolean`
+- `approved_at timestamptz` — existing members were backfilled; null means pending administrator review
 - `created_at timestamptz`
 - `updated_at timestamptz`
 
@@ -196,6 +200,8 @@ Roles:
 - `member`
 
 ## Migration Index
+
+- `20261112160000_add_member_approval.sql`: marks existing members approved and leaves new accounts pending administrator review.
 
 - `20260520000000_lock_member_registration_writes.sql`: blocks direct anon
   writes to `members` and `registrations`.

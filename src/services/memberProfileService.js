@@ -4,18 +4,27 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   if (!userId) return null
 
   if (import.meta.env.DEV) {
-    const { data, error } = await supabase.from('members').select('role, gender, is_season').eq('user_id', userId).maybeSingle()
+    const { data, error } = await supabase.from('members').select('id, role, gender, approved_at').eq('user_id', userId).maybeSingle()
     if (error) return null
     if (data) {
+      const { data: seasonRegistration, error: registrationError } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('member_id', data.id)
+        .is('activity_date_id', null)
+        .is('cancelled_at', null)
+        .limit(1)
+        .maybeSingle()
+      if (registrationError) return null
       return {
         role: data.role,
         gender: data.gender || null,
-        isSeason: data.is_season ?? false,
+        approvedAt: data.approved_at,
+        isSeason: !!seasonRegistration,
       }
     }
 
-    await supabase.from('members').insert({ user_id: userId, display_name: displayName, role: 'member' })
-    return { role: 'member', gender: null, isSeason: false }
+    return { role: 'member', gender: null, approvedAt: null, isSeason: false }
   }
 
   if (!lineAccessToken) return null
@@ -27,16 +36,22 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   return {
     role: data?.role ?? 'member',
     gender: data?.gender ?? null,
+    approvedAt: data?.approvedAt ?? null,
     isSeason: data?.isSeason ?? false,
     participationCount: data?.participationCount ?? null,
   }
 }
 
-export async function updateMemberGender({ userId, gender, lineAccessToken }) {
+export async function updateMemberGender({ userId, displayName, gender, lineAccessToken }) {
   if (!userId) return false
 
   if (import.meta.env.DEV) {
-    const { error } = await supabase.from('members').update({ gender }).eq('user_id', userId)
+    if (gender !== 'male' && gender !== 'female') return false
+    const { data: existing, error: lookupError } = await supabase.from('members').select('id').eq('user_id', userId).maybeSingle()
+    if (lookupError) return false
+    const { error } = existing
+      ? await supabase.from('members').update({ gender }).eq('id', existing.id)
+      : await supabase.from('members').insert({ user_id: userId, display_name: displayName, gender, role: 'member' })
     return !error
   }
 

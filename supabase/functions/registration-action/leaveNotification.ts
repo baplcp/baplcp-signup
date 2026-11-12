@@ -1,4 +1,13 @@
+import { addTaiwanDays, parseTaiwanDateTime } from '../_shared/taiwan-date.ts'
+
 export type LeaveNotification = { kind: 'season' | 'pickup'; activityDateId: number; activityDate: string }
+
+export function isLeaveNotificationOpen(activity: any, activityDate: string, now: Date): boolean {
+  if (activity.pickup_open_days_before == null || !activity.pickup_open_time) return false
+  const openDate = addTaiwanDays(activityDate, -Number(activity.pickup_open_days_before))
+  const openTime = parseTaiwanDateTime(openDate, activity.pickup_open_time)
+  return now.getTime() >= openTime.getTime() + 2 * 60 * 60 * 1000
+}
 
 export async function isNextUpcomingActivityDate(supabase: any, activityDate: string, now: Date): Promise<boolean> {
   const { data, error } = await supabase.rpc('list_activities', {
@@ -31,14 +40,20 @@ export async function sendLeaveNotification(
   kind: LeaveNotification['kind'],
   activityTitle: string,
   activityDate: string,
-  vacancy: number
+  vacancy: number,
+  replacementNames: string[]
 ): Promise<void> {
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       to: groupId,
-      messages: [{ type: 'text', text: `【${kind === 'season' ? '季打' : '臨打'}請假提醒】\n${displayName} 已請假\n球局：${activityTitle}\n日期：${activityDate}\n目前缺 ${vacancy} 人` }],
+      messages: [
+        {
+          type: 'text',
+          text: `【${kind === 'season' ? '季打' : '臨打'}請假提醒】\n${displayName} 已請假\n球局：${activityTitle}\n日期：${activityDate}\n已補位：${vacancy === 0 ? replacementNames.at(-1) || '無' : '無'}\n目前缺 ${vacancy} 人`,
+        },
+      ],
     }),
   })
   if (!response.ok) throw new Error(`LINE push failed: ${await response.text()}`)
