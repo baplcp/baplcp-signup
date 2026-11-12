@@ -24,8 +24,6 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
       }
     }
 
-    const { error: insertError } = await supabase.from('members').insert({ user_id: userId, display_name: displayName, role: 'member' })
-    if (insertError) throw insertError
     return { role: 'member', gender: null, approvedAt: null, isSeason: false }
   }
 
@@ -44,11 +42,16 @@ export async function syncMemberProfile({ userId, displayName, lineAccessToken, 
   }
 }
 
-export async function updateMemberGender({ userId, gender, lineAccessToken }) {
+export async function updateMemberGender({ userId, displayName, gender, lineAccessToken }) {
   if (!userId) return false
 
   if (import.meta.env.DEV) {
-    const { error } = await supabase.from('members').update({ gender }).eq('user_id', userId)
+    if (gender !== 'male' && gender !== 'female') return false
+    const { data: existing, error: lookupError } = await supabase.from('members').select('id').eq('user_id', userId).maybeSingle()
+    if (lookupError) return false
+    const { error } = existing
+      ? await supabase.from('members').update({ gender }).eq('id', existing.id)
+      : await supabase.from('members').insert({ user_id: userId, display_name: displayName, gender, role: 'member' })
     return !error
   }
 

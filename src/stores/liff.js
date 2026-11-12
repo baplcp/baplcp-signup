@@ -320,7 +320,7 @@ export const useLiffStore = defineStore('liff', () => {
     if (!userId.value) return
     const value = newGender || null
     const lineToken = await getLineAccessToken()
-    const ok = await updateMemberGender({ userId: userId.value, gender: value, lineAccessToken: lineToken })
+    const ok = await updateMemberGender({ userId: userId.value, displayName: displayName.value, gender: value, lineAccessToken: lineToken })
     if (ok) gender.value = value
     else console.warn('updateGender error')
   }

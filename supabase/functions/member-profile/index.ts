@@ -133,19 +133,11 @@ serve(async req => {
       const { data, error } = await supabase.from('members').select('id, role, gender, approved_at, display_name, picture_url').eq('user_id', profile.userId).maybeSingle()
       if (error) throw error
 
-      let role = data?.role ?? 'member'
-      let gender = data?.gender ?? null
+      const role = data?.role ?? 'member'
+      const gender = data?.gender ?? null
       let isSeason = false
 
-      if (!data) {
-        const { error: insertError } = await supabase.from('members').insert({
-          user_id: profile.userId,
-          display_name: profile.displayName,
-          picture_url: profile.pictureUrl,
-          role: 'member',
-        })
-        if (insertError) throw insertError
-      } else if (data.display_name !== profile.displayName || data.picture_url !== profile.pictureUrl) {
+      if (data && (data.display_name !== profile.displayName || data.picture_url !== profile.pictureUrl)) {
         const { error: profileError } = await supabase.from('members').update({ display_name: profile.displayName, picture_url: profile.pictureUrl }).eq('user_id', profile.userId)
         if (profileError) throw profileError
       }
@@ -168,10 +160,27 @@ serve(async req => {
     }
 
     if (action === 'update-gender') {
-      const value = body?.gender || null
-      if (value !== null && value !== 'male' && value !== 'female') return jsonResponse({ error: 'invalid_gender' }, 400, origin)
-      const { error } = await supabase.from('members').update({ gender: value }).eq('user_id', profile.userId)
-      if (error) throw error
+      const value = body?.gender
+      if (value !== 'male' && value !== 'female') return jsonResponse({ error: 'invalid_gender' }, 400, origin)
+      const { data: existing, error: lookupError } = await supabase.from('members').select('id').eq('user_id', profile.userId).maybeSingle()
+      if (lookupError) throw lookupError
+      if (existing) {
+        const { error } = await supabase.from('members').update({ gender: value }).eq('id', existing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('members').insert({
+          user_id: profile.userId,
+          display_name: profile.displayName,
+          picture_url: profile.pictureUrl,
+          role: 'member',
+          gender: value,
+        })
+        if (error) {
+          if (error.code !== '23505') throw error
+          const { error: updateError } = await supabase.from('members').update({ gender: value }).eq('user_id', profile.userId)
+          if (updateError) throw updateError
+        }
+      }
       return jsonResponse({ gender: value }, 200, origin)
     }
 
